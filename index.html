@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -58,7 +59,7 @@ textarea.fi{resize:vertical;min-height:76px}
 .tog input:checked~.tog-s{background:var(--g1)}
 .tog input:checked~.tog-s:before{transform:translateX(18px)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
-.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 30px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.modal{background:#fff;border-radius:20px 20px 0 0;padding:20px 18px 30px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:auto;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
 .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .mh h3{font-size:16px;font-weight:800}
 .mc{background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl2);display:flex;align-items:center;justify-content:center}
@@ -208,6 +209,50 @@ function fbCarregar(){
 }
 
 // ── Login ─────────────────────────────────────────────────────────
+
+function mostrarTermos(){
+  el('login-sc').style.display='none';
+  el('pin-sc').style.display='none';
+  var TERMO_TXT="FisioEvolu\u00e7\u00e3o \u2014 Termos de Uso e Responsabilidade\n\nNATUREZA DA PLATAFORMA\nO FisioEvolu\u00e7\u00e3o \u00e9 uma ferramenta de gest\u00e3o e apoio administrativo para profissionais da sa\u00fade. O aplicativo n\u00e3o realiza diagn\u00f3sticos, n\u00e3o substitui avalia\u00e7\u00e3o cl\u00ednica nem julgamento profissional. Todas as decis\u00f5es cl\u00ednicas permanecem sob responsabilidade exclusiva do profissional usu\u00e1rio.\n\nRESPONSABILIDADE PELAS INFORMA\u00c7\u00d5ES\nO usu\u00e1rio \u00e9 o \u00fanico respons\u00e1vel por: dados cadastrados, evolu\u00e7\u00f5es registradas, relat\u00f3rios emitidos, agendamentos realizados e informa\u00e7\u00f5es compartilhadas com terceiros. O FisioEvolu\u00e7\u00e3o n\u00e3o valida a veracidade das informa\u00e7\u00f5es inseridas.\n\nUSO DE INTELIG\u00caNCIA ARTIFICIAL\nRecursos de IA possuem car\u00e1ter exclusivamente auxiliar. Sugest\u00f5es de textos n\u00e3o substituem an\u00e1lise profissional. O usu\u00e1rio deve revisar todo conte\u00fado gerado.\n\nRESPONSABILIDADE PROFISSIONAL\nO FisioEvolu\u00e7\u00e3o n\u00e3o se responsabiliza por: erros de conduta cl\u00ednica, diagn\u00f3sticos incorretos, tratamentos inadequados, omiss\u00f5es em prontu\u00e1rios ou utiliza\u00e7\u00e3o incorreta da plataforma.\n\nDISPONIBILIDADE E BACKUP\nN\u00e3o \u00e9 garantida disponibilidade cont\u00ednua e ininterrupta. O usu\u00e1rio \u00e9 respons\u00e1vel por manter c\u00f3pias de seguran\u00e7a dos dados importantes.\n\nLIMITA\u00c7\u00c3O DE RESPONSABILIDADE\nO FisioEvolu\u00e7\u00e3o n\u00e3o ser\u00e1 respons\u00e1vel por danos diretos, indiretos, incidentais ou consequenciais decorrentes do uso ou impossibilidade de uso da plataforma.\n\nPROTE\u00c7\u00c3O DE DADOS (LGPD)\nO usu\u00e1rio declara possuir autoriza\u00e7\u00e3o legal para armazenar e tratar os dados dos pacientes. O profissional \u00e9 respons\u00e1vel por cumprir a Lei Geral de Prote\u00e7\u00e3o de Dados (Lei 13.709/2018).\n\nCOMUNICA\u00c7\u00d5ES E COBRAN\u00c7AS\nO FisioEvolu\u00e7\u00e3o N\u00c3O envia mensagens n\u00e3o solicitadas. N\u00c3O realiza cobran\u00e7as fora da plataforma oficial. Qualquer contato suspeito deve ser reportado para fisioevolucao620@gmail.com.\n\nATUALIZA\u00c7\u00d5ES\nOs recursos poder\u00e3o ser modificados sem aviso pr\u00e9vio para melhoria cont\u00ednua do sistema.\n\nACEITE\nAo utilizar o FisioEvolu\u00e7\u00e3o, o usu\u00e1rio declara ter lido, compreendido e aceitado integralmente estes termos. O aceite \u00e9 registrado com data e hora.";
+  var PRIV_TXT="FisioEvolu\u00e7\u00e3o \u2014 Pol\u00edtica de Privacidade\n\nDADOS COLETADOS\nNome do profissional, e-mail de cadastro, dados de pacientes inseridos pelo profissional, registros de sess\u00f5es e evolu\u00e7\u00f5es cl\u00ednicas, data e hora de acesso e aceite dos termos.\n\nFINALIDADE\nOs dados s\u00e3o utilizados exclusivamente para funcionamento do aplicativo, sincroniza\u00e7\u00e3o entre dispositivos e backup de seguran\u00e7a.\n\nARMAZENAMENTO\nDados armazenados com seguran\u00e7a no Firebase (Google) com criptografia. Cada profissional acessa apenas seus pr\u00f3prios dados.\n\nCOMPARTILHAMENTO\nN\u00e3o compartilhamos dados com terceiros. N\u00e3o vendemos informa\u00e7\u00f5es. N\u00e3o utilizamos dados para publicidade.\n\nDIREITOS DO TITULAR (LGPD)\nVoc\u00ea tem direito a: acessar seus dados, corrigir informa\u00e7\u00f5es, solicitar exclus\u00e3o da conta e dos dados, revogar o consentimento.\n\nEXCLUS\u00c3O DE DADOS\nAo solicitar exclus\u00e3o, todos os dados s\u00e3o permanentemente removidos. Contas inativas por 30 dias t\u00eam dados exclu\u00eddos automaticamente.\n\nCONTATO\nfisioevolucao620@gmail.com";
+  var div=document.createElement('div');
+  div.id='termos-sc';
+  div.style.cssText='position:fixed;inset:0;background:#f1f5f2;z-index:500;overflow-y:auto;padding:20px;';
+  var h='<div style="max-width:640px;margin:0 auto">';
+  h+='<div style="text-align:center;margin-bottom:20px">';
+  h+='<div style="font-size:24px;font-weight:900;color:#1e6b3f">Fisio<span style=\"color:#4ade80\">Evolução</span></div>';
+  h+='<div style="font-size:13px;color:#94a3b8">Leia e aceite os termos para continuar</div></div>';
+  h+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #e2e8e4">';
+  h+='<div style="font-size:14px;font-weight:800;color:#1e6b3f;margin-bottom:10px">📄 Termos de Uso e Responsabilidade</div>';
+  h+='<pre style="font-size:11px;color:#475569;line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:inherit">'+esc(TERMO_TXT)+'</pre></div>';
+  h+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #e2e8e4">';
+  h+='<div style="font-size:14px;font-weight:800;color:#1e6b3f;margin-bottom:10px">🔏 Política de Privacidade</div>';
+  h+='<pre style="font-size:11px;color:#475569;line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:inherit">'+esc(PRIV_TXT)+'</pre></div>';
+  h+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #e2e8e4">';
+  h+='<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">';
+  h+='<input type="checkbox" id="chk-termos" style="width:18px;height:18px;margin-top:2px;flex-shrink:0"/>';
+  h+='<span style="font-size:13px;color:#475569">Li e aceito os <strong>Termos de Uso</strong> e a <strong>Política de Privacidade</strong> do FisioEvolução.</span></label>';
+  h+='<div style="margin-top:10px;padding:10px;background:#fef3c7;border-radius:8px;font-size:11px;color:#92400e">';
+  h+='⚠️ O FisioEvolução NÃO envia mensagens não solicitadas e NÃO realiza cobranças fora da plataforma oficial.</div></div>';
+  h+='<button onclick="aceitarTermos()" style="width:100%;padding:12px;background:#1e6b3f;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:30px">Aceitar e continuar</button>';
+  h+='</div>';
+  div.innerHTML=h;
+  document.body.appendChild(div);
+}
+function aceitarTermos(){
+  var chk=el('chk-termos');
+  if(!chk||!chk.checked){
+    var t=document.getElementById('toast');t.textContent='Você precisa aceitar os termos para continuar.';t.classList.add('on');setTimeout(function(){t.classList.remove('on');},3000);
+    return;
+  }
+  D.cfg.termosAceitos=true;
+  D.cfg.termosAceitosEm=new Date().toISOString();
+  salvar();
+  var div=document.getElementById('termos-sc');
+  if(div)div.remove();
+  if(D.cfg.pinAtivo&&getPin())mostrarPin('ver');else ir('inicio');
+}
+
 function mostrarLogin(){document.getElementById('login-sc').style.display='flex';}
 function fecharLogin(){document.getElementById('login-sc').style.display='none';}
 function loginAlt(){
@@ -224,7 +269,9 @@ function loginAcao(){
   var email=el('l-email').value.trim();
   var senha=el('l-senha').value;
   if(!email||!senha){loginErr('Preencha e-mail e senha.');return;}
-  if(senha.length<6){loginErr('Senha precisa ter ao menos 6 caracteres.');return;}
+  if(senha.length<8){loginErr('Senha precisa ter ao menos 8 caracteres.');return;}
+  if(LMODO==='cadastrar'&&!/[A-Z]/.test(senha)){loginErr('Senha deve ter ao menos uma letra maiúscula.');return;}
+  if(LMODO==='cadastrar'&&!/[0-9]/.test(senha)){loginErr('Senha deve ter ao menos um número.');return;}
   var btn=el('l-btn');btn.disabled=true;btn.textContent='Aguarde...';
   if(LMODO==='cadastrar'){
     var nome=el('l-nome').value.trim();
@@ -351,7 +398,13 @@ function baixarXLS(nome,linhas){
 var ABA='inicio',PAC_ID=null,PAC_ABA='evo',BtnVolCb=null;
 var _semRef=new Date();
 
-function boot(){atualizarBadge();if(D.cfg.pinAtivo&&getPin())mostrarPin('ver');else ir('inicio');}
+function boot(){
+  iniciarFeriadosNacionais();
+  localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
+  atualizarBadge();
+  if(!D.cfg.termosAceitos){mostrarTermos();return;}
+  if(D.cfg.pinAtivo&&getPin())mostrarPin('ver');else ir('inicio');
+}
 function ir(aba){ABA=aba;PAC_ID=null;document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.a===aba);});renderizar();}
 function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
@@ -431,8 +484,18 @@ function rInicio(el2){
     h+='</div>';
   }
   if(aberto.length>0){
-    h+='<div class="card"><div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">Em aberto ('+aberto.length+')</div>';
-    aberto.slice(0,5).forEach(function(s){h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--borda)"><span style="flex:1;font-size:12px">'+esc(nomePac(s.pacienteId))+' — '+fmtD(s.data)+' '+esc(s.hora)+'</span>'+stB(s.status)+'</div>';});
+    h+='<div class="card"><div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">Em aberto ('+aberto.length+') — Atualizar status</div>';
+    aberto.forEach(function(s){
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--borda);flex-wrap:wrap">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+esc(nomePac(s.pacienteId))+'</div>';
+      h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+'</div></div>';
+      h+=stB(s.status);
+      h+='<div style="display:flex;gap:3px">';
+      h+='<button class="btn btn-sm" style="background:#16a34a;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'realizado\')" title="Atendido">A</button>';
+      h+='<button class="btn btn-sm" style="background:#94a3b8;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'desmarcado\')" title="Desmarcado">D</button>';
+      h+='<button class="btn btn-sm" style="background:#dc2626;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'falta_prof\')" title="Falta Profissional">F</button>';
+      h+='</div></div>';
+    });
     h+='</div>';
   }
   if(D.cfg.usarNotas){h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Notas rápidas</div><textarea class="fi" id="notas-area" rows="3" placeholder="Anote algo...">'+esc(D.notas||'')+'</textarea><button class="btn btn-p btn-sm" style="margin-top:8px" onclick="salvarNotas()">Salvar</button></div>';}
@@ -583,6 +646,7 @@ function salvarSessao(){
   if(!valor&&planoId){var pl2=D.planos.find(function(x){return x.id===planoId;});if(pl2&&pl2.valor>0)valor=pl2.valor;}
   var statusPag=el('ms-pag').value;var dataPrev=el('ms-prev')?el('ms-prev').value:'';
   var st=el('ms-st').value;var obs=el('ms-obs').value;
+  if(isC&&pacsC.length>0){var qtdPacsReal=pacsC.filter(function(x){return x;}).length||pacsC.length;if(qtdPacsReal>1)valor=valor*qtdPacsReal;}
   var novaSess={pacienteId:pacId,data:data,hora:hora,tipoId:tipoId||'',planoId:planoId||'',valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC};
   if(sid){var s3=D.sessoes.find(function(x){return x.id===sid;});if(s3)Object.assign(s3,novaSess);salvar();fecharM();renderizar();toast('Sessão atualizada!');}
   else{
@@ -796,7 +860,7 @@ function delPaciente(pid){
 }
 
 // ── Evolução ─────────────────────────────────────────────────────
-var MODELOS=['Paciente relata melhora do quadro álgico. Sessão realizada sem intercorrências.','Melhora da amplitude de movimento. Exercícios realizados conforme protocolo.','Boa tolerância à sessão. Paciente refere dor residual ao final.','Evolução satisfatória. Aumentada carga dos exercícios progressivos.'];
+var MODELOS_DEFAULT=['Paciente relata melhora do quadro álgico. Sessão realizada sem intercorrências.','Melhora da amplitude de movimento. Exercícios realizados conforme protocolo.','Boa tolerância à sessão. Paciente refere dor residual ao final.','Evolução satisfatória. Aumentada carga dos exercícios progressivos.'];
 function mEvo(pid,eid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var e=eid?(p.evolucoes||[]).find(function(x){return x.id===eid;}):null;
@@ -810,13 +874,13 @@ function mEvo(pid,eid){
   h+='</div></div>';
   h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="5" placeholder="Descreva a sessão...">'+esc(e.texto)+'</textarea></div>';
   h+='<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Modelos rápidos</div><div style="display:flex;gap:5px;flex-wrap:wrap">';
-  MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
+  var MODELOS=D.cfg.modelosEvo||MODELOS_DEFAULT;MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
   h+='</div></div>';
   if(D.cfg.usarGrafico){h+='<div class="fr"><div class="fg"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" value="'+(e.dor!=null?e.dor:'')+'" placeholder="0-10"/></div><div class="fg"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" value="'+(e.mob!=null?e.mob:'')+'" placeholder="0-10"/></div></div>';}
   h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';
   abrirM(h);
 }
-function usarModelo(idx){var t=el('me-txt');if(t)t.value=MODELOS[parseInt(idx)];}
+function usarModelo(idx){var t=el('me-txt');if(t){var mds=D.cfg.modelosEvo||MODELOS_DEFAULT;t.value=mds[parseInt(idx)]||'';}}
 function salvarEvo(){
   var pid=el('me-pid').value;var eid=el('me-eid').value;var txt=el('me-txt').value.trim();
   if(!txt){toast('Texto obrigatório');return;}
@@ -1031,6 +1095,7 @@ function rMais(el2){
   h+='<a href="mailto:fisioevolucao620@gmail.com" style="font-size:13px;color:var(--g1);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;margin-top:6px">✉️ fisioevolucao620@gmail.com</a>';
   h+='</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:10px;margin-top:10px;font-size:11px;color:var(--sl3);text-align:center">Desenvolvido com ❤️ usando Claude AI (Anthropic)</div>';
+  h+='</div><div style="text-align:center;margin-top:16px"><button style="background:none;border:none;font-size:10px;color:var(--sl4);cursor:pointer" onclick="mExcluirConta()">Solicitar exclusão de conta</button></div>';
   h+='</div>';
   el2.innerHTML=h;
 }
@@ -1062,6 +1127,58 @@ function enviarFeedback(){
   fecharM();
   toast('Obrigado pelo feedback! 😊');
 }
+
+function mModelosConfig(){
+  var modelos=D.cfg.modelosEvo||MODELOS_DEFAULT;
+  var h='<div class="mh"><h3>Modelos de Evolução</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Personalize os textos dos modelos rápidos nas evoluções.</p>';
+  modelos.forEach(function(m,i){
+    h+='<div class="fg"><label>Modelo '+(i+1)+'</label><div style="display:flex;gap:6px">';
+    h+='<textarea class="fi" id="mod-'+i+'" rows="2" style="flex:1">'+esc(m)+'</textarea>';
+    h+='<button class="btn btn-d btn-sm" style="align-self:flex-start" data-idx="'+i+'" onclick="delModelo(this.dataset.idx)">✕</button>';
+    h+='</div></div>';
+  });
+  h+='<button class="btn btn-s btn-bl btn-sm" style="margin-bottom:12px" onclick="addModelo()">+ Novo modelo</button>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarModelos()">Salvar modelos</button>';
+  abrirM(h);
+}
+function addModelo(){var m=D.cfg.modelosEvo||MODELOS_DEFAULT.slice();m.push('');D.cfg.modelosEvo=m;mModelosConfig();}
+function delModelo(idx){var m=D.cfg.modelosEvo||MODELOS_DEFAULT.slice();if(m.length<=1){toast('Mantenha ao menos 1 modelo');return;}m.splice(parseInt(idx),1);D.cfg.modelosEvo=m;mModelosConfig();}
+function salvarModelos(){
+  var m=[];var i=0;
+  while(el('mod-'+i)){var v=el('mod-'+i).value.trim();if(v)m.push(v);i++;}
+  if(!m.length){toast('Adicione ao menos 1 modelo');return;}
+  D.cfg.modelosEvo=m;salvar();fecharM();toast('Modelos salvos!');
+}
+
+
+function mExcluirConta(){
+  var h='<div class="mh"><h3 style="color:var(--red)">⚠️ Excluir conta</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="background:var(--redbg);border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">Esta ação é IRREVERSÍVEL</div>';
+  h+='<div style="font-size:12px;color:var(--red);line-height:1.6">Todos os seus dados serão permanentemente excluídos. Não será possível recuperar.</div></div>';
+  h+='<div class="fg"><label>Digite EXCLUIR para confirmar</label><input class="fi" type="text" id="exc-confirm" placeholder="EXCLUIR"/></div>';
+  h+='<div class="fg"><label>Sua senha</label><input class="fi" type="password" id="exc-senha" placeholder="Senha da conta"/></div>';
+  h+='<button class="btn btn-d btn-bl" onclick="confirmarExclusao()">Excluir minha conta permanentemente</button>';
+  abrirM(h);
+}
+function confirmarExclusao(){
+  var conf=el('exc-confirm').value;
+  var senha=el('exc-senha').value;
+  if(conf!=='EXCLUIR'){toast('Digite EXCLUIR corretamente');return;}
+  if(!senha){toast('Digite sua senha');return;}
+  var cred=firebase.auth.EmailAuthProvider.credential(FBU.email,senha);
+  FBU.reauthenticateWithCredential(cred).then(function(){
+    return FBD.ref('u/'+FBU.uid).remove();
+  }).then(function(){
+    return FBU.delete();
+  }).then(function(){
+    Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_'))localStorage.removeItem(k);});
+    fecharM();toast('Conta excluída com sucesso.');
+    setTimeout(function(){location.reload();},2000);
+  }).catch(function(e){toast('Erro: verifique sua senha e tente novamente.');});
+}
+
 function removerPin(){PR=true;mostrarPin('ver');}
 function toggleOpc(cb){D.cfg[cb.dataset.k]=cb.checked;salvar();}
 function salvarHorario(){var ini=el('ag-ini'),fim=el('ag-fim');if(!ini||!fim)return;var iv=parseInt(ini.value),fv=parseInt(fim.value);if(iv>=fv){toast('Início deve ser antes do fim!');return;}D.cfg.horaIni=iv;D.cfg.horaFim=fv;salvar();toast('Horário atualizado!');}
@@ -1258,10 +1375,14 @@ function confirmarRestore(idx){
 }
 
 function backupAutomatico(){
-  // Salva silenciosamente no localStorage sem baixar nada
   try{
     var d={pacientes:D.pacientes,sessoes:D.sessoes,feriados:D.feriados,planos:D.planos,tipos:D.tipos,cfg:D.cfg,notas:D.notas,ts:Date.now()};
-    localStorage.setItem('fe_bkp_silencioso', JSON.stringify(d));
+    localStorage.setItem('fe_bkp_silencioso',JSON.stringify(d));
+    var ul=parseInt(localStorage.getItem('fe_lembrete_bkp')||'0');
+    if(Date.now()-ul>7*24*60*60*1000){
+      localStorage.setItem('fe_lembrete_bkp',String(Date.now()));
+      setTimeout(function(){toast('💾 Lembre-se de fazer backup! Vá em Mais → Exportar JSON.',5000);},3000);
+    }
   }catch(e){}
 }
 
@@ -1273,6 +1394,45 @@ window.addEventListener('beforeunload', function(e){
     return e.returnValue;
   }
 });
+
+function calcPascoa(ano){
+  var a=ano%19,b=Math.floor(ano/100),c=ano%100;
+  var d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  var g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  var i2=Math.floor(c/4),k=c%4,l=(32+2*e+2*i2-h-k)%7;
+  var m=Math.floor((a+11*h+22*l)/451);
+  var mes=Math.floor((h+l-7*m+114)/31);
+  var dia=(h+l-7*m+114)%31+1;
+  return new Date(ano,mes-1,dia);
+}
+function getFeriadosAno(ano){
+  var fixos=[
+    {d:'01-01',n:'Ano Novo'},{d:'21-04',n:'Tiradentes'},
+    {d:'01-05',n:'Dia do Trabalho'},{d:'07-09',n:'Independência do Brasil'},
+    {d:'12-10',n:'Nossa Senhora Aparecida'},{d:'02-11',n:'Finados'},
+    {d:'15-11',n:'Proclamação da República'},{d:'20-11',n:'Consciência Negra'},
+    {d:'25-12',n:'Natal'}
+  ];
+  var result=fixos.map(function(f){return{data:ano+'-'+f.d,nome:f.n,nacional:true};});
+  var pascoa=calcPascoa(ano);
+  function ad(d,n){var r=new Date(d);r.setDate(r.getDate()+n);return r;}
+  function fmt(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();}
+  result.push({data:fmt(ad(pascoa,-48)),nome:'Segunda de Carnaval',nacional:true});
+  result.push({data:fmt(ad(pascoa,-47)),nome:'Terça de Carnaval',nacional:true});
+  result.push({data:fmt(ad(pascoa,-2)),nome:'Sexta-feira Santa',nacional:true});
+  result.push({data:fmt(pascoa),nome:'Páscoa',nacional:true});
+  result.push({data:fmt(ad(pascoa,60)),nome:'Corpus Christi',nacional:true});
+  return result;
+}
+function iniciarFeriadosNacionais(){
+  var ano=new Date().getFullYear();
+  var nacionais=getFeriadosAno(ano).concat(getFeriadosAno(ano+1));
+  nacionais.forEach(function(f){
+    var existe=D.feriados.find(function(x){return x.data===f.data&&x.nacional;});
+    if(!existe)D.feriados.push({id:'nac_'+f.data,data:f.data,nome:f.nome,nacional:true});
+  });
+}
+
 carregar();fbInit();</script>
 </body>
 </html>
