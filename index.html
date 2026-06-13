@@ -582,7 +582,7 @@ function rInicio(el2){
   if(aberto.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">Em aberto ('+aberto.length+') — Atualizar status</div>';
 
-    h2+='<input class="fi" style="margin:6px 0 8px;font-size:13px" placeholder="Buscar..." id="busca-emaberto" oninput="filtrarEmAberto(this.value)"/>';    aberto.forEach(function(s){
+    h+='<input class="fi" style="margin:6px 0 8px;font-size:13px" placeholder="Buscar..." id="busca-emaberto" oninput="filtrarEmAberto(this.value)"/>';    aberto.forEach(function(s){
       h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--borda);flex-wrap:wrap">';
       h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--g1);cursor:pointer;text-decoration:underline" data-pid="'+esc(s.pacienteId)+'" onclick="irPerfilEvo(this.dataset.pid)">'+esc(nomePac(s.pacienteId))+'</div>';
       h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+'</div></div>';
@@ -602,16 +602,16 @@ function rInicio(el2){
     return pk&&pk.restantes>=0&&pk.restantes<=2;
   });
   if(alertasPacote.length>0){
-    h2+='<div class="card" style="border-color:#fcd34d;background:#fffbeb"><div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px">📦 Pacotes de sessoes ('+alertasPacote.length+')</div>';
+    h+='<div class="card" style="border-color:#fcd34d;background:#fffbeb"><div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px">📦 Pacotes de sessoes ('+alertasPacote.length+')</div>';
     alertasPacote.forEach(function(p){
       var pk=calcPacote(p);
-      h2+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fcd34d">';
-      h2+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(p.nome)+'</div>';
-      h2+='<div style="font-size:11px;color:#92400e">'+(pk.restantes===0?'Pacote encerrado — renovar?':'Apenas '+pk.restantes+' sessao(oes) restante(s)')+'</div></div>';
-      h2+='<span style="font-size:12px;font-weight:700">'+pk.realizadas+'/'+pk.total+'</span>';
-      h2+='</div>';
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fcd34d">';
+      h+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(p.nome)+'</div>';
+      h+='<div style="font-size:11px;color:#92400e">'+(pk.restantes===0?'Pacote encerrado — renovar?':'Apenas '+pk.restantes+' sessao(oes) restante(s)')+'</div></div>';
+      h+='<span style="font-size:12px;font-weight:700">'+pk.realizadas+'/'+pk.total+'</span>';
+      h+='</div>';
     });
-    h2+='</div>';
+    h+='</div>';
   }
   // Alertas de pagamento
   var alertasPg=verificarAlertasPagamento();
@@ -2032,7 +2032,7 @@ function rMais(el2){
   else h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Proteja seus dados com PIN de 4 dígitos.</p><button class="btn btn-p btn-sm" onclick="mostrarPin(\'criar\')">Ativar PIN</button>';
   h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Planos e Convênios</div>';
-  D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><span style="flex:1;font-size:13px;font-weight:600">'+esc(p(!pl.pgMes||pl.pgMes===''?'<span title="Previsao de recebimento nao configurada" style="cursor:pointer;font-size:14px" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">⚠️</span> ':'')+l.nome)+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
+  D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+(!pl.pgMes||pl.pgMes===''?' <span title="Previsao de recebimento nao configurada" style="cursor:pointer;font-size:14px;color:#d97706" onclick="mPlano(\''+pl.id+'\')" >⚠️</span>':'')+''+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
   h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="mPlano(\'\')">+ Novo plano</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🎨 Aparência</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Modo escuro/claro, cor e imagem de fundo.</p><button class="btn btn-p btn-sm" onclick="mAparencia()">Personalizar</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Modelos de Evolução</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Personalize os textos dos modelos rápidos usados nas evoluções clínicas.</p><button class="btn btn-p btn-sm" onclick="mModelosConfig()">✏️ Gerenciar modelos</button></div>';
