@@ -650,6 +650,8 @@ function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toa
 var _filtroPlano='';var _filtroAgenda='';
 function rAgenda(el2){
   var leg=el('legenda-adf');if(leg)leg.style.display='none';
+  // Verificar semana especial
+  var semEsp=verificarSemanaEspecial();
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mSessao(null,null,null);};
   var seg=semIni(_semRef);var dias=[];
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
@@ -693,6 +695,8 @@ function rAgenda(el2){
   h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
   h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
   h+='<button class="btn btn-s btn-sm" onclick="exportarSessoes()">Exportar Excel</button>';
+  h+='<button class="btn btn-a btn-sm" onclick="mSemanaEspecial()">📅 Sem. Especial</button>';
+  if(semEsp)h+='<div style="padding:8px 12px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;font-weight:600;width:100%;margin-top:6px">⚠️ Semana especial: '+esc(semEsp.aviso||'Horário diferente')+(semEsp.hora?' — '+esc(semEsp.hora):'')+'</div>';
   // Filtros rápidos
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="filtros-agenda">';
   var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clinica',v:'clinica'},{l:'Consultorio',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convenio',v:'convenio'}];
@@ -921,6 +925,12 @@ function renderPacs(q){
     if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
     if(p.tipoAtend)h+='<div style="font-size:10px;color:var(--g1);font-weight:600;text-transform:uppercase">'+esc(p.tipoAtend)+'</div>';
     if(p.inativo)h+='<div style="font-size:10px;color:#dc2626;font-weight:700">INATIVO — '+esc(p.motivoInativo||'')+'</div>';
+    var hj2=hoje();var f30=D.sessoes.filter(function(s){
+      if(s.pacienteId!==p.id||s.status!=='falta')return false;
+      var d=new Date(s.data+'T12:00:00');var dh=new Date();
+      return(dh-d)/(864e5)<=30;
+    }).length;
+    if(f30>=3)h+='<div style="font-size:10px;color:#dc2626;font-weight:700">⚠️ '+f30+' faltas/30 dias</div>';
     if(prox[0])h+='<div style="font-size:11px;color:var(--g1);font-weight:600">Próx: '+fmtD(prox[0].data)+' '+esc(prox[0].hora)+'</div>';
     h+='</div>';
     if(semEvo>0)h+='<span class="badge bg-r" style="cursor:pointer" title="'+semEvo+' sessão(ões) realizada(s) sem evolução registrada — Toque para registrar" onclick="event.stopPropagation();irPerfilEvo(p.id)">'+semEvo+' sem evo</span>';
@@ -2045,10 +2055,11 @@ function rMais(el2){
   h+='</select></div><div class="fg"><label>Fim</label><select class="fi" id="ag-fim" onchange="salvarHorario()">';
   for(var hf=17;hf<=23;hf++)h+='<option value="'+hf+'"'+((D.cfg.horaFim||20)===hf?' selected':'')+'>'+('0'+hf).slice(-2)+':00</option>';
   h+='</select></div></div><p style="font-size:11px;color:var(--sl3)">Define os horários na grade da agenda.</p></div>';
-  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div>';
-  [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'},{k:'usarPilates',l:'🧘 Módulo Pilates',d:'Agenda e gestão de turmas de Pilates'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div><div style="max-height:320px;overflow-y:auto;padding-right:4px">';
+  [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'},{k:'usarPilates',l:'🧘 Módulo Pilates',d:'Agenda e gestão de turmas de Pilates'},{k:'usarTermo',l:'Termo de consentimento',d:'Gerar e registrar aceite do paciente'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
 
-  h+='<div class="opc-item"><label><input type="checkbox" id="opc-termo" onchange="toggleOpc(\'usarTermo\',this.checked)"'+(D.cfg.usarTermo?' checked':'')+'/> Termo de consentimento</label></div>';  h+='</div>';
+  h+='</div>';
+  h+='</div></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistorico()">🕐 Histórico de versões</button></div></div>';
@@ -4004,6 +4015,40 @@ function togglePilatesModulo(ativo){
     var navP=el('nav-pilates');if(navP)navP.style.display='none';
     toast('Módulo Pilates desativado.');
   }
+}
+
+
+function mSemanaEspecial(){
+  var h='<div class="mh"><h3>Semana Especial</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:12px">Configure uma semana com horários diferentes do habitual. Um aviso será exibido na agenda.</p>';
+  var esp=D.cfg.semanaEspecial||{};
+  h+='<div class="fg"><label>Data início</label><input class="fi" type="date" id="se-ini" value="'+(esp.ini||'')+'"/></div>';
+  h+='<div class="fg"><label>Data fim</label><input class="fi" type="date" id="se-fim" value="'+(esp.fim||'')+'"/></div>';
+  h+='<div class="fg"><label>Aviso (ex: Congresso, Férias...)</label><input class="fi" type="text" id="se-aviso" value="'+(esp.aviso||'')+'" placeholder="Ex: Semana do Congresso — atendimento reduzido"/></div>';
+  h+='<div class="fg"><label>Horário especial (opcional)</label><input class="fi" type="text" id="se-hora" value="'+(esp.hora||'')+'" placeholder="Ex: apenas 14h às 17h"/></div>';
+  if(esp.ini)h+='<button class="btn btn-d btn-sm" style="margin-bottom:8px;width:100%" onclick="removerSemanaEsp()">Remover semana especial</button>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarSemanaEsp()">Salvar</button>';
+  abrirM(h);
+}
+function salvarSemanaEsp(){
+  var ini=el('se-ini')?el('se-ini').value:'';
+  var fim=el('se-fim')?el('se-fim').value:'';
+  var aviso=el('se-aviso')?el('se-aviso').value:'';
+  var hora=el('se-hora')?el('se-hora').value:'';
+  if(!ini||!fim){toast('Informe as datas');return;}
+  if(ini>fim){toast('Data início deve ser antes da data fim');return;}
+  D.cfg.semanaEspecial={ini:ini,fim:fim,aviso:aviso,hora:hora};
+  salvar();fecharM();renderizar();toast('Semana especial configurada!');
+}
+function removerSemanaEsp(){
+  D.cfg.semanaEspecial=null;
+  salvar();fecharM();renderizar();toast('Semana especial removida!');
+}
+function verificarSemanaEspecial(){
+  var esp=D.cfg.semanaEspecial;if(!esp||!esp.ini)return null;
+  var hj=hoje();
+  if(hj>=esp.ini&&hj<=esp.fim)return esp;
+  return null;
 }
 
 function removerPin(){PR=true;mostrarPin('ver');}
