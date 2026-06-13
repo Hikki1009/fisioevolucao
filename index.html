@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -94,6 +93,20 @@ textarea.fi{resize:vertical;min-height:76px}
 .sess-item{background:var(--card);border-left:4px solid var(--g1);border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 #toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--sl);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:.3s;z-index:1000;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+body.tema-escuro{
+  --g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;
+  --sl:#e2e8f0;--sl2:#cbd5e1;--sl3:#94a3b8;--sl4:#64748b;
+  --bg:#0f172a;--card:#1e293b;--borda:#334155;
+}
+
+body.tema-escuro{
+  --g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;
+  --sl:#e2e8f0;--sl2:#cbd5e1;--sl3:#94a3b8;--sl4:#64748b;
+  --bg:#0f172a;--card:#1e293b;--borda:#334155;
+}
+
+body.tema-escuro{--g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;--sl:#e2e8f0;--sl2:#cbd5e1;--sl3:#94a3b8;--sl4:#64748b;--bg:#0f172a;--card:#1e293b;--borda:#334155;}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
 .leg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:8px;background:var(--bg);border-radius:8px}
@@ -151,15 +164,22 @@ textarea.fi{resize:vertical;min-height:76px}
   <div class="pin-dots"><div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div><div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div></div>
   <div id="pin-err" style="font-size:13px;color:#fca5a5;min-height:18px"></div>
   <div class="pin-kb" id="pin-kb"></div>
-  <div id="pin-ex" style="margin-top:6px"></div>
+  <div id="pin-ex"></div>
 </div>
-<div class="ov" id="ov" onclick="if(event.target===this)fecharM()"><div class="modal" id="mbody"></div></div>
+</div>
+</div>
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center" onclick="fecharM()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div id="mbody"></div>
+  </div>
+</div>
 <div id="toast"></div>
-<script>var D = {
+<script>
+var D = {
   pacientes:[],sessoes:[],feriados:[],
   planos:[{id:'p1',nome:'Particular',valor:0},{id:'p2',nome:'SUS',valor:0}],
   tipos:[{id:'t1',nome:'Particular',cor:'#2563eb'},{id:'t2',nome:'Clínica',cor:'#dc2626'},{id:'t3',nome:'Domiciliar',cor:'#d97706'},{id:'t4',nome:'Avaliação',cor:'#7c3aed'}],
-  cfg:{pin:'',pinAtivo:false,usarGrafico:true,usarAnamnese:false,usarCompartilhar:false,usarNotas:false,horaIni:7,horaFim:20},
+  cfg:{pin:'',pinAtivo:false,usarGrafico:true,usarAnamnese:false,usarCompartilhar:false,usarNotas:false,usarTermo:false,horaIni:7,horaFim:20},
   notas:''
 };
 
@@ -399,6 +419,7 @@ var ABA='inicio',PAC_ID=null,PAC_ABA='evo',BtnVolCb=null;
 var _semRef=new Date();
 
 function boot(){
+  aplicarTema();
   iniciarFeriadosNacionais();
   localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
   atualizarBadge();
@@ -425,6 +446,8 @@ function renderizar(){
   else if(ABA==='financeiro')rFinanceiro(div);
   else if(ABA==='relatorios')rRelatorios(div);
   else if(ABA==='ajuda')rAjuda(div);
+  else if(ABA==='grafico-fin')rGraficoFin(div);
+  else if(ABA==='busca-receita')rBuscaReceita(div);
   c.appendChild(div);
 }
 function abrirM(html){el('mbody').innerHTML=html;el('ov').style.display='flex';}
@@ -433,7 +456,8 @@ function fecharM(){el('ov').style.display='none';el('mbody').innerHTML='';}
 // ── INÍCIO ───────────────────────────────────────────────────────
 function rInicio(el2){
   var now=new Date();var hj=hoje();var hora=now.getHours();
-  var saud=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
+  var primeiroNome=FBU&&FBU.displayName?', '+FBU.displayName.split(' ')[0]+'!':'';
+  var saud=(hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite')+primeiroNome;
   var mes=now.getMonth(),ano=now.getFullYear();
   var sHj=D.sessoes.filter(function(s){return s.data===hj;}).sort(function(a,b){return a.hora.localeCompare(b.hora);});
   var sMes=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return d.getMonth()===mes&&d.getFullYear()===ano;});
@@ -443,7 +467,7 @@ function rInicio(el2){
   var aberto=D.sessoes.filter(function(s){return s.data<hj&&(s.status==='agendado'||s.status==='confirmado');});
   var ferProx=D.feriados.filter(function(f){var dt=Math.ceil((new Date(f.data+'T12:00:00')-new Date(hj+'T12:00:00'))/(864e5));return dt>=0&&dt<=15;}).sort(function(a,b){return a.data.localeCompare(b.data);});
 
-  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+'! 👋</div>';
+  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+' 👋</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sHj.length+'</div><div style="font-size:11px;color:var(--sl3)">Hoje</div></div>';
@@ -464,6 +488,8 @@ function rInicio(el2){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
     // Legenda
     h+='<div class="leg"><div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Atendido</div><div class="leg-item"><div class="leg-dot" style="background:#d97706"></div>Pendente</div><div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Falta</div><div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Remarcado</div></div>';
+    h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px;padding:5px 8px;background:#f8fafc;border-radius:6px"><strong style="color:#16a34a">A</strong>=Atendido &nbsp;<strong style="color:#94a3b8">D</strong>=Desmarcado &nbsp;<strong style="color:#dc2626">F</strong>=Falta Profissional</div>';
+    h+='<div style="display:flex;gap:8px;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px"><span style="font-size:11px;color:var(--sl3)"><strong style="color:#16a34a">A</strong> = Atendido</span><span style="font-size:11px;color:var(--sl3)"><strong style="color:#94a3b8">D</strong> = Desmarcado</span><span style="font-size:11px;color:var(--sl3)"><strong style="color:#dc2626">F</strong> = Falta Profissional</span></div>';
     sHj.forEach(function(s){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
@@ -487,7 +513,7 @@ function rInicio(el2){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:10px">Em aberto ('+aberto.length+') — Atualizar status</div>';
     aberto.forEach(function(s){
       h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--borda);flex-wrap:wrap">';
-      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600">'+esc(nomePac(s.pacienteId))+'</div>';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--g1);cursor:pointer;text-decoration:underline" data-pid="'+esc(s.pacienteId)+'" onclick="irPerfilEvo(this.dataset.pid)">'+esc(nomePac(s.pacienteId))+'</div>';
       h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+'</div></div>';
       h+=stB(s.status);
       h+='<div style="display:flex;gap:3px">';
@@ -495,6 +521,38 @@ function rInicio(el2){
       h+='<button class="btn btn-sm" style="background:#94a3b8;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'desmarcado\')" title="Desmarcado">D</button>';
       h+='<button class="btn btn-sm" style="background:#dc2626;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'falta_prof\')" title="Falta Profissional">F</button>';
       h+='</div></div>';
+    });
+    h+='</div>';
+  }
+  // Alerta de pacotes quase no fim
+  var alertasPacote=D.pacientes.filter(function(p){
+    if(!p.pacote)return false;
+    var pk=calcPacote(p);
+    return pk&&pk.restantes>=0&&pk.restantes<=2;
+  });
+  if(alertasPacote.length>0){
+    h2+='<div class="card" style="border-color:#fcd34d;background:#fffbeb"><div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px">📦 Pacotes de sessoes ('+alertasPacote.length+')</div>';
+    alertasPacote.forEach(function(p){
+      var pk=calcPacote(p);
+      h2+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fcd34d">';
+      h2+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(p.nome)+'</div>';
+      h2+='<div style="font-size:11px;color:#92400e">'+(pk.restantes===0?'Pacote encerrado — renovar?':'Apenas '+pk.restantes+' sessao(oes) restante(s)')+'</div></div>';
+      h2+='<span style="font-size:12px;font-weight:700">'+pk.realizadas+'/'+pk.total+'</span>';
+      h2+='</div>';
+    });
+    h2+='</div>';
+  }
+  // Alertas de pagamento
+  var alertasPg=verificarAlertasPagamento();
+  if(alertasPg.length>0){
+    h+='<div class="card" style="border-color:#fcd34d;background:#fffbeb"><div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:8px">⚠️ Alertas de pagamento ('+alertasPg.length+')</div>';
+    alertasPg.forEach(function(a){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fcd34d">';
+      h+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(a.pac)+' — '+esc(a.plano)+'</div>';
+      h+='<div style="font-size:11px;color:#92400e">'+(a.tipo==='chegando'?'Vence em '+a.dias+' dia(s)':'Atrasado '+a.dias+' dia(s)')+'</div></div>';
+      h+='<span style="font-weight:700;color:#d97706">R$'+(a.valor||0).toFixed(2)+'</span>';
+      h+='<button class="btn btn-p btn-sm" data-sid="'+esc(a.sid)+'" onclick="marcarPago(this.dataset.sid)">Pago</button>';
+      h+='</div>';
     });
     h+='</div>';
   }
@@ -533,9 +591,10 @@ function rAgenda(el2){
   h+='<div class="gw"><div class="grade" style="grid-template-columns:38px repeat(7,1fr)">';
   h+='<div class="gh" style="font-size:9px;top:0;z-index:3;position:sticky">Hr</div>';
   dias.forEach(function(d3){
-    var ds=d3.toISOString().slice(0,10);var isHj=ds===hj;
+    var ds=d3.getFullYear()+'-'+(d3.getMonth()<9?'0':'')+(d3.getMonth()+1)+'-'+(d3.getDate()<10?'0':'')+d3.getDate();var isHj=ds===hj;
     var fer=D.feriados.find(function(f){return f.data===ds;});
-    h+='<div class="gh" style="'+(isHj?'background:#fff;color:var(--g1);':'')+' position:sticky;top:0;z-index:3">';
+    var cAgenda=D.cfg.coresAgenda||{};
+    h+='<div class="gh" style="'+(isHj?'background:'+(cAgenda.hoje||'#fff')+';color:var(--g1);':'')+' position:sticky;top:0;z-index:3">';
     h+=dN[d3.getDay()]+'<br><span style="font-size:12px;font-weight:800">'+d3.getDate()+'</span>';
     if(fer)h+='<div style="font-size:7px;background:#fcd34d;color:#92400e;padding:1px;border-radius:2px;margin-top:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(fer.nome.slice(0,8))+'</div>';
     h+='</div>';
@@ -593,6 +652,9 @@ function mSessao(s,ds,hr){
   h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
   h+='<div class="fr"><div class="fg"><label>Plano</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
   h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00"/></div></div>';
+  
+  h+='<div class="fg"><label>Data prevista de recebimento</label><input class="fi" type="date" id="ms-dtpag" value="'+(s.dataPrevista||'')+'"/></div>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:6px">Opcional — deixe vazio para usar a regra do plano.</div>';
   h+='<div class="fr"><div class="fg"><label>Pagamento</label><select class="fi" id="ms-pag" onchange="togglePrev()">'+opsPag+'</select></div>';
   h+='<div class="fg"><label>Status</label><select class="fi" id="ms-st">'+opsSt+'</select></div></div>';
   h+='<div class="fg" id="ms-prev-wrap" style="display:'+(s.dataPrevista?'block':'none')+'"><label>Data prevista de recebimento</label><input class="fi" type="text" id="ms-prev" value="'+esc(s.dataPrevista||'')+'" placeholder="Ex: 60 dias, Março/2026"/></div>';
@@ -641,12 +703,22 @@ function salvarSessao(){
   var data=el('ms-data').value;var hora=el('ms-hora').value;
   if(!data||!hora){toast('Preencha data e horário');return;}
   var planoId=el('ms-plano').value;
+  if(!planoId){toast('Identifique a origem do atendimento (Plano/Convenio)');return;}
+  if(!planoId){toast('Identifique a origem do atendimento (Plano/Convênio)');return;}
   // Auto-atualizar valor se plano mudou e valor estava vazio antes
   var valor=parseFloat(el('ms-valor').value)||0;
   if(!valor&&planoId){var pl2=D.planos.find(function(x){return x.id===planoId;});if(pl2&&pl2.valor>0)valor=pl2.valor;}
   var statusPag=el('ms-pag').value;var dataPrev=el('ms-prev')?el('ms-prev').value:'';
   var st=el('ms-st').value;var obs=el('ms-obs').value;
-  if(isC&&pacsC.length>0){var qtdPacsReal=pacsC.filter(function(x){return x;}).length||pacsC.length;if(qtdPacsReal>1)valor=valor*qtdPacsReal;}
+  if(isC&&pacsC.length>0){
+    var qtdPacsReal=pacsC.filter(function(x){return x;}).length||pacsC.length;
+    var valorUnit=valor;
+    if(qtdPacsReal>1){
+      valor=valorUnit*qtdPacsReal;
+      novaSess.valorUnitario=valorUnit;
+      novaSess.qtdPacientes=qtdPacsReal;
+    }
+  }
   var novaSess={pacienteId:pacId,data:data,hora:hora,tipoId:tipoId||'',planoId:planoId||'',valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC};
   if(sid){var s3=D.sessoes.find(function(x){return x.id===sid;});if(s3)Object.assign(s3,novaSess);salvar();fecharM();renderizar();toast('Sessão atualizada!');}
   else{
@@ -693,7 +765,8 @@ function exportarSessoes(){
 // ── PACIENTES ────────────────────────────────────────────────────
 function rPacientes(el2){
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mPaciente(null);};
-  var h='<input class="fi" style="margin-bottom:12px" placeholder="Buscar paciente..." oninput="filtroPac(this.value)" id="busca-pac"/>';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--sl3)">'+D.pacientes.length+' paciente(s) cadastrado(s)</div></div>';
+  h+='<input class="fi" style="margin-bottom:12px" placeholder="Buscar paciente..." oninput="filtroPac(this.value)" id="busca-pac"/>';
   h+='<div id="lista-pac"></div>';
   h+='<div id="pac-loading" style="text-align:center;padding:30px;color:var(--sl3)"><div style="font-size:24px;margin-bottom:8px">⏳</div>Carregando pacientes...</div>';
   el2.innerHTML=h;
@@ -706,7 +779,15 @@ function rPacientes(el2){
     }
   }, D.pacientes.length>0?0:800);
 }
+var _filtroTipoPac='';
 function filtroPac(q){renderPacs(q);}
+function filtroTipoPac(tipo){
+  _filtroTipoPac=tipo;
+  var ids=['todos','dom','cli','con','mis'];
+  var vals=['','domiciliar','clinica','consultorio','misto'];
+  ids.forEach(function(id,i){var b=el('ft-'+id);if(b){b.className='btn btn-sm '+(vals[i]===tipo?'btn-p':'btn-s');}});
+  renderPacs(el('busca-pac')?el('busca-pac').value:'');
+}
 function renderPacs(q){
   var lst=el('lista-pac');if(!lst)return;
   q=(q||'').toLowerCase();
@@ -722,10 +803,14 @@ function renderPacs(q){
     h+='<div class="av">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     h+='<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
     if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
+    if(p.tipoAtend)h+='<div style="font-size:10px;color:var(--g1);font-weight:600;text-transform:uppercase">'+esc(p.tipoAtend)+'</div>';
     if(prox[0])h+='<div style="font-size:11px;color:var(--g1);font-weight:600">Próx: '+fmtD(prox[0].data)+' '+esc(prox[0].hora)+'</div>';
     h+='</div>';
-    if(semEvo>0)h+='<span class="badge bg-r" title="Sessões sem evolução">'+semEvo+'</span>';
-    if(pend)h+='<span class="badge bg-a">'+pend+'</span>';
+    if(semEvo>0)h+='<span class="badge bg-r" style="cursor:pointer" title="'+semEvo+' sessão(ões) realizada(s) sem evolução registrada — Toque para registrar" onclick="event.stopPropagation();irPerfilEvo(p.id)">'+semEvo+' sem evo</span>';
+    if(pend)h+='<span class="badge bg-a" style="cursor:pointer" title="'+pend+' sessão(ões) com pagamento pendente">'+pend+' pend.</span>';
+    var pk2=calcPacote(p);
+    if(pk2&&pk2.restantes<=3&&pk2.restantes>0)h+='<span class="badge bg-a" title="'+pk2.restantes+' sessao(oes) restante(s) no pacote">'+pk2.restantes+' rest.</span>';
+    if(pk2&&pk2.restantes===0)h+='<span class="badge bg-r" title="Pacote encerrado">Pacote fin.</span>';
     h+='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
   });
   lst.innerHTML=h;
@@ -745,14 +830,17 @@ function rPerfil(el2){
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';
   BtnVolCb=function(){voltarPac();};
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
-  var abas=['evo','sessoes','dados'];
-  if(D.cfg.usarGrafico)abas.splice(1,0,'grafico');
-  var abaL={evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',dados:'Dados'};
+  var abas=['resumo','anamnese','evo','sessoes','avaliacoes','dados'];
+  if(D.cfg.usarGrafico)abas.splice(3,0,'grafico');
+  var abaL={resumo:'Resumo',anamnese:'Anamnese',evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',avaliacoes:'Avaliações',dados:'Dados'};
   var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
   h+='<button class="btn btn-s btn-sm" onclick="voltarPac()">← Voltar</button><div style="flex:1"></div>';
   h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Evolução</button>';
+  h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
+  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistoricoEscalas(this.dataset.pid)">Historico ('+((p.escalasDin||[]).length)+')</button>';
+  if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'📄 Termo ✅':'📄 Termo')+'</button>';
   h+='<button class="btn btn-s btn-sm" onclick="mSessao(null,null,null)">+ Sessão</button>';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPaciente(D.pacientes.find(function(x){return x.id===this.dataset.pid;}))">Editar</button></div>';
+  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)" title="Editar paciente" style="padding:6px 10px">✏️</button></div>';
   h+='<div class="ptab">';
   abas.forEach(function(a){h+='<div class="pt '+(PAC_ABA===a?'on':'')+'" data-a="'+a+'" onclick="trocarAba(this.dataset.a)">'+abaL[a]+'</div>';});
   h+='</div>';
@@ -760,6 +848,9 @@ function rPerfil(el2){
   else if(PAC_ABA==='sessoes')h+=rAbaSess(p);
   else if(PAC_ABA==='grafico')h+=rAbaGraf(p);
   else if(PAC_ABA==='dados')h+=rAbaDados(p);
+  else if(PAC_ABA==='anamnese')h+=rAbaAnamnese(p);
+  else if(PAC_ABA==='avaliacoes')h+=rAbaAvaliacoes(p);
+  else if(PAC_ABA==='resumo')h+=rAbaResumo(p);
   el2.innerHTML=h;
   var fab2=el('fab');
   if(PAC_ABA==='evo'){fab2.style.display='flex';fab2.onclick=function(){mEvo(PAC_ID,'');};}
@@ -818,12 +909,23 @@ function rAbaDados(p){
 }
 
 // ── Modal Paciente ───────────────────────────────────────────────
+function mPacienteEditar(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});
+  if(p)mPaciente(p);
+}
 function mPaciente(pac){
   var p=pac||{id:'',nome:'',dataNasc:'',telefone:'',celular:'',diagnostico:'',obs:'',foto:'',cidade:'',bairro:'',numero:'',alergias:'',medicamentos:'',cirurgias:'',comorbidades:'',pressao:''};
   var h='<div class="mh"><h3>'+(p.id?'Editar':'Novo')+' Paciente</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="mp-id" value="'+esc(p.id)+'"/>';
   h+='<div class="fsec"><div class="fsec-t">Dados básicos</div>';
   h+='<div class="fg"><label>Nome *</label><input class="fi" type="text" id="mp-nome" value="'+esc(p.nome)+'" placeholder="Nome completo"/></div>';
+  h+='<div class="fg"><label>Tipo de atendimento</label><select class="fi" id="mp-tipo">';
+  h+='<option value=""'+(!(p.tipoAtend)?' selected':'')+'>Nao definido</option>';
+  h+='<option value="domiciliar"'+(p.tipoAtend==='domiciliar'?' selected':'')+'>Domiciliar</option>';
+  h+='<option value="clinica"'+(p.tipoAtend==='clinica'?' selected':'')+'>Clinica</option>';
+  h+='<option value="consultorio"'+(p.tipoAtend==='consultorio'?' selected':'')+'>Consultorio</option>';
+  h+='<option value="misto"'+(p.tipoAtend==='misto'?' selected':'')+'>Misto</option>';
+  h+='</select></div>';
   h+='<div class="fr"><div class="fg"><label>Nascimento</label><input class="fi" type="text" id="mp-nasc" value="'+esc(p.dataNasc)+'" placeholder="DD/MM/AAAA" maxlength="10" oninput="mData(this)"/></div>';
   h+='<div class="fg"><label>Diagnóstico</label><input class="fi" type="text" id="mp-diag" value="'+esc(p.diagnostico)+'"/></div></div>';
   h+='<div class="fr"><div class="fg"><label>Telefone</label><input class="fi" type="tel" id="mp-tel" value="'+esc(p.telefone)+'" placeholder="(00) 0000-0000" maxlength="15" oninput="mTel(this)"/></div>';
@@ -834,6 +936,16 @@ function mPaciente(pac){
   h+='<div class="fg"><label>Bairro</label><input class="fi" type="text" id="mp-bairro" value="'+esc(p.bairro||'')+'"/></div>';
   h+='<div class="fg"><label>Número</label><input class="fi" type="text" id="mp-numero" value="'+esc(p.numero||'')+'"/></div></div></div>';
   h+='<div class="fg"><label>Observações</label><textarea class="fi" id="mp-obs">'+esc(p.obs||'')+'</textarea></div>';
+  h+='<div class="fsec"><div class="fsec-t">Pacote de sessoes</div>';
+  h+='<div class="fg"><label>Pacote vendido?</label><div style="display:flex;gap:8px">';
+  h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-p':'btn-s')+'" id="pac-sim" onclick="togglePacote(true)">Sim</button>';
+  h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-s':'btn-p')+'" id="pac-nao" onclick="togglePacote(false)">Nao</button>';
+  h+='</div></div>';
+  h+='<div id="pac-wrap" style="display:'+(p.pacote?'block':'none')+'">';
+  h+='<div class="fg"><label>Total de sessoes vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
+  h+='<div class="fg"><label>Data de inicio</label><input class="fi" type="date" id="mp-pacote-ini" value="'+(p.pacoteIni||'')+'"/></div>';
+  h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessoes realizadas sao contadas automaticamente pela agenda.</div>';
+  h+='</div></div>';
   h+='<div class="fg"><label>URL da foto</label><input class="fi" type="text" id="mp-foto" value="'+esc(p.foto||'')+'" placeholder="https://..."/></div>';
   if(D.cfg.usarAnamnese){h+='<div class="fsec"><div class="fsec-t">Anamnese</div>';['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){h+='<div class="fg"><label>'+{alergias:'Alergias',medicamentos:'Medicamentos',cirurgias:'Cirurgias',comorbidades:'Comorbidades',pressao:'Pressão arterial'}[k]+'</label><input class="fi" type="text" id="mp-'+k+'" value="'+esc(p[k]||'')+'"/></div>';});h+='</div>';}
   h+='<div style="display:flex;gap:8px"><button class="btn btn-p btn-bl" onclick="salvarPaciente()">Salvar</button>';
@@ -846,10 +958,21 @@ function salvarPaciente(){
   if(!nome){toast('Nome obrigatório');return;}
   // Verificar duplicado (apenas no cadastro novo)
   if(!pid){var dup=D.pacientes.find(function(p){return p.nome.toLowerCase().trim()===nome.toLowerCase().trim();});if(dup){if(!confirm('Já existe um paciente com o nome "'+dup.nome+'". Deseja cadastrar mesmo assim?'))return;}}
-  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,foto:el('mp-foto').value,cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value};
+  var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
+  var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
+  var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
+  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,foto:el('mp-foto').value,cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
+    pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
+    pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
+  };
   if(D.cfg.usarAnamnese)['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){var e2=el('mp-'+k);if(e2)dados[k]=e2.value;});
   if(pid){var p=D.pacientes.find(function(x){return x.id===pid;});if(p)Object.assign(p,dados);}
   else{dados.id=uid();dados.evolucoes=[];D.pacientes.push(dados);}
+  if(pid){
+    if(!confirm('Confirmar alteração dos dados do paciente?'))return;
+  }
+  if(pid){if(!confirm('Confirmar alteracao dos dados?'))return;}
+  if(pid)registrarHistoricoAlteracao('Paciente editado — '+nome);
   salvar();fecharM();if(PAC_ID)renderizar();else renderPacs('');toast(pid?'Paciente atualizado!':'Paciente cadastrado!');
 }
 function delPaciente(pid){
@@ -860,6 +983,354 @@ function delPaciente(pid){
 }
 
 // ── Evolução ─────────────────────────────────────────────────────
+var CID10=[
+  {c:'M54.5',n:'Dor lombar'},{c:'M54.2',n:'Cervicalgia'},
+  {c:'M75.1',n:'Sindrome do manguito rotador'},{c:'M17',n:'Osteoartrose do joelho'},
+  {c:'M16',n:'Coxartrose'},{c:'M47',n:'Espondilose'},{c:'M51.1',n:'Hernia de disco'},
+  {c:'G35',n:'Esclerose multipla'},{c:'G80',n:'Paralisia cerebral'},
+  {c:'I63',n:'AVC isquemico'},{c:'I64',n:'AVC nao especificado'},
+  {c:'S72',n:'Fratura do femur'},{c:'S82',n:'Fratura da perna'},
+  {c:'M79.3',n:'Fascite plantar'},{c:'M65',n:'Tendinite'},
+  {c:'J45',n:'Asma'},{c:'J44',n:'DPOC'},{c:'Q05',n:'Espinha bifida'},
+  {c:'F84.0',n:'Autismo'},{c:'F80',n:'Atraso no desenvolvimento'},
+  {c:'M54.4',n:'Lumbago com ciatica'},{c:'M25.5',n:'Dor articular'},
+  {c:'M62.5',n:'Atrofia muscular'},{c:'R26',n:'Disturbio da marcha'},
+];
+function buscarCid(q){
+  var sugest=el('cid-sugest');if(!sugest)return;
+  q=(q||'').trim();
+  if(!q){sugest.style.display='none';return;}
+  var qu=q.toUpperCase();var ql=q.toLowerCase();
+  var res=CID10.filter(function(c){return c.c.indexOf(qu)>-1||c.n.toLowerCase().indexOf(ql)>-1;}).slice(0,8);
+  if(!res.length){sugest.style.display='none';return;}
+  sugest.innerHTML='';sugest.style.display='block';
+  res.forEach(function(c){
+    var div=document.createElement('div');
+    div.style.cssText='padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9';
+    div.textContent=c.c+' — '+c.n;
+    div.addEventListener('click',function(){selecionarCid(c.c,c.n);});
+    sugest.appendChild(div);
+  });
+}
+function selecionarCid(cod,nome){
+  var inp=el('mp-cid');if(inp)inp.value=cod;
+  var nm=el('cid-nome');if(nm)nm.textContent=nome;
+  var sugest=el('cid-sugest');if(sugest)sugest.style.display='none';
+}
+
+
+var ESCALAS_DB={
+  fragilidade:[
+    {
+      id:'cfs',nome:'Clinical Frailty Scale (CFS)',cat:'Fragilidade e Geriatria',
+      descricao:'Escala rapida de 1 a 9 para avaliacao de fragilidade em idosos.',
+      aplicacao:'Observe o paciente e selecione a categoria que melhor descreve seu estado atual. Leva menos de 2 minutos.',
+      campos:[{tipo:'radio',id:'cfs',label:'Nivel de fragilidade',ops:[
+        {v:1,l:'1 — Muito ativo: robusto, ativo, energico e motivado'},
+        {v:2,l:'2 — Bem: sem doenca ativa, menos ativo que nivel 1'},
+        {v:3,l:'3 — Bem com doenca tratada: doenca bem controlada'},
+        {v:4,l:'4 — Vulneravel: lento ou cansado, sem dependencia'},
+        {v:5,l:'5 — Levemente fragil: dependencia leve em atividades instrumentais'},
+        {v:6,l:'6 — Moderadamente fragil: necessita ajuda em atividades basicas'},
+        {v:7,l:'7 — Gravemente fragil: completamente dependente'},
+        {v:8,l:'8 — Muito gravemente fragil: dependente, doenca terminal'},
+        {v:9,l:'9 — Terminalidade: esperanca de vida < 6 meses'},
+      ]}],
+      refs:[
+        {faixa:'1-2',interp:'Sem fragilidade'},
+        {faixa:'3',interp:'Pre-fragil'},
+        {faixa:'4',interp:'Vulneravel'},
+        {faixa:'5-6',interp:'Fragil leve a moderado'},
+        {faixa:'7-9',interp:'Fragil grave'},
+      ]
+    },
+    {
+      id:'frail',nome:'FRAIL Scale',cat:'Fragilidade e Geriatria',
+      descricao:'Apenas 5 perguntas. Cada resposta "Sim" vale 1 ponto (0-5).',
+      aplicacao:'Faca as 5 perguntas ao paciente. Cada resposta positiva soma 1 ponto.',
+      campos:[
+        {tipo:'check',id:'f_fadiga',label:'Fadiga: voce se sentiu cansado na maioria dos dias?'},
+        {tipo:'check',id:'f_resiste',label:'Resistencia: tem dificuldade em subir um lance de escadas?'},
+        {tipo:'check',id:'f_aerobio',label:'Deambulacao: tem dificuldade em caminhar um quarteirao?'},
+        {tipo:'check',id:'f_doencas',label:'Doencas: tem 5 ou mais das seguintes doencas? (HAS, DM, cancer, doenca pulmonar, IAM, IC, AVC, artrite, doenca renal)'},
+        {tipo:'check',id:'f_perda',label:'Perda de peso: perdeu mais de 5% do peso no ultimo ano?'},
+      ],
+      refs:[
+        {faixa:'0',interp:'Robusto — sem fragilidade'},
+        {faixa:'1-2',interp:'Pre-fragil — intervencao preventiva'},
+        {faixa:'3-5',interp:'Fragil — intervencao terapeutica'},
+      ]
+    },
+    {
+      id:'sarcf',nome:'SARC-F',cat:'Fragilidade e Geriatria',
+      descricao:'Triagem de sarcopenia. Muito simples e otima para idosos. Pontuacao 0-10.',
+      aplicacao:'Faca as 5 perguntas ao paciente. Cada item pontua de 0 a 2.',
+      campos:[
+        {tipo:'radio3',id:'sf_forca',label:'Forca: dificuldade em levantar ou carregar 4-5 kg?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
+        {tipo:'radio3',id:'sf_assist',label:'Auxilio para caminhar: dificuldade em atravessar um comodo?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita, usa apoio ou incapaz'}]},
+        {tipo:'radio3',id:'sf_levantar',label:'Levantar de cadeira: dificuldade em transferir cama/cadeira?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz sem ajuda'}]},
+        {tipo:'radio3',id:'sf_escadas',label:'Escadas: dificuldade em subir 10 degraus?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
+        {tipo:'radio3',id:'sf_quedas',label:'Quedas: quantas vezes caiu no ultimo ano?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'1 a 3 quedas'},{v:2,l:'4 ou mais quedas'}]},
+      ],
+      refs:[
+        {faixa:'0-3',interp:'Sem sarcopenia'},
+        {faixa:'4-10',interp:'Suspeita de sarcopenia — investigar'},
+      ]
+    },
+  ],
+  quedas:[
+    {
+      id:'morse',nome:'Morse Fall Scale',cat:'Risco de Quedas',
+      descricao:'Bastante utilizada em hospitais. Avalia 6 fatores de risco.',
+      aplicacao:'Avalie cada item e some os pontos. Aplicar na admissao e sempre que houver mudanca clinica.',
+      campos:[
+        {tipo:'radio',id:'ms_hist',label:'Historico de quedas nos ultimos 3 meses',ops:[{v:0,l:'0 — Nao'},{v:25,l:'25 — Sim'}]},
+        {tipo:'radio',id:'ms_diag',label:'Diagnostico secundario',ops:[{v:0,l:'0 — Nao'},{v:15,l:'15 — Sim'}]},
+        {tipo:'radio',id:'ms_ambu',label:'Auxilio para deambulacao',ops:[{v:0,l:'0 — Nenhum/acamado/cadeira de rodas'},{v:15,l:'15 — Muletas/bengala/andador'},{v:30,l:'30 — Apoia em mobiliario'}]},
+        {tipo:'radio',id:'ms_iv',label:'Terapia intravenosa/heparina',ops:[{v:0,l:'0 — Nao'},{v:20,l:'20 — Sim'}]},
+        {tipo:'radio',id:'ms_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal/acamado/imobil'},{v:10,l:'10 — Debil'},{v:20,l:'20 — Prejudicada'}]},
+        {tipo:'radio',id:'ms_mental',label:'Estado mental',ops:[{v:0,l:'0 — Orientado'},{v:15,l:'15 — Superestima capacidade'}]},
+      ],
+      refs:[
+        {faixa:'0-24',interp:'Baixo risco'},
+        {faixa:'25-50',interp:'Medio risco — precaucoes padrao'},
+        {faixa:'>50',interp:'Alto risco — precaucoes de alto risco'},
+      ]
+    },
+    {
+      id:'downton',nome:'Downton Fall Risk Index',cat:'Risco de Quedas',
+      descricao:'Facil aplicacao. Avalia quedas previas, medicamentos, deficits e marcha.',
+      aplicacao:'Pontue cada item (0 ou 1). Pontuacao maxima = 11.',
+      campos:[
+        {tipo:'check',id:'dt_queda',label:'Quedas previas'},
+        {tipo:'check',id:'dt_trans',label:'Uso de tranquilizantes/sedativos'},
+        {tipo:'check',id:'dt_diur',label:'Uso de diureticos'},
+        {tipo:'check',id:'dt_anti',label:'Uso de anti-hipertensivos'},
+        {tipo:'check',id:'dt_anal',label:'Uso de analgesicos'},
+        {tipo:'check',id:'dt_vision',label:'Deficit visual'},
+        {tipo:'check',id:'dt_audicao',label:'Deficit auditivo'},
+        {tipo:'check',id:'dt_membros',label:'Deficit de membros'},
+        {tipo:'check',id:'dt_mental',label:'Estado mental alterado'},
+        {tipo:'radio',id:'dt_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal'},{v:1,l:'1 — Com auxilio'},{v:1,l:'1 — Independente mas insegura'}]},
+      ],
+      refs:[
+        {faixa:'0-2',interp:'Baixo risco'},
+        {faixa:'>=3',interp:'Alto risco de queda'},
+      ]
+    },
+  ],
+  mobilidade:[
+    {
+      id:'sppb',nome:'Short Physical Performance Battery (SPPB)',cat:'Mobilidade',
+      descricao:'Avalia equilibrio, marcha e sentar-levantar. Pontuacao 0-12.',
+      aplicacao:'3 testes: 1) Equilibrio em 3 posicoes (tandem, semi-tandem, pes juntos) — 0-4 pts. 2) Velocidade da marcha em 4 metros — 0-4 pts. 3) Sentar e levantar 5x sem usar os bracos — 0-4 pts.',
+      campos:[
+        {tipo:'radio',id:'sppb_eq',label:'Equilibrio (0-4)',ops:[{v:0,l:'0 — Incapaz de manter 10s em pes juntos'},{v:1,l:'1 — Pes juntos 10s, semi-tandem <10s'},{v:2,l:'2 — Semi-tandem 10s, tandem <3s'},{v:3,l:'3 — Tandem 3-9.99s'},{v:4,l:'4 — Tandem 10s'}]},
+        {tipo:'radio',id:'sppb_marcha',label:'Velocidade da marcha 4m (0-4)',ops:[{v:0,l:'0 — Incapaz'},{v:1,l:'1 — >8.70s'},{v:2,l:'2 — 6.21-8.70s'},{v:3,l:'3 — 4.82-6.20s'},{v:4,l:'4 — <4.82s'}]},
+        {tipo:'radio',id:'sppb_cadeira',label:'Sentar/levantar 5x (0-4)',ops:[{v:0,l:'0 — Incapaz ou >60s'},{v:1,l:'1 — 16.70-60s'},{v:2,l:'2 — 13.70-16.69s'},{v:3,l:'3 — 11.20-13.69s'},{v:4,l:'4 — <11.19s'}]},
+      ],
+      refs:[
+        {faixa:'0-3',interp:'Mobilidade muito limitada — alto risco'},
+        {faixa:'4-6',interp:'Mobilidade limitada'},
+        {faixa:'7-9',interp:'Mobilidade moderada'},
+        {faixa:'10-12',interp:'Boa mobilidade'},
+      ]
+    },
+    {
+      id:'frt',nome:'Functional Reach Test',cat:'Mobilidade',
+      descricao:'Extremamente simples. Mede o alcance funcional anterior em cm.',
+      aplicacao:'Posicione o paciente em pe ao lado de uma parede. Peca para elevar o braco a 90 graus e alcançar o maximo possivel para frente sem mover os pes. Meca a distancia em cm.',
+      campos:[{tipo:'numero',id:'frt_cm',label:'Distancia alcancada (cm)',min:0,max:60,placeholder:'Ex: 25'}],
+      refs:[
+        {faixa:'<15 cm',interp:'Alto risco de queda'},
+        {faixa:'15-25 cm',interp:'Moderado risco de queda'},
+        {faixa:'>25 cm',interp:'Baixo risco de queda'},
+      ]
+    },
+  ],
+  qualidade:[
+    {
+      id:'eq5d',nome:'EQ-5D',cat:'Qualidade de Vida',
+      descricao:'Muito curto. 5 dimensoes + escala visual analogica de saude.',
+      aplicacao:'Avalie cada uma das 5 dimensoes. Depois peca ao paciente para marcar sua saude atual na escala 0-100.',
+      campos:[
+        {tipo:'radio3',id:'eq_mob',label:'Mobilidade',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Confinado ao leito'}]},
+        {tipo:'radio3',id:'eq_auto',label:'Autocuidado',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Incapaz de lavar/vestir'}]},
+        {tipo:'radio3',id:'eq_atv',label:'Atividades habituais',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Incapaz de realizar'}]},
+        {tipo:'radio3',id:'eq_dor',label:'Dor/desconforto',ops:[{v:1,l:'Sem dor'},{v:2,l:'Dor/desconforto moderado'},{v:3,l:'Dor/desconforto extremo'}]},
+        {tipo:'radio3',id:'eq_anx',label:'Ansiedade/depressao',ops:[{v:1,l:'Sem ansiedade'},{v:2,l:'Ansiedade/depressao moderada'},{v:3,l:'Ansiedade/depressao extrema'}]},
+        {tipo:'range',id:'eq_eva',label:'Estado de saude hoje (0=pior, 100=melhor)',min:0,max:100,val:50},
+      ],
+      refs:[
+        {faixa:'EVA 80-100',interp:'Excelente qualidade de vida'},
+        {faixa:'EVA 60-79',interp:'Boa qualidade de vida'},
+        {faixa:'EVA 40-59',interp:'Qualidade de vida moderada'},
+        {faixa:'EVA <40',interp:'Qualidade de vida ruim'},
+      ]
+    },
+  ],
+  neurologico:[
+    {
+      id:'rankin',nome:'Modified Rankin Scale (mRS)',cat:'Neurologico',
+      descricao:'Muito utilizada por neurologistas. Avalia incapacidade apos AVC. Pontuacao 0-6.',
+      aplicacao:'Observe e entreviste o paciente. Selecione o nivel que melhor descreve o estado atual.',
+      campos:[{tipo:'radio',id:'mrs',label:'Nivel de incapacidade',ops:[
+        {v:0,l:'0 — Sem sintomas'},
+        {v:1,l:'1 — Sem incapacidade significativa — atividades habituais preservadas'},
+        {v:2,l:'2 — Incapacidade leve — incapaz de algumas atividades, independente'},
+        {v:3,l:'3 — Incapacidade moderada — necessita alguma ajuda, anda sem auxilio'},
+        {v:4,l:'4 — Incapacidade moderada a grave — incapaz de andar sem auxilio'},
+        {v:5,l:'5 — Incapacidade grave — acamado, incontinente, necessita cuidados'},
+        {v:6,l:'6 — Obito'},
+      ]}],
+      refs:[
+        {faixa:'0-1',interp:'Sem incapacidade funcional relevante'},
+        {faixa:'2-3',interp:'Incapacidade leve a moderada'},
+        {faixa:'4-5',interp:'Incapacidade grave — dependente'},
+        {faixa:'6',interp:'Obito'},
+      ]
+    },
+    {
+      id:'rivermead',nome:'Rivermead Mobility Index',cat:'Neurologico',
+      descricao:'Facil aplicacao. Avalia mobilidade funcional. 15 itens (0-15).',
+      aplicacao:'Pergunte ou observe cada atividade. 1 ponto para cada item realizado. Item 5 requer observacao direta.',
+      campos:[
+        {tipo:'check',id:'rv_virar',label:'Virar na cama'},
+        {tipo:'check',id:'rv_dec',label:'Da deitado para sentado'},
+        {tipo:'check',id:'rv_eq_sent',label:'Equilibrio sentado (10s sem apoio)'},
+        {tipo:'check',id:'rv_sent_pe',label:'De sentado para em pe (<15s, pode usar as maos)'},
+        {tipo:'check',id:'rv_pe_obs',label:'Em pe (10s sem apoio) — OBSERVACAO DIRETA'},
+        {tipo:'check',id:'rv_tranf',label:'Transferencia cama-cadeira'},
+        {tipo:'check',id:'rv_andar_in',label:'Andar dentro de casa (com auxilio)'},
+        {tipo:'check',id:'rv_escadas',label:'Subir escadas'},
+        {tipo:'check',id:'rv_andar_fo',label:'Andar fora de casa (terreno plano)'},
+        {tipo:'check',id:'rv_banho',label:'Tomar banho (sem supervisao)'},
+        {tipo:'check',id:'rv_subir',label:'Andar 10m com obstaculos'},
+        {tipo:'check',id:'rv_fora_ir',label:'Andar fora de casa (terreno irregular)'},
+        {tipo:'check',id:'rv_banho2',label:'Entrar e sair do banho sem supervisao'},
+        {tipo:'check',id:'rv_correr',label:'Subir e descer 4 degraus'},
+        {tipo:'check',id:'rv_correr2',label:'Correr 10m sem mancar em 4s'},
+      ],
+      refs:[
+        {faixa:'0-5',interp:'Mobilidade muito limitada'},
+        {faixa:'6-10',interp:'Mobilidade moderada'},
+        {faixa:'11-15',interp:'Boa mobilidade'},
+      ]
+    },
+  ],
+  qualidadeExtra:[
+    {
+      id:'whoqol',nome:'WHOQOL-BREF',cat:'Qualidade de Vida',
+      descricao:'Bastante conhecido. 26 questoes avaliando 4 dominios: fisico, psicologico, relacoes sociais e meio ambiente.',
+      aplicacao:'Peca ao paciente para avaliar cada questao de 1 a 5 considerando as ultimas 2 semanas. Quanto maior o escore, melhor a qualidade de vida.',
+      campos:[
+        {tipo:'radio3',id:'wq_saude',label:'Como voce avaliaria sua qualidade de vida?',ops:[{v:1,l:'Muito ruim'},{v:2,l:'Ruim'},{v:3,l:'Nem ruim nem boa'},{v:4,l:'Boa'},{v:5,l:'Muito boa'}]},
+        {tipo:'radio3',id:'wq_satisf',label:'Quao satisfeito(a) voce esta com a sua saude?',ops:[{v:1,l:'Muito insatisfeito'},{v:2,l:'Insatisfeito'},{v:3,l:'Nem satisfeito nem insatisfeito'},{v:4,l:'Satisfeito'},{v:5,l:'Muito satisfeito'}]},
+        {tipo:'radio3',id:'wq_dor',label:'Em que medida sua dor impede suas atividades?',ops:[{v:5,l:'Nada'},{v:4,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:2,l:'Bastante'},{v:1,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_trat',label:'O quanto precisa de tratamento medico para funcionar?',ops:[{v:5,l:'Nada'},{v:4,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:2,l:'Bastante'},{v:1,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_vida',label:'O quanto aproveita a vida?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_sentido',label:'Em que medida sente que sua vida tem sentido?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_concentr',label:'O quanto consegue se concentrar?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_segur',label:'Quao seguro(a) se sente em sua vida diaria?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
+      ],
+      refs:[
+        {faixa:'> 75',interp:'Qualidade de vida boa a excelente'},
+        {faixa:'50-75',interp:'Qualidade de vida moderada'},
+        {faixa:'< 50',interp:'Qualidade de vida ruim'},
+      ]
+    },
+  ],
+  fragilidadeExtra:[
+    {
+      id:'edmonton',nome:'Edmonton Frail Scale',cat:'Fragilidade e Geriatria',
+      descricao:'Avalia 9 dominios: cognicao, estado de saude geral, independencia funcional, suporte social, uso de medicamentos, nutricao, humor, continencia e desempenho funcional.',
+      aplicacao:'Avalie cada dominio. Pontuacao maxima = 17. Quanto maior, mais fragil.',
+      campos:[
+        {tipo:'radio',id:'ef_cog',label:'Cognicao: desenhe um relogio marcando 11h10',ops:[{v:0,l:'0 — Correto'},{v:1,l:'1 — Erros minimos'},{v:2,l:'2 — Dificuldade significativa'}]},
+        {tipo:'radio',id:'ef_saude',label:'Estado de saude geral',ops:[{v:0,l:'0 — Excelente/muito bom'},{v:1,l:'1 — Bom'},{v:2,l:'2 — Regular/ruim'}]},
+        {tipo:'radio',id:'ef_hosp',label:'Hospitalizacoes nos ultimos 12 meses',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_func',label:'Dependencia funcional (atividades instrumentais)',ops:[{v:0,l:'0 — Independente'},{v:1,l:'1 — Precisa de ajuda'}]},
+        {tipo:'radio',id:'ef_social',label:'Suporte social: alguem que o ajuda quando precisa?',ops:[{v:0,l:'0 — Sempre'},{v:1,l:'1 — As vezes'},{v:2,l:'2 — Nunca'}]},
+        {tipo:'radio',id:'ef_meds',label:'Uso de 5 ou mais medicamentos diferentes',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_nutri',label:'Perdeu peso recentemente sem querer?',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_humor',label:'Humor: se sente triste ou deprimido(a) com frequencia?',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_cont',label:'Incontinencia urinaria',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_tug',label:'Desempenho (TUG): levantar, andar 3m, voltar e sentar',ops:[{v:0,l:'0 — Menos de 10 segundos'},{v:1,l:'1 — 10 a 20 segundos'},{v:2,l:'2 — Mais de 20 segundos'}]},
+      ],
+      refs:[
+        {faixa:'0-4',interp:'Nao fragil'},
+        {faixa:'5-6',interp:'Vulneravel'},
+        {faixa:'7-8',interp:'Fragil leve'},
+        {faixa:'9-10',interp:'Fragil moderado'},
+        {faixa:'11-17',interp:'Fragil grave'},
+      ]
+    },
+  ],
+  neuromuscular:[
+    {
+      id:'vignos',nome:'Vignos Scale',cat:'Doencas Neuromusculares',
+      descricao:'Simples e rapida. Avalia funcao motora em doencas neuromusculares. Pontuacao 1-10.',
+      aplicacao:'Observe e entreviste. Selecione o nivel que melhor descreve a funcao atual do paciente.',
+      campos:[{tipo:'radio',id:'vg',label:'Nivel funcional',ops:[
+        {v:1,l:'1 — Anda e sobe escadas sem auxilio'},
+        {v:2,l:'2 — Anda e sobe escadas com corrimao'},
+        {v:3,l:'3 — Anda e sobe escadas lentamente com corrimao'},
+        {v:4,l:'4 — Anda mas nao consegue subir escadas'},
+        {v:5,l:'5 — Anda sem auxilio mas com grande dificuldade'},
+        {v:6,l:'6 — Anda somente com auxilio ou andador'},
+        {v:7,l:'7 — Cadeira de rodas — sentado ereto, realiza AVDs'},
+        {v:8,l:'8 — Cadeira de rodas — sentado ereto, dificuldade em AVDs'},
+        {v:9,l:'9 — Cadeira de rodas — sentado com suporte, AVDs limitadas'},
+        {v:10,l:'10 — Acamado — totalmente dependente'},
+      ]}],
+      refs:[
+        {faixa:'1-3',interp:'Funcao motora preservada'},
+        {faixa:'4-6',interp:'Comprometimento moderado'},
+        {faixa:'7-10',interp:'Comprometimento grave'},
+      ]
+    },
+    {
+      id:'brooke',nome:'Brooke Upper Extremity Scale',cat:'Doencas Neuromusculares',
+      descricao:'Muito usada em doencas neuromusculares. Avalia membros superiores. Pontuacao 1-6.',
+      aplicacao:'Observe o paciente realizar movimentos com os membros superiores. Selecione o nivel adequado.',
+      campos:[{tipo:'radio',id:'bk',label:'Funcao de membros superiores',ops:[
+        {v:1,l:'1 — Abduz os bracos em angulo reto, cotovel estendido'},
+        {v:2,l:'2 — Pode abduzir acima da linha dos ombros, cotovel fletido'},
+        {v:3,l:'3 — Nao consegue abduzir acima do ombro, mas levanta um copo'},
+        {v:4,l:'4 — Pode levar a mao a boca, mas nao levanta um copo'},
+        {v:5,l:'5 — Nao pode levar a mao a boca, mas usa as maos'},
+        {v:6,l:'6 — Nao usa as maos'},
+      ]}],
+      refs:[
+        {faixa:'1-2',interp:'Funcao preservada'},
+        {faixa:'3-4',interp:'Comprometimento moderado'},
+        {faixa:'5-6',interp:'Comprometimento grave'},
+      ]
+    },
+  ],
+  dor:[
+    {
+      id:'pdi',nome:'Pain Disability Index (PDI)',cat:'Dor e Impacto Funcional',
+      descricao:'Facil compreensao para pacientes. Avalia o impacto da dor em 7 areas da vida. Cada area 0-10.',
+      aplicacao:'Peca ao paciente para avaliar o quanto a dor interfere em cada area da vida, de 0 (sem interferencia) a 10 (interferencia total).',
+      campos:[
+        {tipo:'range',id:'pdi_fam',label:'Responsabilidades familiares',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_rec',label:'Recreacao e lazer',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_social',label:'Atividades sociais',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_trab',label:'Trabalho (remunerado e voluntario)',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_sexual',label:'Comportamento sexual',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_auto',label:'Autocuidado',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_vida',label:'Atividades necessarias para a vida',min:0,max:10,val:0},
+      ],
+      refs:[
+        {faixa:'0-20',interp:'Incapacidade leve'},
+        {faixa:'21-40',interp:'Incapacidade moderada'},
+        {faixa:'41-70',interp:'Incapacidade grave'},
+      ]
+    },
+  ],
+};
+
 var MODELOS_DEFAULT=['Paciente relata melhora do quadro álgico. Sessão realizada sem intercorrências.','Melhora da amplitude de movimento. Exercícios realizados conforme protocolo.','Boa tolerância à sessão. Paciente refere dor residual ao final.','Evolução satisfatória. Aumentada carga dos exercícios progressivos.'];
 function mEvo(pid,eid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
@@ -892,7 +1363,7 @@ function salvarEvo(){
   else{var nv3={id:uid(),ts:Date.now(),texto:txt};if(!isNaN(dor))nv3.dor=dor;if(!isNaN(mob))nv3.mob=mob;if(paV)nv3.pa=paV;if(satV)nv3.sat=satV;if(bpmV)nv3.bpm=bpmV;p.evolucoes.push(nv3);}
   salvar();fecharM();renderizar();atualizarBadge();toast('Evolução salva!');
 }
-function delEvo(pid,eid){if(!confirm('Excluir evolução?'))return;var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;p.evolucoes=(p.evolucoes||[]).filter(function(x){return x.id!==eid;});salvar();renderizar();atualizarBadge();toast('Evolução excluída');}
+function delEvo(pid,eid){registrarHistoricoAlteracao('Evolucao excluida');if(!confirm('Excluir evolução?'))return;var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;p.evolucoes=(p.evolucoes||[]).filter(function(x){return x.id!==eid;});salvar();renderizar();atualizarBadge();toast('Evolução excluída');}
 function compEvo(pid,eid){var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;var txt='Evolução - '+p.nome+'\n'+fmtDH(e.ts)+'\n\n'+e.texto+(e.dor!=null?'\nDor: '+e.dor+'/10 | Mobilidade: '+e.mob+'/10':'');if(navigator.share)navigator.share({title:'Evolução',text:txt});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Copiado!');});}
 
 // ── EVOLUÇÕES (aba) ──────────────────────────────────────────────
@@ -996,6 +1467,77 @@ function clicBarraMes(i){window._finMes=i;var c=el('conteudo');var d=document.cr
 function marcarPago(sid){var s=D.sessoes.find(function(x){return x.id===sid;});if(s){s.statusPag='pago';salvar();renderizar();toast('Pagamento confirmado!');}}
 
 // ── RELATÓRIOS ───────────────────────────────────────────────────
+
+function previewRel(tipo){
+  var m=0,a=new Date().getFullYear();
+  try{m=parseInt(el('rel-mes').value)||0;a=parseInt(el('rel-ano').value)||a;}catch(e){}
+  var linhas=[];
+  if(tipo==='fin')linhas=gerarLinhasRelFin(m,a);
+  else if(tipo==='evo')linhas=gerarLinhasRelEvo(m,a);
+  else if(tipo==='falt')linhas=gerarLinhasRelFalt(m,a);
+  else if(tipo==='pac')linhas=gerarLinhasRelPac();
+  else if(tipo==='pacotes')linhas=gerarLinhasRelPacotes();
+  if(!linhas||!linhas.length){toast('Nenhum dado encontrado.');return;}
+  var h='<div class="mh"><h3>Prévia do Relatório</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">'+linhas.length+' linha(s). Confira antes de baixar.</p>';
+  h+='<div style="overflow-x:auto;max-height:280px;overflow-y:auto;margin-bottom:12px">';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  linhas.slice(0,30).forEach(function(l,li){
+    h+='<tr style="background:'+(li===0?'var(--g3)':li%2===0?'var(--g4)':'#fff')+'">';
+    l.forEach(function(c){h+='<td style="padding:4px 6px;border:1px solid var(--borda);white-space:nowrap">'+esc(String(c||''))+'</td>';});
+    h+='</tr>';
+  });
+  if(linhas.length>30)h+='<tr><td colspan="10" style="padding:6px;text-align:center;color:var(--sl3)">+' +(linhas.length-30)+' linhas...</td></tr>';
+  h+='</table></div>';
+  var nomeArq={fin:'financeiro',evo:'evolucoes',falt:'faltas',pac:'pacientes',pacotes:'pacotes'}[tipo]||tipo;
+  h+='<button class="btn btn-p btn-bl" onclick="baixarXLS(\'relatorio-'+nomeArq+'-'+a+'\',window._relLinhas)">📥 Baixar Excel</button>';
+  window._relLinhas=linhas;
+  abrirM(h);
+}
+function gerarLinhasRelFin(m,a){
+  var ss=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return d.getFullYear()===a&&(m===0||d.getMonth()+1===m)&&(s.valor||0)>0;});
+  var linhas=[['Data','Paciente','Plano','Valor','Status']];
+  ss.forEach(function(s){linhas.push([fmtD(s.data),nomePac(s.pacienteId),plNome(s.planoId),(s.valor||0).toFixed(2),s.statusPag||'']);});
+  return linhas;
+}
+function gerarLinhasRelEvo(m,a){
+  var linhas=[['Data','Paciente','PA','Sat','BPM','Dor','Mobilidade','Texto']];
+  D.pacientes.forEach(function(p){
+    (p.evolucoes||[]).forEach(function(e){
+      var d=new Date(e.ts||0);
+      if(d.getFullYear()===a&&(m===0||d.getMonth()+1===m))
+        linhas.push([d.toLocaleDateString('pt-BR'),p.nome,e.pa||'',e.sat||'',e.bpm||'',e.dor!=null?e.dor:'',e.mob!=null?e.mob:'',(e.texto||'').slice(0,100)]);
+    });
+  });
+  return linhas;
+}
+function gerarLinhasRelFalt(m,a){
+  var linhas=[['Data','Hora','Paciente','Plano','Valor','Tipo']];
+  D.sessoes.filter(function(s){
+    var d=new Date(s.data+'T12:00:00');
+    return d.getFullYear()===a&&(m===0||d.getMonth()+1===m)&&(s.status==='falta'||s.status==='falta_prof');
+  }).forEach(function(s){
+    linhas.push([fmtD(s.data),s.hora,nomePac(s.pacienteId),plNome(s.planoId),(s.valor||0).toFixed(2),s.status==='falta'?'Falta paciente':'Falta profissional']);
+  });
+  return linhas;
+}
+function gerarLinhasRelPac(){
+  var linhas=[['Nome','Nascimento','Diagnostico','CID','Telefone','Celular','Cidade','Tipo']];
+  D.pacientes.forEach(function(p){
+    linhas.push([p.nome,p.dataNasc||'',p.diagnostico||'',p.cid||'',p.telefone||'',p.celular||'',p.cidade||'',p.tipoAtend||'']);
+  });
+  return linhas;
+}
+function gerarLinhasRelPacotes(){
+  var linhas=[['Paciente','Total','Realizadas','Restantes','Status','Inicio','Valor']];
+  D.pacientes.filter(function(p){return p.pacote;}).forEach(function(p){
+    var pk=calcPacote(p);
+    var st=pk.restantes===0?'Encerrado':pk.restantes<=2?'Quase esgotado':'Ativo';
+    linhas.push([p.nome,p.pacote,pk.realizadas,pk.restantes,st,fmtD(p.pacoteIni||''),(p.pacoteValor||0).toFixed(2)]);
+  });
+  return linhas;
+}
+
 function rRelatorios(el2){
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('mais');};
   var now=new Date();var ma=now.getMonth();var aa=now.getFullYear();
@@ -1011,6 +1553,7 @@ function rRelatorios(el2){
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">';
   cards.forEach(function(c){h+='<div class="card" style="cursor:pointer;margin:0" data-fn="'+c.f+'" onclick="window[this.dataset.fn]()"><div style="font-size:24px;margin-bottom:6px">'+c.e+'</div><div style="font-size:13px;font-weight:700">'+c.t+'</div><div style="font-size:11px;color:var(--sl3);margin-top:3px">'+c.d+'</div><div style="margin-top:8px"><span class="badge bg-g">Excel / .csv</span></div></div>';});
   h+='</div><button class="btn btn-p btn-bl" onclick="relTodos()">Baixar todos</button>';
+  h+='<div style="margin-top:8px"><button class="btn btn-s btn-sm" onclick="previewRel(\'pacotes\')">📦 Relatório de Pacotes</button></div>';
   el2.innerHTML=h;
 }
 function getPer(){var m=el('rel-mes'),a=el('rel-ano');var now=new Date();return{mes:m?parseInt(m.value):now.getMonth(),ano:a?parseInt(a.value):now.getFullYear()};}
@@ -1061,6 +1604,8 @@ function rMais(el2){
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Planos e Convênios</div>';
   D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
   h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="mPlano(\'\')">+ Novo plano</button></div>';
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🎨 Aparência</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Modo escuro/claro, cor e imagem de fundo.</p><button class="btn btn-p btn-sm" onclick="mAparencia()">Personalizar</button></div>';
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Modelos de Evolução</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Personalize os textos dos modelos rápidos usados nas evoluções clínicas.</p><button class="btn btn-p btn-sm" onclick="mModelosConfig()">✏️ Gerenciar modelos</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Tipos de atendimento</div>';
   D.tipos.forEach(function(t){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><div style="width:26px;height:26px;border-radius:6px;background:'+esc(t.cor)+';cursor:pointer;flex-shrink:0" data-tid="'+esc(t.id)+'" onclick="editarCorTipo(this.dataset.tid)"></div><span style="flex:1;font-size:13px;font-weight:600">'+esc(t.nome)+'</span><button class="btn btn-s btn-sm" data-tid="'+esc(t.id)+'" onclick="mTipo(this.dataset.tid)">Editar</button><button class="btn btn-d btn-sm" data-tid="'+esc(t.id)+'" onclick="delTipo(this.dataset.tid)">✕</button></div>';});
   h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="mTipo(\'\')">+ Novo tipo</button></div>';
@@ -1072,11 +1617,12 @@ function rMais(el2){
   h+='</select></div></div><p style="font-size:11px;color:var(--sl3)">Define os horários na grade da agenda.</p></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div>';
   [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
-  h+='</div>';
+
+  h+='<div class="opc-item"><label><input type="checkbox" id="opc-termo" onchange="toggleOpc(\'usarTermo\',this.checked)"'+(D.cfg.usarTermo?' checked':'')+'/> Termo de consentimento</label></div>';  h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistorico()">🕐 Histórico de versões</button></div></div>';
-  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Acesso rápido</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="ir(\'financeiro\')">Financeiro</button><button class="btn btn-s btn-sm" onclick="ir(\'relatorios\')">Relatórios</button><button class="btn btn-s btn-sm" onclick="ir(\'ajuda\')">Manual</button></div></div>';
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Acesso rápido</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="ir(\'financeiro\')">Financeiro</button><button class="btn btn-s btn-sm" onclick="ir(\'relatorios\')">Relatórios</button><button class="btn btn-s btn-sm" onclick="ir(\'ajuda\')">Manual</button><button class="btn btn-a btn-sm" onclick="ir(\'grafico-fin\')">IR</button></div></div>';
   // Feedback
   h+='<div class="card" style="margin-bottom:10px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Feedback</div>';
   h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Encontrou um erro, tem uma sugestão ou quer elogiar? Envie seu feedback diretamente para o desenvolvedor.</p>';
@@ -1179,18 +1725,1187 @@ function confirmarExclusao(){
   }).catch(function(e){toast('Erro: verifique sua senha e tente novamente.');});
 }
 
+
+function aplicarTema(){
+  var tema=D.cfg.tema||'claro';
+  var cor=D.cfg.corPrincipal||'';
+  var img=localStorage.getItem('fe_img_fundo')||'';
+  document.body.className=tema==='escuro'?'tema-escuro':'';
+  if(cor){
+    document.documentElement.style.setProperty('--g1',cor);
+    document.documentElement.style.setProperty('--g2',cor);
+  } else {
+    document.documentElement.style.removeProperty('--g1');
+    document.documentElement.style.removeProperty('--g2');
+  }
+  if(img){
+    document.body.style.backgroundImage='url('+img+')';
+    document.body.style.backgroundSize='cover';
+    document.body.style.backgroundAttachment='fixed';
+  } else {
+    document.body.style.backgroundImage='';
+  }
+}
+
+function setTema(t){D.cfg.tema=t;salvar();aplicarTema();fecharM();mAparencia();}
+function setCorPrincipal(c){D.cfg.corPrincipal=c;salvar();aplicarTema();}
+
+function escolherImagem(){
+  var inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=function(e){
+    var f=e.target.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(ev){
+      localStorage.setItem('fe_img_fundo',ev.target.result);
+      aplicarTema();fecharM();mAparencia();toast('Imagem aplicada!');
+    };
+    r.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+function removerImagem(){
+  localStorage.removeItem('fe_img_fundo');
+  aplicarTema();fecharM();mAparencia();toast('Imagem removida!');
+}
+
+function mAparencia(){
+  var tema=D.cfg.tema||'claro';
+  var cor=D.cfg.corPrincipal||'#1e6b3f';
+  var img=localStorage.getItem('fe_img_fundo')||'';
+  var h='<div class="mh"><h3>Aparência</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  
+  h+='<div class="fsec"><div class="fsec-t">Modo de exibição</div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:4px">';
+  h+='<button class="btn btn-sm '+(tema==='claro'?'btn-p':'btn-s')+'" onclick="setTema(\'claro\')">☀️ Claro</button>';
+  h+='<button class="btn btn-sm '+(tema==='escuro'?'btn-p':'btn-s')+'" onclick="setTema(\'escuro\')">🌙 Escuro</button>';
+  h+='</div></div>';
+  
+  h+='<div class="fsec"><div class="fsec-t">Cor principal</div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center">';
+  var cores=[['#1e6b3f','Verde'],['#1d4ed8','Azul'],['#7c3aed','Roxo'],['#dc2626','Vermelho'],['#d97706','Laranja'],['#db2777','Rosa']];
+  cores.forEach(function(c){
+    var sel=cor===c[0];
+    h+='<div onclick="setCorPrincipal(\''+c[0]+'\')" style="width:32px;height:32px;border-radius:50%;background:'+c[0]+';border:3px solid '+(sel?'#fff':'transparent')+';outline:'+(sel?'3px solid '+c[0]:'none')+';cursor:pointer" title="'+c[1]+'"></div>';
+  });
+  h+='<input type="color" value="'+cor+'" oninput="setCorPrincipal(this.value)" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--borda);cursor:pointer;padding:1px" title="Personalizada"/>';
+  h+='</div></div>';
+  
+  h+='<div class="fsec"><div class="fsec-t">Imagem de fundo</div>';
+  if(img)h+='<img src="'+img+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>';
+  h+='<div style="display:flex;gap:8px">';
+  h+='<button class="btn btn-s btn-sm" onclick="escolherImagem()">📷 Escolher imagem</button>';
+  if(img)h+='<button class="btn btn-d btn-sm" onclick="removerImagem()">Remover</button>';
+  h+='</div>';
+  h+='<p style="font-size:11px;color:var(--sl3);margin-top:6px">Imagem salva apenas neste dispositivo.</p></div>';
+  
+  abrirM(h);
+}
+
+
+function aplicarTema(){
+  var tema=D.cfg.tema||'claro';var cor=D.cfg.corPrincipal||'';var img=localStorage.getItem('fe_img_fundo')||'';
+  document.body.className=tema==='escuro'?'tema-escuro':'';
+  if(cor){document.documentElement.style.setProperty('--g1',cor);document.documentElement.style.setProperty('--g2',cor);}
+  else{document.documentElement.style.removeProperty('--g1');document.documentElement.style.removeProperty('--g2');}
+  if(img){document.body.style.backgroundImage='url('+img+')';document.body.style.backgroundSize='cover';document.body.style.backgroundAttachment='fixed';}
+  else document.body.style.backgroundImage='';
+}
+function setTema(t){D.cfg.tema=t;salvar();aplicarTema();fecharM();mAparencia();}
+function setCorPrincipal(c){D.cfg.corPrincipal=c;salvar();aplicarTema();}
+function escolherImagem(){
+  var inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){localStorage.setItem('fe_img_fundo',ev.target.result);aplicarTema();fecharM();mAparencia();toast('Imagem aplicada!');};r.readAsDataURL(f);};inp.click();
+}
+function removerImagem(){localStorage.removeItem('fe_img_fundo');aplicarTema();fecharM();mAparencia();toast('Imagem removida!');}
+function mAparencia(){
+  var tema=D.cfg.tema||'claro';var cor=D.cfg.corPrincipal||'#1e6b3f';var img=localStorage.getItem('fe_img_fundo')||'';
+  var h='<div class="mh"><h3>Aparencia</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<div class="fsec"><div class="fsec-t">Modo</div><div style="display:flex;gap:8px">';
+  h+='<button class="btn btn-sm '+(tema==='claro'?'btn-p':'btn-s')+'" onclick="setTema(\'claro\')">Claro</button>';
+  h+='<button class="btn btn-sm '+(tema==='escuro'?'btn-p':'btn-s')+'" onclick="setTema(\'escuro\')">Escuro</button>';
+  h+='</div></div>';
+  h+='<div class="fsec"><div class="fsec-t">Cor principal</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
+  var cores=[['#1e6b3f','Verde'],['#1d4ed8','Azul'],['#7c3aed','Roxo'],['#dc2626','Vermelho'],['#d97706','Laranja'],['#db2777','Rosa']];
+  cores.forEach(function(c){h+='<div onclick="setCorPrincipal(\''+c[0]+'\')" style="width:32px;height:32px;border-radius:50%;background:'+c[0]+';border:3px solid '+(cor===c[0]?'#fff':'transparent')+';cursor:pointer"></div>';});
+  h+='<input type="color" value="'+cor+'" oninput="setCorPrincipal(this.value)" style="width:32px;height:32px;border-radius:50%;cursor:pointer;padding:1px"/>';
+  h+='</div></div>';
+  h+='<div class="fsec"><div class="fsec-t">Imagem de fundo</div>';
+  if(img)h+='<img src="'+img+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>';
+  h+='<div style="display:flex;gap:8px"><button class="btn btn-s btn-sm" onclick="escolherImagem()">Escolher imagem</button>';
+  if(img)h+='<button class="btn btn-d btn-sm" onclick="removerImagem()">Remover</button>';
+  h+='</div><p style="font-size:11px;color:var(--sl3);margin-top:6px">Salva apenas neste dispositivo.</p></div>';
+  abrirM(h);
+}
+
+
+function rGraficoFin(el2){
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='<- Voltar';BtnVolCb=function(){ir('mais');};
+  var ano=new Date().getFullYear();
+  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Receita por Tipo</div>';
+  h+='<div class="fg"><label>Ano</label><select class="fi" id="gf-ano" onchange="renderGraficoFin()">';
+  for(var a=ano-2;a<=ano+1;a++)h+='<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>';
+  h+='</select></div><div id="gf-content"></div>';
+  el2.innerHTML=h;renderGraficoFin();
+}
+function renderGraficoFin(){
+  var anoEl=el('gf-ano');var ano=anoEl?parseInt(anoEl.value):new Date().getFullYear();
+  var cont=el('gf-content');if(!cont)return;
+  var sAno=D.sessoes.filter(function(s){return new Date(s.data+'T12:00:00').getFullYear()===ano&&s.statusPag==='pago';});
+  var total=sAno.reduce(function(a,s){return a+(s.valor||0);},0);
+  if(!total){cont.innerHTML='<p style="text-align:center;padding:40px;color:#94a3b8">Nenhum recebimento em '+ano+'.</p>';return;}
+  var h='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:12px">Por Plano</div>';
+  D.planos.forEach(function(pl){
+    var sPl=sAno.filter(function(s){return s.planoId===pl.id;});
+    var val=sPl.reduce(function(a,s){return a+(s.valor||0);},0);if(!val)return;
+    var pct=Math.round(val/total*100);
+    h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;font-weight:600">'+esc(pl.nome)+'</span><span style="font-size:13px;font-weight:700">R$'+val.toFixed(2)+' ('+pct+'%)</span></div>';
+    h+='<div style="height:8px;background:#e2e8f0;border-radius:4px"><div style="height:8px;background:#1e6b3f;border-radius:4px;width:'+pct+'%"></div></div></div>';
+  });
+  h+='<div style="border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between"><span style="font-weight:700">Total</span><span style="font-weight:800">R$'+total.toFixed(2)+'</span></div></div>';
+  var mNm=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var dM=mNm.map(function(nm,i){var ss=sAno.filter(function(s){return new Date(s.data+'T12:00:00').getMonth()===i;});return{nome:nm,val:ss.reduce(function(a,s){return a+(s.valor||0);},0)};});
+  var maxV=Math.max.apply(null,dM.map(function(d){return d.val;}))||1;
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Mes a mes</div>';
+  h+='<div style="display:flex;align-items:flex-end;gap:3px;height:100px;margin-bottom:5px">';
+  dM.forEach(function(d){var p2=Math.max(4,Math.round(d.val/maxV*100));h+='<div style="flex:1;background:#1e6b3f;border-radius:3px 3px 0 0;height:'+p2+'px;opacity:'+(d.val?1:0.2)+'"></div>';});
+  h+='</div><div style="display:flex;gap:3px">';
+  dM.forEach(function(d){h+='<div style="flex:1;text-align:center;font-size:8px;color:#94a3b8">'+d.nome+'</div>';});
+  h+='</div></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="exportarIR('+ano+')">Exportar para IR ('+ano+')</button>';
+  cont.innerHTML=h;
+}
+function exportarIR(ano){
+  var sAno=D.sessoes.filter(function(s){return new Date(s.data+'T12:00:00').getFullYear()===ano&&s.statusPag==='pago';});
+  var total=sAno.reduce(function(a,s){return a+(s.valor||0);},0);
+  var mF=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var linhas=[['Relatorio IR '+ano],['Total recebido','R$ '+total.toFixed(2)],[''],['PLANO','Sessoes','Valor','%']];
+  D.planos.forEach(function(pl){var s2=sAno.filter(function(s){return s.planoId===pl.id;});var v=s2.reduce(function(a,s){return a+(s.valor||0);},0);if(v)linhas.push([pl.nome,s2.length,'R$ '+v.toFixed(2),Math.round(v/total*100)+'%']);});
+  linhas.push([''],['MES','Sessoes','Valor']);
+  mF.forEach(function(nm,i){var ss=sAno.filter(function(s){return new Date(s.data+'T12:00:00').getMonth()===i;});var v=ss.reduce(function(a,s){return a+(s.valor||0);},0);linhas.push([nm,ss.length,'R$ '+v.toFixed(2)]);});
+  linhas.push([''],['Data','Paciente','Plano','Valor']);
+  sAno.forEach(function(s){linhas.push([fmtD(s.data),nomePac(s.pacienteId),plNome(s.planoId),(s.valor||0).toFixed(2)]);});
+  baixarXLS('IR-'+ano,linhas);toast('Exportado!');
+}
+
+
+function verificarAlertasPagamento(){
+  var hoje2=new Date();var hj=hoje();
+  var alertas=[];
+  D.sessoes.filter(function(s){return s.statusPag==='pendente'&&s.status==='realizado'&&(s.valor||0)>0;}).forEach(function(s){
+    var pl=D.planos.find(function(x){return x.id===s.planoId;});
+    if(!pl)return;
+    // Calcular data prevista de pagamento
+    var dtSessao=new Date(s.data+'T12:00:00');
+    var dtPrev=new Date(dtSessao);
+    if(pl.pgMes==='seguinte'){dtPrev.setMonth(dtPrev.getMonth()+1);dtPrev.setDate(pl.pgDia||25);}
+    else if(pl.pgMes==='dias'){dtPrev.setDate(dtPrev.getDate()+(pl.pgDia||30));}
+    else{dtPrev.setDate(pl.pgDia||30);}
+    var diffDias=Math.ceil((dtPrev-hoje2)/(864e5));
+    var alerta=(pl.pgAlerta||3);
+    if(diffDias<=alerta&&diffDias>=0){
+      alertas.push({tipo:'chegando',pac:nomePac(s.pacienteId),plano:pl.nome,valor:s.valor,dias:diffDias,sid:s.id});
+    } else if(diffDias<0){
+      alertas.push({tipo:'atrasado',pac:nomePac(s.pacienteId),plano:pl.nome,valor:s.valor,dias:Math.abs(diffDias),sid:s.id});
+    }
+  });
+  return alertas;
+}
+
+
+function rBuscaReceita(el2){
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='<- Voltar';BtnVolCb=function(){ir('financeiro');};
+  var now=new Date();var ano=now.getFullYear();var mes=now.getMonth();
+  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Busca de Recebimentos</div>';
+  h+='<div class="card"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Filtros</div>';
+  h+='<div class="fr"><div class="fg"><label>Data inicial</label><input class="fi" type="date" id="br-ini" value="'+ano+'-01-01"/></div>';
+  h+='<div class="fg"><label>Data final</label><input class="fi" type="date" id="br-fim" value="'+ano+'-12-31"/></div></div>';
+  h+='<div class="fg"><label>Plano</label><select class="fi" id="br-plano"><option value="">Todos os planos</option>';
+  D.planos.forEach(function(pl){h+='<option value="'+esc(pl.id)+'">'+esc(pl.nome)+'</option>';});
+  h+='</select></div>';
+  h+='<div class="fg"><label>Paciente</label><select class="fi" id="br-pac"><option value="">Todos os pacientes</option>';
+  D.pacientes.slice().sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');}).forEach(function(p){h+='<option value="'+esc(p.id)+'">'+esc(p.nome)+'</option>';});
+  h+='</select></div>';
+  h+='<div class="fg"><label>Status</label><select class="fi" id="br-status"><option value="">Todos</option><option value="pago">Pago</option><option value="pendente">Pendente</option><option value="atrasado">Atrasado</option></select></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="executarBusca()">Buscar</button></div>';
+  h+='<div id="br-resultado"></div>';
+  el2.innerHTML=h;
+}
+function executarBusca(){
+  var ini=el('br-ini').value;var fim=el('br-fim').value;
+  var planoId=el('br-plano').value;var pacId=el('br-pac').value;
+  var status=el('br-status').value;
+  var res=D.sessoes.filter(function(s){
+    if(ini&&s.data<ini)return false;
+    if(fim&&s.data>fim)return false;
+    if(planoId&&s.planoId!==planoId)return false;
+    if(pacId&&s.pacienteId!==pacId)return false;
+    if(status&&s.statusPag!==status)return false;
+    return(s.valor||0)>0;
+  });
+  var total=res.reduce(function(a,s){return a+(s.valor||0);},0);
+  var cont=el('br-resultado');if(!cont)return;
+  if(!res.length){cont.innerHTML='<p style="text-align:center;padding:30px;color:#94a3b8">Nenhum resultado encontrado.</p>';return;}
+  var h='<div class="card"><div style="display:flex;justify-content:space-between;margin-bottom:12px">';
+  h+='<span style="font-size:13px;font-weight:700">'+res.length+' resultado(s)</span>';
+  h+='<span style="font-size:15px;font-weight:800;color:#1e6b3f">R$'+total.toFixed(2)+'</span></div>';
+  // Por plano
+  var porPlano={};
+  res.forEach(function(s){var k=s.planoId||'sem';porPlano[k]=(porPlano[k]||0)+(s.valor||0);});
+  Object.keys(porPlano).forEach(function(k){
+    var pct=Math.round(porPlano[k]/total*100);
+    h+='<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">';
+    h+='<span>'+esc(plNome(k)||'Sem plano')+'</span><span style="font-weight:700">R$'+porPlano[k].toFixed(2)+' ('+pct+'%)</span></div>';
+  });
+  h+='</div>';
+  h+='<div class="card"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Detalhamento</div>';
+  res.sort(function(a,b){return b.data.localeCompare(a.data);}).slice(0,50).forEach(function(s){
+    var stCor={pago:'#16a34a',pendente:'#d97706',atrasado:'#dc2626'}[s.statusPag]||'#94a3b8';
+    h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f1f5f9">';
+    h+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(nomePac(s.pacienteId))+'</div>';
+    h+='<div style="font-size:11px;color:#94a3b8">'+fmtD(s.data)+' · '+esc(plNome(s.planoId)||'-')+'</div></div>';
+    h+='<span style="font-size:12px;font-weight:700;color:'+stCor+'">R$'+(s.valor||0).toFixed(2)+'</span></div>';
+  });
+  if(res.length>50)h+='<p style="font-size:11px;color:#94a3b8;text-align:center">Mostrando 50 de '+res.length+'. Use filtros para refinar.</p>';
+  h+='<button class="btn btn-s btn-sm" style="margin-top:10px" onclick="exportarBusca()">Exportar resultado</button></div>';
+  cont.innerHTML=h;
+}
+function exportarBusca(){
+  var ini=el('br-ini')?el('br-ini').value:'';var fim=el('br-fim')?el('br-fim').value:'';
+  var planoId=el('br-plano')?el('br-plano').value:'';var pacId=el('br-pac')?el('br-pac').value:'';
+  var status=el('br-status')?el('br-status').value:'';
+  var res=D.sessoes.filter(function(s){
+    if(ini&&s.data<ini)return false;if(fim&&s.data>fim)return false;
+    if(planoId&&s.planoId!==planoId)return false;if(pacId&&s.pacienteId!==pacId)return false;
+    if(status&&s.statusPag!==status)return false;return(s.valor||0)>0;
+  });
+  var linhas=[['Data','Paciente','Plano','Valor','Status']];
+  res.forEach(function(s){linhas.push([fmtD(s.data),nomePac(s.pacienteId),plNome(s.planoId),(s.valor||0).toFixed(2),s.statusPag]);});
+  baixarXLS('busca-receita',linhas);toast('Exportado!');
+}
+
+
+function mCoresAgenda(){
+  var cfg=D.cfg.coresAgenda||{};
+  var h='<div class="mh"><h3>Cores da Agenda</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<div class="fg"><label>Cor do dia atual</label><input class="fi" type="color" id="ca-hoje" value="'+(cfg.hoje||'#dcfce7')+'"/></div>';
+  h+='<div class="fg"><label>Cor dos feriados</label><input class="fi" type="color" id="ca-feriado" value="'+(cfg.feriado||'#fef3c7')+'"/></div>';
+  h+='<div class="fg"><label>Cor das celulas vazias</label><input class="fi" type="color" id="ca-vazia" value="'+(cfg.vazia||'#ffffff')+'"/></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarCoresAgenda()">Salvar</button>';
+  h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="resetCoresAgenda()">Restaurar padrao</button>';
+  abrirM(h);
+}
+function salvarCoresAgenda(){
+  D.cfg.coresAgenda={
+    hoje:el('ca-hoje')?el('ca-hoje').value:'#dcfce7',
+    feriado:el('ca-feriado')?el('ca-feriado').value:'#fef3c7',
+    vazia:el('ca-vazia')?el('ca-vazia').value:'#ffffff'
+  };
+  salvar();fecharM();toast('Cores da agenda salvas!');renderizar();
+}
+function resetCoresAgenda(){D.cfg.coresAgenda={};salvar();fecharM();toast('Cores restauradas!');renderizar();}
+
+
+function mEscalas(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  p.escalas=p.escalas||{};
+  var h='<div class="mh"><h3>Escalas Clínicas — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Registre as escalas de avaliacao. Os valores ficam salvos no perfil do paciente.</p>';
+
+  // EVA — Escala Visual Analógica de Dor
+  h+='<div class="fsec"><div class="fsec-t">EVA — Dor (0=sem dor, 10=dor máxima)</div>';
+  h+='<input type="range" id="esc-eva" min="0" max="10" step="1" value="'+(p.escalas.eva||0)+'" oninput="el(\'esc-eva-v\').textContent=this.value" style="width:100%;margin:6px 0"/>';
+  h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sl3)"><span>0 - Sem dor</span><span id="esc-eva-v" style="font-weight:700;font-size:14px;color:var(--g1)">'+(p.escalas.eva||0)+'</span><span>10 - Dor máxima</span></div></div>';
+
+  // Barthel — Independência funcional
+  var barthel=[
+    {id:'alimentacao',nome:'Alimentação',ops:[{v:0,l:'Dependente'},{v:5,l:'Precisa de ajuda'},{v:10,l:'Independente'}]},
+    {id:'banho',nome:'Banho',ops:[{v:0,l:'Dependente'},{v:5,l:'Independente'}]},
+    {id:'higiene',nome:'Higiene pessoal',ops:[{v:0,l:'Dependente'},{v:5,l:'Independente'}]},
+    {id:'vestir',nome:'Vestir',ops:[{v:0,l:'Dependente'},{v:5,l:'Precisa de ajuda'},{v:10,l:'Independente'}]},
+    {id:'intestino',nome:'Intestino',ops:[{v:0,l:'Incontinente'},{v:5,l:'Acidente ocasional'},{v:10,l:'Continente'}]},
+    {id:'bexiga',nome:'Bexiga',ops:[{v:0,l:'Incontinente'},{v:5,l:'Acidente ocasional'},{v:10,l:'Continente'}]},
+    {id:'wc',nome:'Uso do vaso sanitário',ops:[{v:0,l:'Dependente'},{v:5,l:'Precisa de ajuda'},{v:10,l:'Independente'}]},
+    {id:'transferencia',nome:'Transferência cama/cadeira',ops:[{v:0,l:'Incapaz'},{v:5,l:'Grande ajuda'},{v:10,l:'Pequena ajuda'},{v:15,l:'Independente'}]},
+    {id:'deambulacao',nome:'Deambulação',ops:[{v:0,l:'Incapaz'},{v:5,l:'Cadeira de rodas'},{v:10,l:'Com ajuda'},{v:15,l:'Independente'}]},
+    {id:'escadas',nome:'Subir escadas',ops:[{v:0,l:'Incapaz'},{v:5,l:'Precisa de ajuda'},{v:10,l:'Independente'}]},
+  ];
+  h+='<div class="fsec"><div class="fsec-t">Índice de Barthel — Independência Funcional</div>';
+  var totalBarthel=0;
+  barthel.forEach(function(item){
+    var val=p.escalas['b_'+item.id]||0;totalBarthel+=val;
+    h+='<div class="fg" style="margin-bottom:6px"><label style="font-size:12px">'+item.nome+'</label>';
+    h+='<select class="fi" style="padding:6px 8px" id="esc-b-'+item.id+'" onchange="calcBarthel()">';
+    item.ops.forEach(function(op){h+='<option value="'+op.v+'"'+(val===op.v?' selected':'')+'>'+op.v+' — '+op.l+'</option>';});
+    h+='</select></div>';
+  });
+  h+='<div style="text-align:right;font-size:13px;margin-top:4px">Total: <strong id="barthel-total" style="color:var(--g1)">'+totalBarthel+'</strong>/100 ';
+  h+='<span style="font-size:11px;color:var(--sl3)">'+(totalBarthel>=85?'Independente':totalBarthel>=60?'Dependência leve':totalBarthel>=40?'Dependência moderada':'Dependência grave')+'</span></div></div>';
+
+  // Berg — Equilíbrio (simplificado)
+  h+='<div class="fsec"><div class="fsec-t">Escala de Berg — Equilíbrio (0-56)</div>';
+  h+='<input type="range" id="esc-berg" min="0" max="56" step="1" value="'+(p.escalas.berg||0)+'" oninput="el(\'esc-berg-v\').textContent=this.value" style="width:100%;margin:6px 0"/>';
+  h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sl3)"><span>0 - Alto risco</span><span id="esc-berg-v" style="font-weight:700;font-size:14px;color:var(--g1)">'+(p.escalas.berg||0)+'</span><span>56 - Baixo risco</span></div>';
+  var berg=p.escalas.berg||0;
+  h+='<div style="font-size:12px;color:var(--sl3);margin-top:4px">'+(berg>=45?'Baixo risco de queda':berg>=36?'Médio risco — supervisionado':'Alto risco de queda')+'</div></div>';
+
+  h+='<input type="hidden" id="esc-pid" value="'+esc(pid)+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarEscalas()">Salvar escalas</button>';
+  abrirM(h);
+}
+
+function calcBarthel(){
+  var items=['alimentacao','banho','higiene','vestir','intestino','bexiga','wc','transferencia','deambulacao','escadas'];
+  var total=0;
+  items.forEach(function(id){var s=el('esc-b-'+id);if(s)total+=parseInt(s.value)||0;});
+  var t=el('barthel-total');if(t){t.textContent=total;t.parentElement.lastElementChild.textContent=total>=85?'Independente':total>=60?'Dependência leve':total>=40?'Dependência moderada':'Dependência grave';}
+}
+
+function salvarEscalas(){
+  var pid=el('esc-pid')?el('esc-pid').value:'';
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  p.escalas=p.escalas||{};
+  p.escalas.eva=parseInt(el('esc-eva')?el('esc-eva').value:0)||0;
+  p.escalas.berg=parseInt(el('esc-berg')?el('esc-berg').value:0)||0;
+  var items=['alimentacao','banho','higiene','vestir','intestino','bexiga','wc','transferencia','deambulacao','escadas'];
+  items.forEach(function(id){var s=el('esc-b-'+id);if(s)p.escalas['b_'+id]=parseInt(s.value)||0;});
+  p.escalas.dt=new Date().toISOString();
+  salvar();fecharM();toast('Escalas salvas!');renderizar();
+}
+
+
+function mTermoConsentimento(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var hoje2=new Date().toLocaleDateString('pt-BR');
+  var h='<div class="mh"><h3>Termo de Consentimento</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Gere o termo para imprimir ou salvar. O registro de aceite fica salvo no perfil do paciente.</p>';
+  h+='<div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:#fff;font-size:12px;line-height:1.8;margin-bottom:14px">';
+  h+='<div style="text-align:center;font-weight:800;font-size:14px;margin-bottom:12px">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO</div>';
+  h+='<p>Eu, <strong>'+esc(p.nome)+'</strong>, '+(p.dataNasc?'nascido(a) em '+p.dataNasc+', ':'')+' declaro que fui devidamente informado(a) e esclarecido(a) pelo(a) fisioterapeuta sobre os procedimentos que serão realizados, seus objetivos, riscos e benefícios.</p>';
+  h+='<p>Concordo em participar voluntariamente do tratamento fisioterapêutico proposto, podendo retirar meu consentimento a qualquer momento sem prejuízo ao meu atendimento.</p>';
+  h+='<p>Declaro ainda que autorizo o registro e armazenamento das informações relativas ao meu tratamento, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>';
+  if(p.diagnostico)h+='<p><strong>Diagnóstico/condição:</strong> '+esc(p.diagnostico)+(p.cid?' (CID-10: '+esc(p.cid)+')':'')+'</p>';
+  h+='<div style="margin-top:20px;display:flex;justify-content:space-between">';
+  h+='<div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do paciente</div></div>';
+  h+='<div style="width:40px"></div>';
+  h+='<div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do fisioterapeuta</div></div>';
+  h+='</div>';
+  h+='<div style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8">Data: '+hoje2+'</div>';
+  h+='</div>';
+  if(p.termoAceito){
+    h+='<div style="background:#dcfce7;border-radius:8px;padding:10px;font-size:12px;color:#166534;margin-bottom:12px">';
+    h+='✅ Termo registrado em: '+new Date(p.termoAceito).toLocaleDateString('pt-BR')+'</div>';
+  }
+  h+='<div style="display:flex;gap:8px">';
+  h+='<button class="btn btn-p btn-sm" onclick="registrarTermoAceito(\''+esc(pid)+'\')">Registrar aceite</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="imprimirTermo()">Imprimir</button>';
+  h+='</div>';
+  abrirM(h);
+}
+function registrarTermoAceito(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  p.termoAceito=new Date().toISOString();
+  salvar();fecharM();toast('Aceite do termo registrado!');renderizar();
+}
+function imprimirTermo(){
+  window.print();
+}
+
+
+function togglePacote(sim){
+  var wrap=el('pac-wrap');
+  var btnSim=el('pac-sim');var btnNao=el('pac-nao');
+  if(!wrap)return;
+  if(sim){
+    wrap.style.display='block';
+    if(btnSim){btnSim.className='btn btn-sm btn-p';}
+    if(btnNao){btnNao.className='btn btn-sm btn-s';}
+  } else {
+    wrap.style.display='none';
+    if(btnSim){btnSim.className='btn btn-sm btn-s';}
+    if(btnNao){btnNao.className='btn btn-sm btn-p';}
+  }
+}
+
+
+function calcPacote(p){
+  if(!p.pacote)return null;
+  var realizadas=D.sessoes.filter(function(s){
+    return s.pacienteId===p.id&&s.status==='realizado';
+  }).length;
+  var restantes=Math.max(0,p.pacote-realizadas);
+  var pct=Math.round(realizadas/p.pacote*100);
+  return{total:p.pacote,realizadas:realizadas,restantes:restantes,pct:pct};
+}
+
+
+function abrirCatalogoEscalas(pid){
+  var cats={
+    fragilidade:'Fragilidade e Geriatria',
+    quedas:'Risco de Quedas',
+    mobilidade:'Mobilidade',
+    qualidade:'Qualidade de Vida',
+    neurologico:'Neurologico',
+    neuromuscular:'Doencas Neuromusculares',
+    dor:'Dor e Impacto Funcional'
+  };
+  var h='<div class="mh"><h3>Adicionar Escala</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Selecione a escala que deseja aplicar ao paciente.</p>';
+  Object.keys(cats).forEach(function(cat){
+    var escalas=ESCALAS_DB[cat]||[];
+    if(!escalas.length)return;
+    h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin:10px 0 6px;text-transform:uppercase;letter-spacing:.05em">'+cats[cat]+'</div>';
+    escalas.forEach(function(e){
+      h+='<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="aplicarEscala(\''+pid+'\',\''+e.id+'\')">';
+      h+='<div style="font-size:13px;font-weight:700">'+e.nome+'</div>';
+      h+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+e.descricao+'</div>';
+      h+='<div style="font-size:11px;color:var(--g1);margin-top:4px;font-weight:600">Toque para aplicar →</div>';
+      h+='</div>';
+    });
+  });
+  abrirM(h);
+}
+
+function getEscala(id){
+  var all=[];
+  Object.values(ESCALAS_DB).forEach(function(cat){cat.forEach(function(e){all.push(e);});});
+  return all.find(function(e){return e.id===id;})||null;
+}
+
+function aplicarEscala(pid,escId){
+  var esc=getEscala(escId);if(!esc)return;
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var h='<div class="mh"><h3>'+esc.nome+'</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  h+='<div style="background:#f0fdf4;border-radius:8px;padding:10px;margin-bottom:12px">';
+  h+='<div style="font-size:12px;font-weight:700;color:var(--g1);margin-bottom:4px">Como aplicar:</div>';
+  h+='<div style="font-size:12px;color:#166534;line-height:1.6">'+esc.aplicacao+'</div></div>';
+  h+='<input type="hidden" id="esc-app-pid" value="'+pid+'"/>';
+  h+='<input type="hidden" id="esc-app-id" value="'+escId+'"/>';
+  // Campos dinamicos
+  esc.campos.forEach(function(campo){
+    h+='<div class="fg"><label style="font-size:13px;font-weight:600">'+campo.label+'</label>';
+    if(campo.tipo==='radio'||campo.tipo==='radio3'){
+      campo.ops.forEach(function(op){
+        h+='<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid #f1f5f9;cursor:pointer">';
+        h+='<input type="radio" name="'+campo.id+'" value="'+op.v+'" style="margin-top:2px;flex-shrink:0"/>';
+        h+='<span style="font-size:12px">'+op.l+'</span></label>';
+      });
+    } else if(campo.tipo==='check'){
+      h+='<label style="display:flex;gap:8px;align-items:center;padding:6px 0;cursor:pointer">';
+      h+='<input type="checkbox" id="'+campo.id+'" style="width:16px;height:16px;flex-shrink:0"/>';
+      h+='<span style="font-size:12px">'+campo.label+'</span></label>';
+      h=h.slice(0,h.lastIndexOf('<div class="fg">'))+'<div class="fg" style="margin-bottom:0">';
+    } else if(campo.tipo==='range'){
+      h+='<input type="range" id="'+campo.id+'" min="'+(campo.min||0)+'" max="'+(campo.max||10)+'" step="1" value="'+(campo.val||0)+'" oninput="el(\'v_'+campo.id+'\').textContent=this.value" style="width:100%"/>';
+      h+='<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sl3)"><span>'+campo.min+'</span><strong id="v_'+campo.id+'" style="color:var(--g1)">'+(campo.val||0)+'</strong><span>'+campo.max+'</span></div>';
+    } else if(campo.tipo==='numero'){
+      h+='<input class="fi" type="number" id="'+campo.id+'" min="'+(campo.min||0)+'" max="'+(campo.max||999)+'" placeholder="'+(campo.placeholder||'')+'"/>';
+    }
+    h+='</div>';
+  });
+  // Valores de referencia
+  h+='<div style="background:#eff6ff;border-radius:8px;padding:10px;margin-bottom:14px">';
+  h+='<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px">Valores de referencia:</div>';
+  esc.refs.forEach(function(r){
+    h+='<div style="font-size:12px;color:#1e40af;margin-bottom:2px"><strong>'+r.faixa+'</strong> — '+r.interp+'</div>';
+  });
+  h+='</div>';
+  h+='<div class="fg"><label>Observacoes</label><textarea class="fi" id="esc-obs" rows="2" placeholder="Observacoes adicionais..."></textarea></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarEscalaDinamica()">Salvar avaliacao</button>';
+  abrirM(h);
+}
+
+function salvarEscalaDinamica(){
+  var pid=el('esc-app-pid')?el('esc-app-pid').value:'';
+  var escId=el('esc-app-id')?el('esc-app-id').value:'';
+  var esc=getEscala(escId);
+  var p=D.pacientes.find(function(x){return x.id===pid;});
+  if(!p||!esc)return;
+  var resultado={};var total=0;var contagem=0;
+  esc.campos.forEach(function(campo){
+    if(campo.tipo==='radio'||campo.tipo==='radio3'){
+      var sel=document.querySelector('input[name="'+campo.id+'"]:checked');
+      if(sel){resultado[campo.id]=parseInt(sel.value);total+=parseInt(sel.value);contagem++;}
+    } else if(campo.tipo==='check'){
+      var chk=el(campo.id);
+      if(chk){resultado[campo.id]=chk.checked?1:0;if(chk.checked)total++; contagem++;}
+    } else if(campo.tipo==='range'||campo.tipo==='numero'){
+      var inp=el(campo.id);
+      if(inp){resultado[campo.id]=parseFloat(inp.value)||0;total+=resultado[campo.id];contagem++;}
+    }
+  });
+  var obs=el('esc-obs')?el('esc-obs').value:'';
+  p.escalasDin=p.escalasDin||[];
+  p.escalasDin.push({
+    id:uid(),escId:escId,nome:esc.nome,cat:esc.cat,
+    resultado:resultado,total:total,obs:obs,
+    dt:new Date().toISOString()
+  });
+  salvar();fecharM();
+  toast('Escala salva!');
+  renderizar();
+}
+
+function verHistoricoEscalas(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var hist=p.escalasDin||[];
+  var h='<div class="mh"><h3>Historico de Escalas</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  if(!hist.length){h+='<p style="text-align:center;padding:30px;color:var(--sl3)">Nenhuma escala aplicada ainda.</p>';abrirM(h);return;}
+  // Agrupar por escala
+  var grupos={};
+  hist.forEach(function(r){grupos[r.escId]=grupos[r.escId]||{nome:r.nome,cat:r.cat,registros:[]};grupos[r.escId].registros.push(r);});
+  Object.values(grupos).forEach(function(g){
+    h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">'+g.nome+'</div>';
+    h+='<div style="font-size:11px;color:var(--g1);margin-bottom:8px">'+g.cat+'</div>';
+    g.registros.sort(function(a,b){return b.dt.localeCompare(a.dt);}).forEach(function(r){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--borda)">';
+      h+='<div style="flex:1"><div style="font-size:12px;color:var(--sl3)">'+new Date(r.dt).toLocaleDateString('pt-BR')+'</div>';
+      if(r.obs)h+='<div style="font-size:11px;color:var(--sl3)">'+r.obs+'</div>';
+      h+='</div>';
+      h+='<span style="font-size:14px;font-weight:800;color:var(--g1)">'+r.total+'</span>';
+      h+='<button class="btn btn-d btn-sm" data-pid="'+pid+'" data-id="'+r.id+'" onclick="delEscalaDin(this.dataset.pid,this.dataset.id)">X</button>';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  abrirM(h);
+}
+
+function delEscalaDin(pid,id){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  if(!confirm('Excluir este registro?'))return;
+  p.escalasDin=(p.escalasDin||[]).filter(function(r){return r.id!==id;});
+  salvar();fecharM();toast('Registro excluido.');
+}
+
+
+function rAbaResumo(p){
+  var hj=hoje();
+  var h='<div style="font-size:15px;font-weight:800;margin-bottom:14px;color:var(--g1)">⚡ Resumo em 30 segundos</div>';
+  
+  // Diagnóstico
+  h+='<div class="card" style="margin-bottom:10px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">🏥 Diagnóstico</div>';
+  if(p.diagnostico||p.cid){
+    if(p.diagnostico)h+='<div style="font-size:13px;font-weight:600">'+esc(p.diagnostico)+'</div>';
+    if(p.cid)h+='<div style="font-size:12px;color:var(--sl3)">CID: '+esc(p.cid)+(p.cidNome?' — '+esc(p.cidNome):'')+'</div>';
+  } else {
+    h+='<div style="font-size:12px;color:var(--sl3)">Não informado</div>';
+  }
+  // Anamnese resumo
+  var an=p.anamnese||{};
+  if(an.queixa)h+='<div style="font-size:12px;margin-top:4px;color:var(--sl2)"><strong>Queixa:</strong> '+esc(an.queixa)+'</div>';
+  h+='</div>';
+
+  // Sessões
+  var sessoesPac=D.sessoes.filter(function(s){return s.pacienteId===p.id;});
+  var realizadas=sessoesPac.filter(function(s){return s.status==='realizado';}).length;
+  var proxima=sessoesPac.filter(function(s){return s.data>=hj&&s.status==='agendado';}).sort(function(a,b){return a.data.localeCompare(b.data)||a.hora.localeCompare(b.hora);})[0];
+  h+='<div class="card" style="margin-bottom:10px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">📅 Sessões</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div style="text-align:center"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+realizadas+'</div><div style="font-size:11px;color:var(--sl3)">Realizadas</div></div>';
+  h+='<div style="text-align:center"><div style="font-size:13px;font-weight:700;color:var(--g1)">'+(proxima?fmtD(proxima.data)+' '+proxima.hora:'—')+'</div><div style="font-size:11px;color:var(--sl3)">Próxima sessão</div></div>';
+  h+='</div>';
+  // Pacote
+  var pk=calcPacote(p);
+  if(pk){
+    var pkCor=pk.restantes===0?'var(--red)':pk.restantes<=2?'var(--amber)':'var(--g1)';
+    h+='<div style="margin-top:8px;padding:6px 8px;background:var(--g4);border-radius:6px;display:flex;justify-content:space-between;align-items:center">';
+    h+='<span style="font-size:12px">📦 Pacote</span>';
+    h+='<span style="font-size:13px;font-weight:700;color:'+pkCor+'">'+pk.realizadas+'/'+pk.total+' ('+pk.restantes+' rest.)</span>';
+    h+='</div>';
+  }
+  h+='</div>';
+
+  // Última evolução
+  var evos=(p.evolucoes||[]).slice().sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+  h+='<div class="card" style="margin-bottom:10px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">📝 Última evolução</div>';
+  if(evos.length){
+    var ult=evos[0];
+    h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:4px">'+new Date(ult.ts||0).toLocaleDateString('pt-BR')+'</div>';
+    h+='<div style="font-size:12px;color:var(--sl2);line-height:1.5">'+esc((ult.texto||'').slice(0,120))+(ult.texto&&ult.texto.length>120?'...':'')+'</div>';
+    if(ult.pa||ult.sat||ult.bpm){
+      h+='<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">';
+      if(ult.pa)h+='<span style="font-size:11px;color:var(--blue)">PA: '+esc(ult.pa)+'</span>';
+      if(ult.sat)h+='<span style="font-size:11px;color:var(--blue)">Sat: '+esc(ult.sat)+'%</span>';
+      if(ult.bpm)h+='<span style="font-size:11px;color:var(--blue)">FC: '+esc(ult.bpm)+'bpm</span>';
+      h+='</div>';
+    }
+    if(ult.dor!=null)h+='<div style="font-size:12px;margin-top:4px">Dor: <strong style="color:var(--red)">'+ult.dor+'/10</strong></div>';
+  } else {
+    h+='<div style="font-size:12px;color:var(--sl3)">Nenhuma evolução registrada</div>';
+  }
+  h+='</div>';
+
+  // Última escala
+  var escDin=(p.escalasDin||[]);
+  if(escDin.length){
+    var ultEsc=escDin.slice().sort(function(a,b){return b.dt.localeCompare(a.dt);})[0];
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">📊 Última escala</div>';
+    h+='<div style="font-size:13px;font-weight:600">'+esc(ultEsc.nome)+'</div>';
+    h+='<div style="display:flex;justify-content:space-between;margin-top:4px">';
+    h+='<span style="font-size:12px;color:var(--sl3)">'+new Date(ultEsc.dt).toLocaleDateString('pt-BR')+'</span>';
+    h+='<span style="font-size:16px;font-weight:800;color:var(--g1)">'+ultEsc.total+' pts</span>';
+    h+='</div></div>';
+  }
+  // Escalas antigas (EVA)
+  if(p.escalas&&p.escalas.eva!=null){
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">🩺 Dor atual (EVA)</div>';
+    var evaVal=p.escalas.eva;
+    var evaCor=evaVal<=3?'var(--green)':evaVal<=6?'var(--amber)':'var(--red)';
+    h+='<div style="font-size:32px;font-weight:900;color:'+evaCor+'">'+evaVal+'<span style="font-size:16px">/10</span></div>';
+    h+='<div style="font-size:11px;color:var(--sl3)">'+(evaVal<=3?'Dor leve':evaVal<=6?'Dor moderada':'Dor intensa')+'</div>';
+    if(p.escalas.dt)h+='<div style="font-size:11px;color:var(--sl3)">Registrado: '+new Date(p.escalas.dt).toLocaleDateString('pt-BR')+'</div>';
+    h+='</div>';
+  }
+
+  // Pagamentos pendentes
+  var pendVal=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;}).reduce(function(a,s){return a+(s.valor||0);},0);
+  h+='<div class="card" style="margin-bottom:10px;'+(pendVal>0?'border-color:#fcd34d;background:#fffbeb;':'')+'">';
+  h+='<div style="font-size:11px;font-weight:800;color:'+(pendVal>0?'#92400e':'var(--g1)')+';text-transform:uppercase;margin-bottom:6px">💰 Pagamentos</div>';
+  if(pendVal>0){
+    h+='<div style="font-size:22px;font-weight:800;color:#d97706">R$'+pendVal.toFixed(2)+'</div>';
+    h+='<div style="font-size:11px;color:#92400e">Pendente de recebimento</div>';
+  } else {
+    h+='<div style="font-size:12px;color:var(--green);font-weight:600">✅ Em dia</div>';
+  }
+  h+='</div>';
+
+  return h;
+}
+
+
+function rAbaAnamnese(p){
+  var an=p.anamnese||{};
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  h+='<div style="font-size:15px;font-weight:800">📋 Anamnese</div>';
+  h+='<button class="btn btn-p btn-sm" onclick="editarAnamnese(\''+p.id+'\')">✏️ Editar</button>';
+  h+='</div>';
+
+  if(!an.queixa&&!an.hma&&!an.doencas){
+    h+='<div style="text-align:center;padding:40px">';
+    h+='<div style="font-size:32px;margin-bottom:10px">📋</div>';
+    h+='<div style="font-size:14px;font-weight:600;margin-bottom:8px">Anamnese não preenchida</div>';
+    h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:16px">Registre a avaliação fisioterapêutica inicial</div>';
+    h+='<button class="btn btn-p btn-sm" onclick="editarAnamnese(\''+p.id+'\')">Preencher agora</button>';
+    h+='</div>';
+    return h;
+  }
+
+  function bloco(titulo,val){
+    if(!val)return'';
+    return'<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">'+titulo+'</div><div style="font-size:13px;color:var(--sl2);line-height:1.6;background:var(--g4);padding:8px 10px;border-radius:6px">'+esc(val)+'</div></div>';
+  }
+
+  // Bloco 1 — Identificação
+  h+='<div class="card" style="margin-bottom:10px">';
+  h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:8px;border-bottom:1px solid var(--borda);padding-bottom:6px">IDENTIFICAÇÃO</div>';
+  h+=bloco('Diagnóstico Clínico / Médico Responsável',an.diagMedico);
+  h+='</div>';
+
+  // Bloco 2 — Avaliação Fisioterapêutica
+  if(an.hma||an.doencas||an.histFamiliar||an.rotina||an.cirurgias){
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:8px;border-bottom:1px solid var(--borda);padding-bottom:6px">AVALIAÇÃO FISIOTERAPÊUTICA</div>';
+    h+=bloco('Queixa Principal',an.queixa);
+    h+=bloco('HMA (História da Moléstia Atual)',an.hma);
+    h+=bloco('Doenças Associadas',an.doencas);
+    h+=bloco('Histórico Familiar',an.histFamiliar);
+    h+=bloco('Rotina',an.rotina);
+    h+=bloco('Cirurgias',an.cirurgias);
+    // Medicamentos
+    if(an.medicamentos&&an.medicamentos.length){
+      h+='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Medicamentos</div>';
+      h+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+      h+='<tr style="background:var(--g3)"><th style="padding:6px;text-align:left">Medicamento</th><th style="padding:6px;text-align:left">Objetivo</th><th style="padding:6px;text-align:left">Horário</th></tr>';
+      an.medicamentos.forEach(function(m,i){
+        h+='<tr style="background:'+(i%2===0?'var(--g4)':'#fff')+'"><td style="padding:6px">'+esc(m.nome||'')+'</td><td style="padding:6px">'+esc(m.obj||'')+'</td><td style="padding:6px">'+esc(m.hora||'')+'</td></tr>';
+      });
+      h+='</table></div>';
+    }
+    h+='</div>';
+  }
+
+  // Bloco 3 — Exames e Sinais
+  if(an.exames||an.atividadeFisica||an.inspecao||an.fc){
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:8px;border-bottom:1px solid var(--borda);padding-bottom:6px">EXAMES E SINAIS VITAIS</div>';
+    if(an.exames&&an.exames.length){
+      h+='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Exames</div>';
+      h+='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+      h+='<tr style="background:var(--g3)"><th style="padding:6px;text-align:left">Exame</th><th style="padding:6px;text-align:left">Resultado</th></tr>';
+      an.exames.forEach(function(e,i){
+        h+='<tr style="background:'+(i%2===0?'var(--g4)':'#fff')+'"><td style="padding:6px">'+esc(e.nome||'')+'</td><td style="padding:6px">'+esc(e.resultado||'')+'</td></tr>';
+      });
+      h+='</table></div>';
+    }
+    if(an.escalaDor!=null)h+='<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Escala de Dor</div><div style="display:flex;align-items:center;gap:10px"><div style="font-size:24px;font-weight:900;color:'+(an.escalaDor<=3?'var(--green)':an.escalaDor<=6?'var(--amber)':'var(--red)')+'">'+an.escalaDor+'/10</div><div style="font-size:12px;color:var(--sl3)">Local: '+esc(an.localDor||'—')+'</div></div></div>';
+    h+=bloco('Atividade Física',an.atividadeFisica);
+    if(an.fc||an.sat||an.pa||an.fr){
+      h+='<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Sinais Vitais</div>';
+      h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">';
+      [{l:'FC',v:an.fc,u:'bpm'},{l:'SatO2',v:an.sat,u:'%'},{l:'PA',v:an.pa,u:'mmHg'},{l:'FR',v:an.fr,u:'rpm'}].forEach(function(sv){
+        h+='<div style="text-align:center;padding:6px;background:var(--g4);border-radius:6px"><div style="font-size:14px;font-weight:700">'+esc(sv.v||'—')+'</div><div style="font-size:10px;color:var(--sl3)">'+sv.l+'</div></div>';
+      });
+      h+='</div></div>';
+    }
+    h+=bloco('Inspeção e Palpação',an.inspecao);
+    h+='</div>';
+  }
+
+  // Bloco 4 — Avaliação Física
+  if(an.forca||an.adm||an.coordenacao){
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:8px;border-bottom:1px solid var(--borda);padding-bottom:6px">AVALIAÇÃO FÍSICA</div>';
+    if(an.forca&&an.forca.length){
+      h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Avaliação de Força</div>';
+      h+='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:var(--g3)"><th style="padding:6px;text-align:left">Movimento</th><th style="padding:6px">Direita</th><th style="padding:6px">Esquerda</th></tr>';
+      an.forca.forEach(function(f,i){h+='<tr style="background:'+(i%2===0?'var(--g4)':'#fff')+'"><td style="padding:6px">'+esc(f.mov||'')+'</td><td style="padding:6px;text-align:center">'+esc(f.dir||'')+'</td><td style="padding:6px;text-align:center">'+esc(f.esq||'')+'</td></tr>';});
+      h+='</table></div>';
+    }
+    if(an.adm&&an.adm.length){
+      h+='<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Amplitude de Movimento</div>';
+      h+='<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:var(--g3)"><th style="padding:6px;text-align:left">Articulação</th><th style="padding:6px">Direita</th><th style="padding:6px">Esquerda</th></tr>';
+      an.adm.forEach(function(f,i){h+='<tr style="background:'+(i%2===0?'var(--g4)':'#fff')+'"><td style="padding:6px">'+esc(f.art||'')+'</td><td style="padding:6px;text-align:center">'+esc(f.dir||'')+'</td><td style="padding:6px;text-align:center">'+esc(f.esq||'')+'</td></tr>';});
+      h+='</table></div>';
+    }
+    if(an.coordenacao){
+      h+='<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:4px">Coordenação Motora</div>';
+      h+='<div style="font-size:12px">Dedo-nariz: <strong>'+esc(an.coordDN||'—')+'</strong></div>';
+      h+='<div style="font-size:12px">Calcanhar-joelho: <strong>'+esc(an.coordCJ||'—')+'</strong></div></div>';
+    }
+    h+='</div>';
+  }
+
+  // Bloco 5 — Testes
+  if(an.romberg||an.sentarLevantar||an.objTrat){
+    h+='<div class="card" style="margin-bottom:10px">';
+    h+='<div style="font-size:12px;font-weight:800;color:var(--g1);margin-bottom:8px;border-bottom:1px solid var(--borda);padding-bottom:6px">TESTES E OBJETIVOS</div>';
+    if(an.romberg)h+='<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--g1)">Romberg: </span><span style="font-size:12px">'+esc(an.romberg)+'</span></div>';
+    if(an.sentarLevantar)h+='<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--g1)">Sentar/Levantar: </span><span style="font-size:12px">'+esc(an.sentarLevantar)+' repetições</span></div>';
+    h+=bloco('Objetivos do Tratamento',an.objTrat);
+    h+='</div>';
+  }
+
+  if(an.dt)h+='<div style="font-size:11px;color:var(--sl3);text-align:right">Última atualização: '+new Date(an.dt).toLocaleDateString('pt-BR')+'</div>';
+  return h;
+}
+
+
+function editarAnamnese(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var an=p.anamnese||{};
+  var meds=an.medicamentos||[{nome:'',obj:'',hora:''}];
+  var exms=an.exames||[{nome:'',resultado:''}];
+  var forca=an.forca||[{mov:'',dir:'',esq:''}];
+  var adm=an.adm||[{art:'',dir:'',esq:''}];
+
+  var h='<div class="mh"><h3>Anamnese — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+
+  // Bloco 1 — Identificação
+  h+='<div class="fsec"><div class="fsec-t">Identificação</div>';
+  h+='<div class="fg"><label>Diagnóstico Clínico / Médico Responsável</label><textarea class="fi" id="an-diagmedico" rows="2">'+esc(an.diagMedico||'')+'</textarea></div>';
+  h+='</div>';
+
+  // Bloco 2 — Avaliação
+  h+='<div class="fsec"><div class="fsec-t">Avaliação Fisioterapêutica</div>';
+  h+='<div class="fg"><label>Queixa Principal</label><textarea class="fi" id="an-queixa" rows="2" placeholder="Queixa principal do paciente...">'+esc(an.queixa||'')+'</textarea></div>';
+  h+='<div class="fg"><label>HMA (História da Moléstia Atual)</label><textarea class="fi" id="an-hma" rows="3" placeholder="História da doença atual...">'+esc(an.hma||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Doenças Associadas / Comorbidades</label><textarea class="fi" id="an-doencas" rows="2">'+esc(an.doencas||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Histórico Familiar</label><textarea class="fi" id="an-histfam" rows="2">'+esc(an.histFamiliar||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Rotina</label><textarea class="fi" id="an-rotina" rows="2">'+esc(an.rotina||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Cirurgias</label><textarea class="fi" id="an-cirurgias" rows="2">'+esc(an.cirurgias||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Objetivos do Tratamento</label><textarea class="fi" id="an-objtrat" rows="2">'+esc(an.objTrat||'')+'</textarea></div>';
+  h+='</div>';
+
+  // Medicamentos
+  h+='<div class="fsec"><div class="fsec-t">Medicamentos</div>';
+  h+='<div id="an-meds-wrap">';
+  meds.forEach(function(m,i){
+    h+='<div class="an-med-row" style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;margin-bottom:6px">';
+    h+='<input class="fi" style="padding:6px" placeholder="Medicamento" id="an-med-n-'+i+'" value="'+esc(m.nome||'')+'"/>';
+    h+='<input class="fi" style="padding:6px" placeholder="Objetivo" id="an-med-o-'+i+'" value="'+esc(m.obj||'')+'"/>';
+    h+='<input class="fi" style="padding:6px" placeholder="Horário" id="an-med-h-'+i+'" value="'+esc(m.hora||'')+'"/>';
+    h+='<button class="btn btn-d btn-sm" onclick="delAnRow(\'an-meds-wrap\',this)">✕</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-s btn-sm" onclick="addAnMed()">+ Medicamento</button></div>';
+
+  // Bloco 3 — Exames e Sinais
+  h+='<div class="fsec"><div class="fsec-t">Exames</div>';
+  h+='<div id="an-exms-wrap">';
+  exms.forEach(function(e,i){
+    h+='<div style="display:grid;grid-template-columns:2fr 3fr auto;gap:6px;margin-bottom:6px">';
+    h+='<input class="fi" style="padding:6px" placeholder="Exame" id="an-exm-n-'+i+'" value="'+esc(e.nome||'')+'"/>';
+    h+='<input class="fi" style="padding:6px" placeholder="Resultado" id="an-exm-r-'+i+'" value="'+esc(e.resultado||'')+'"/>';
+    h+='<button class="btn btn-d btn-sm" onclick="delAnRow(\'an-exms-wrap\',this)">✕</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-s btn-sm" onclick="addAnExm()">+ Exame</button></div>';
+
+  // Sinais vitais
+  h+='<div class="fsec"><div class="fsec-t">Exames e Sinais Vitais</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div class="fg" style="margin:0"><label>Escala de Dor (EVA 0-10)</label><input class="fi" type="range" id="an-edv" min="0" max="10" step="1" value="'+(an.escalaDor||0)+'" oninput="el(\'an-edv-v\').textContent=this.value"/><div style="text-align:center;font-weight:700" id="an-edv-v">'+(an.escalaDor||0)+'</div></div>';
+  h+='<div class="fg" style="margin:0"><label>Local da Dor</label><input class="fi" style="padding:6px" id="an-ldor" value="'+esc(an.localDor||'')+'" placeholder="Ex: lombar, joelho..."/></div>';
+  h+='</div>';
+  h+='<div class="fg"><label>Atividade Física</label><input class="fi" id="an-atfis" value="'+esc(an.atividadeFisica||'')+'" placeholder="Descreva a atividade física habitual..."/></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">';
+  [{id:'an-fc',lbl:'FC (bpm)',v:an.fc},{id:'an-sat',lbl:'SatO2 (%)',v:an.sat},{id:'an-pa',lbl:'PA (mmHg)',v:an.pa},{id:'an-fr',lbl:'FR (rpm)',v:an.fr}].forEach(function(sv){
+    h+='<div class="fg" style="margin:0"><label style="font-size:11px">'+sv.lbl+'</label><input class="fi" style="padding:6px" id="'+sv.id+'" value="'+esc(sv.v||'')+'" placeholder="—"/></div>';
+  });
+  h+='</div>';
+  h+='<div class="fg"><label>Inspeção e Palpação</label><textarea class="fi" id="an-insp" rows="2">'+esc(an.inspecao||'')+'</textarea></div>';
+  h+='</div>';
+
+  // Bloco 4 — Avaliação Física
+  h+='<div class="fsec"><div class="fsec-t">Avaliação de Força</div>';
+  h+='<div id="an-forca-wrap">';
+  forca.forEach(function(f,i){
+    h+='<div style="display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px">';
+    h+='<input class="fi" style="padding:6px" placeholder="Movimento" id="an-fm-'+i+'" value="'+esc(f.mov||'')+'"/>';
+    h+='<input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-fd-'+i+'" value="'+esc(f.dir||'')+'"/>';
+    h+='<input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-fe-'+i+'" value="'+esc(f.esq||'')+'"/>';
+    h+='<button class="btn btn-d btn-sm" onclick="delAnRow(\'an-forca-wrap\',this)">✕</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-s btn-sm" onclick="addAnForca()">+ Movimento</button></div>';
+
+  h+='<div class="fsec"><div class="fsec-t">Amplitude de Movimento</div>';
+  h+='<div id="an-adm-wrap">';
+  adm.forEach(function(a,i){
+    h+='<div style="display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px">';
+    h+='<input class="fi" style="padding:6px" placeholder="Articulação" id="an-am-'+i+'" value="'+esc(a.art||'')+'"/>';
+    h+='<input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-ad-'+i+'" value="'+esc(a.dir||'')+'"/>';
+    h+='<input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-ae-'+i+'" value="'+esc(a.esq||'')+'"/>';
+    h+='<button class="btn btn-d btn-sm" onclick="delAnRow(\'an-adm-wrap\',this)">✕</button>';
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-s btn-sm" onclick="addAnAdm()">+ Articulação</button></div>';
+
+  // Coordenação
+  h+='<div class="fsec"><div class="fsec-t">Coordenação Motora</div>';
+  var coordOps=['Preservada','Lenta','Ausente'];
+  h+='<div class="fg"><label>Índex Dedo-Nariz</label><select class="fi" id="an-cdn">';
+  coordOps.forEach(function(o){h+='<option value="'+o+'"'+(an.coordDN===o?' selected':'')+'>'+o+'</option>';});
+  h+='</select></div>';
+  h+='<div class="fg"><label>Índex Calcanhar-Joelho</label><select class="fi" id="an-ccj">';
+  coordOps.forEach(function(o){h+='<option value="'+o+'"'+(an.coordCJ===o?' selected':'')+'>'+o+'</option>';});
+  h+='</select></div></div>';
+
+  // Bloco 5 — Testes
+  h+='<div class="fsec"><div class="fsec-t">Testes Específicos</div>';
+  h+='<div class="fg"><label>Teste de Romberg</label><select class="fi" id="an-romberg">';
+  ['','Dinâmico — Normal','Estático — Normal','Dinâmico — Alterado','Estático — Alterado','Ambos Alterados'].forEach(function(o){
+    h+='<option value="'+o+'"'+(an.romberg===o?' selected':'')+'>'+o+'</option>';
+  });
+  h+='</select></div>';
+  h+='<div class="fg"><label>Sentar e Levantar (repetições)</label>';
+  h+='<input class="fi" type="number" id="an-sl" min="0" max="50" value="'+(an.sentarLevantar||'')+'" placeholder="Nº de repetições"/>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">Ref: 60-64a ♀12-17 ♂14-19 | 65-69a ♀11-16 ♂12-18 | 70-74a ♀10-15 ♂12-17 | 75-79a ♀10-15 ♂11-17 | 80-84a ♀9-14 ♂10-15</div>';
+  h+='</div></div>';
+
+  h+='<input type="hidden" id="an-pid" value="'+esc(pid)+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarAnamnese()">Salvar anamnese</button>';
+  abrirM(h);
+}
+
+function addAnMed(){
+  var wrap=el('an-meds-wrap');if(!wrap)return;
+  var i=wrap.children.length;
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;margin-bottom:6px';
+  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Medicamento" id="an-med-n-'+i+'"/><input class="fi" style="padding:6px" placeholder="Objetivo" id="an-med-o-'+i+'"/><input class="fi" style="padding:6px" placeholder="Horário" id="an-med-h-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-meds-wrap\',this)">✕</button>';
+  wrap.appendChild(div);
+}
+function addAnExm(){
+  var wrap=el('an-exms-wrap');if(!wrap)return;
+  var i=wrap.children.length;
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:2fr 3fr auto;gap:6px;margin-bottom:6px';
+  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Exame" id="an-exm-n-'+i+'"/><input class="fi" style="padding:6px" placeholder="Resultado" id="an-exm-r-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-exms-wrap\',this)">✕</button>';
+  wrap.appendChild(div);
+}
+function addAnForca(){
+  var wrap=el('an-forca-wrap');if(!wrap)return;
+  var i=wrap.children.length;
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px';
+  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Movimento" id="an-fm-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-fd-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-fe-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-forca-wrap\',this)">✕</button>';
+  wrap.appendChild(div);
+}
+function addAnAdm(){
+  var wrap=el('an-adm-wrap');if(!wrap)return;
+  var i=wrap.children.length;
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px';
+  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Articulação" id="an-am-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-ad-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-ae-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-adm-wrap\',this)">✕</button>';
+  wrap.appendChild(div);
+}
+function delAnRow(wrapId,btn){btn.parentElement.remove();}
+
+function salvarAnamnese(){
+  var pid=el('an-pid')?el('an-pid').value:'';
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  // Coletar medicamentos
+  var meds=[];var i=0;
+  while(el('an-med-n-'+i)){
+    var n=el('an-med-n-'+i).value.trim();
+    if(n)meds.push({nome:n,obj:el('an-med-o-'+i)?el('an-med-o-'+i).value:'',hora:el('an-med-h-'+i)?el('an-med-h-'+i).value:''});
+    i++;
+  }
+  // Coletar exames
+  var exms=[];i=0;
+  while(el('an-exm-n-'+i)){
+    var en=el('an-exm-n-'+i).value.trim();
+    if(en)exms.push({nome:en,resultado:el('an-exm-r-'+i)?el('an-exm-r-'+i).value:''});
+    i++;
+  }
+  // Coletar força
+  var forca=[];i=0;
+  while(el('an-fm-'+i)){
+    var fm=el('an-fm-'+i).value.trim();
+    if(fm)forca.push({mov:fm,dir:el('an-fd-'+i)?el('an-fd-'+i).value:'',esq:el('an-fe-'+i)?el('an-fe-'+i).value:''});
+    i++;
+  }
+  // Coletar ADM
+  var adm=[];i=0;
+  while(el('an-am-'+i)){
+    var am=el('an-am-'+i).value.trim();
+    if(am)adm.push({art:am,dir:el('an-ad-'+i)?el('an-ad-'+i).value:'',esq:el('an-ae-'+i)?el('an-ae-'+i).value:''});
+    i++;
+  }
+  p.anamnese={
+    diagMedico:el('an-diagmedico')?el('an-diagmedico').value:'',
+    queixa:el('an-queixa')?el('an-queixa').value:'',
+    hma:el('an-hma')?el('an-hma').value:'',
+    doencas:el('an-doencas')?el('an-doencas').value:'',
+    histFamiliar:el('an-histfam')?el('an-histfam').value:'',
+    rotina:el('an-rotina')?el('an-rotina').value:'',
+    cirurgias:el('an-cirurgias')?el('an-cirurgias').value:'',
+    objTrat:el('an-objtrat')?el('an-objtrat').value:'',
+    medicamentos:meds,exames:exms,forca:forca,adm:adm,
+    escalaDor:parseInt(el('an-edv')?el('an-edv').value:0)||0,
+    localDor:el('an-ldor')?el('an-ldor').value:'',
+    atividadeFisica:el('an-atfis')?el('an-atfis').value:'',
+    fc:el('an-fc')?el('an-fc').value:'',sat:el('an-sat')?el('an-sat').value:'',
+    pa:el('an-pa')?el('an-pa').value:'',fr:el('an-fr')?el('an-fr').value:'',
+    inspecao:el('an-insp')?el('an-insp').value:'',
+    coordenacao:true,
+    coordDN:el('an-cdn')?el('an-cdn').value:'',
+    coordCJ:el('an-ccj')?el('an-ccj').value:'',
+    romberg:el('an-romberg')?el('an-romberg').value:'',
+    sentarLevantar:el('an-sl')?parseInt(el('an-sl').value)||0:0,
+    dt:new Date().toISOString()
+  };
+  // Registrar no histórico de alterações
+  registrarHistoricoAlteracao('Anamnese atualizada — '+p.nome);
+  salvar();fecharM();PAC_ABA='anamnese';renderizar();toast('Anamnese salva!');
+}
+
+
+function registrarHistoricoAlteracao(descricao){
+  try{
+    var hist=JSON.parse(localStorage.getItem('fe_historico_alt')||'[]');
+    var nome=FBU&&FBU.displayName?FBU.displayName:'Usuário';
+    hist.unshift({dt:new Date().toISOString(),desc:descricao,usuario:nome});
+    if(hist.length>200)hist=hist.slice(0,200);
+    localStorage.setItem('fe_historico_alt',JSON.stringify(hist));
+  }catch(e){}
+}
+function verHistoricoAlteracoes(){
+  var hist=[];
+  try{hist=JSON.parse(localStorage.getItem('fe_historico_alt')||'[]');}catch(e){}
+  var h='<div class="mh"><h3>Histórico de Alterações</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Registro automático de todas as ações importantes. Protege você juridicamente.</p>';
+  if(!hist.length){h+='<p style="text-align:center;padding:30px;color:var(--sl3)">Nenhuma alteração registrada ainda.</p>';abrirM(h);return;}
+  hist.forEach(function(r){
+    var dt=new Date(r.dt);
+    h+='<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">';
+    h+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(r.desc)+'</div>';
+    h+='<div style="font-size:11px;color:var(--sl3)">'+esc(r.usuario)+' — '+dt.toLocaleDateString('pt-BR')+' às '+dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+    h+='</div>';
+  });
+  abrirM(h);
+}
+
+
+function rAbaAvaliacoes(p){
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  h+='<div style="font-size:15px;font-weight:800">📊 Avaliações</div>';
+  h+='<button class="btn btn-p btn-sm" onclick="abrirCatalogoEscalas(\''+p.id+'\')">+ Adicionar escala</button>';
+  h+='</div>';
+
+  var hist=p.escalasDin||[];
+  if(!hist.length){
+    h+='<div style="text-align:center;padding:40px">';
+    h+='<div style="font-size:32px;margin-bottom:10px">📊</div>';
+    h+='<div style="font-size:14px;font-weight:600;margin-bottom:8px">Nenhuma avaliação registrada</div>';
+    h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:16px">Adicione escalas clínicas para acompanhar a evolução</div>';
+    h+='<button class="btn btn-p btn-sm" onclick="abrirCatalogoEscalas(\''+p.id+'\')">Adicionar primeira avaliação</button>';
+    h+='</div>';
+    return h;
+  }
+
+  // Agrupar por escala
+  var grupos={};
+  hist.forEach(function(r){
+    if(!grupos[r.escId])grupos[r.escId]={nome:r.nome,cat:r.cat,registros:[]};
+    grupos[r.escId].registros.push(r);
+  });
+
+  Object.keys(grupos).forEach(function(escId){
+    var g=grupos[escId];
+    g.registros.sort(function(a,b){return a.dt.localeCompare(b.dt);});
+    h+='<div class="card" style="margin-bottom:12px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
+    h+='<div><div style="font-size:13px;font-weight:800">'+esc(g.nome)+'</div>';
+    h+='<div style="font-size:11px;color:var(--g1)">'+esc(g.cat)+'</div></div>';
+    h+='<button class="btn btn-p btn-sm" data-eid="'+escId+'" data-pid="'+p.id+'" onclick="aplicarEscala(this.dataset.pid,this.dataset.eid)">+ Nova</button>';
+    h+='</div>';
+
+    // Gráfico de evolução se tiver 2+ registros
+    if(g.registros.length>=2){
+      var maxV=Math.max.apply(null,g.registros.map(function(r){return r.total;}));
+      if(maxV>0){
+        h+='<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--sl3);margin-bottom:4px">Evolução da pontuação</div>';
+        h+='<div style="display:flex;align-items:flex-end;gap:4px;height:60px">';
+        g.registros.forEach(function(r){
+          var pct=Math.max(5,Math.round(r.total/maxV*100));
+          var dt=new Date(r.dt);
+          h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">';
+          h+='<div style="font-size:9px;font-weight:700;color:var(--g1)">'+r.total+'</div>';
+          h+='<div style="width:100%;background:var(--g1);border-radius:3px 3px 0 0;height:'+pct+'%"></div>';
+          h+='<div style="font-size:8px;color:var(--sl3)">'+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'</div>';
+          h+='</div>';
+        });
+        h+='</div></div>';
+      }
+    }
+
+    // Lista de registros
+    g.registros.slice().reverse().forEach(function(r){
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--borda)">';
+      h+='<div style="flex:1">';
+      h+='<div style="font-size:12px;color:var(--sl3)">'+new Date(r.dt).toLocaleDateString('pt-BR')+' '+new Date(r.dt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div>';
+      if(r.obs)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(r.obs)+'</div>';
+      h+='</div>';
+      h+='<div style="font-size:18px;font-weight:800;color:var(--g1)">'+r.total+'</div>';
+      h+='<button class="btn btn-d btn-sm" data-pid="'+p.id+'" data-id="'+r.id+'" onclick="delEscalaDin(this.dataset.pid,this.dataset.id)">✕</button>';
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  return h;
+}
+
+
+function renovarPacote(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var h='<div class="mh"><h3>Renovar Pacote</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  var pk=calcPacote(p);
+  if(pk)h+='<div style="padding:8px;background:var(--g4);border-radius:8px;font-size:12px;margin-bottom:12px">Pacote atual: <strong>'+pk.realizadas+'/'+pk.total+'</strong> sessoes utilizadas.</div>';
+  h+='<div class="fg"><label>Novo total de sessoes</label><input class="fi" type="number" id="ren-qtd" min="1" max="500" placeholder="Ex: 10"/></div>';
+  h+='<div class="fg"><label>Valor do pacote (R$)</label><input class="fi" type="number" id="ren-val" min="0" step="0.01" placeholder="0,00"/></div>';
+  h+='<div class="fg"><label>Observacoes</label><input class="fi" type="text" id="ren-obs" placeholder="Ex: Renovacao junho/2026"/></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="confirmarRenovacao(\''+pid+'\')">Confirmar renovacao</button>';
+  abrirM(h);
+}
+
+function confirmarRenovacao(pid){
+  var qtd=parseInt(el('ren-qtd')?el('ren-qtd').value:0)||0;
+  var val=parseFloat(el('ren-val')?el('ren-val').value:0)||0;
+  var obs=el('ren-obs')?el('ren-obs').value:'';
+  if(!qtd){toast('Informe a quantidade de sessoes');return;}
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  // Salvar historico do pacote atual
+  p.historicoPacotes=p.historicoPacotes||[];
+  if(p.pacote){
+    var pk=calcPacote(p);
+    p.historicoPacotes.push({
+      total:p.pacote,realizadas:pk?pk.realizadas:0,
+      ini:p.pacoteIni,fim:new Date().toISOString().slice(0,10),
+      valor:p.pacoteValor||0,obs:'Encerrado'
+    });
+  }
+  // Novo pacote
+  p.pacote=qtd;p.pacoteValor=val;p.pacoteIni=new Date().toISOString().slice(0,10);
+  if(obs)p.pacoteObs=obs;
+  registrarHistoricoAlteracao('Pacote renovado — '+p.nome+' ('+qtd+' sessoes)');
+  salvar();fecharM();renderizar();toast('Pacote renovado!');
+}
+
+function verHistoricoPacotes(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var hist=p.historicoPacotes||[];
+  var h='<div class="mh"><h3>Histórico de Pacotes</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  if(!hist.length){h+='<p style="text-align:center;padding:30px;color:var(--sl3)">Nenhum pacote anterior.</p>';abrirM(h);return;}
+  hist.slice().reverse().forEach(function(pk){
+    h+='<div class="card" style="margin-bottom:8px">';
+    h+='<div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:700">'+pk.total+' sessoes</span>';
+    if(pk.valor)h+='<span style="font-size:13px;font-weight:700;color:var(--g1)">R$'+parseFloat(pk.valor).toFixed(2)+'</span>';
+    h+='</div>';
+    h+='<div style="font-size:12px;color:var(--sl3)">Realizadas: '+pk.realizadas+'/'+pk.total+'</div>';
+    if(pk.ini)h+='<div style="font-size:11px;color:var(--sl3)">Inicio: '+fmtD(pk.ini)+(pk.fim?' | Fim: '+fmtD(pk.fim):'')+'</div>';
+    h+='</div>';
+  });
+  abrirM(h);
+}
+
 function removerPin(){PR=true;mostrarPin('ver');}
 function toggleOpc(cb){D.cfg[cb.dataset.k]=cb.checked;salvar();}
 function salvarHorario(){var ini=el('ag-ini'),fim=el('ag-fim');if(!ini||!fim)return;var iv=parseInt(ini.value),fv=parseInt(fim.value);if(iv>=fv){toast('Início deve ser antes do fim!');return;}D.cfg.horaIni=iv;D.cfg.horaFim=fv;salvar();toast('Horário atualizado!');}
 function mPlano(pid){
-  var pl=pid?D.planos.find(function(x){return x.id===pid;}):null;pl=pl||{id:'',nome:'',valor:0};
+  var pl=pid?D.planos.find(function(x){return x.id===pid;}):null;
+  pl=pl||{id:'',nome:'',valor:0,pgMes:'mesmo',pgDia:30,pgAlerta:3};
   var h='<div class="mh"><h3>'+(pl.id?'Editar':'Novo')+' Plano</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="mpl-id" value="'+esc(pl.id)+'"/>';
-  h+='<div class="fg"><label>Nome</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
+  h+='<div class="fg"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
   h+='<div class="fg"><label>Valor padrão (R$)</label><input class="fi" type="number" id="mpl-val" min="0" step="0.01" value="'+(pl.valor||'')+'" placeholder="0,00"/></div>';
-  h+='<button class="btn btn-p btn-bl" onclick="salvarPlano()">Salvar</button>';abrirM(h);
+  h+='<div class="fsec"><div class="fsec-t">Regras de pagamento</div>';
+  h+='<div class="fg"><label>Quando recebe</label><select class="fi" id="mpl-pgmes" onchange="togglePgDia()">';
+  h+='<option value="mesmo"'+(( pl.pgMes||'mesmo')==='mesmo'?' selected':'')+'>Mesmo mês do atendimento</option>';
+  h+='<option value="seguinte"'+(pl.pgMes==='seguinte'?' selected':'')+'>Mês seguinte</option>';
+  h+='<option value="dias"'+(pl.pgMes==='dias'?' selected':'')+'>X dias após o atendimento</option>';
+  h+='</select></div>';
+  h+='<div class="fg" id="mpl-dia-wrap"><label id="mpl-dia-lbl">Dia do pagamento</label><input class="fi" type="number" id="mpl-pgdia" min="1" max="31" value="'+(pl.pgDia||30)+'" placeholder="Ex: 25"/></div>';
+  h+='<div class="fg"><label>Alertar X dias antes</label><input class="fi" type="number" id="mpl-alerta" min="0" max="30" value="'+(pl.pgAlerta||3)+'" placeholder="3"/></div>';
+  h+='<div style="padding:8px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;margin-top:4px">';
+  h+='💡 O app vai gerar um alerta quando o pagamento estiver chegando e cobrar confirmação após a data passar.</div>';
+  h+='</div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarPlano()">Salvar</button>';
+  abrirM(h);
+  togglePgDia();
 }
-function salvarPlano(){var pid=el('mpl-id').value;var nome=el('mpl-nome').value.trim();var valor=parseFloat(el('mpl-val').value)||0;if(!nome){toast('Nome obrigatório');return;}if(pid){var pl=D.planos.find(function(x){return x.id===pid;});if(pl){pl.nome=nome;pl.valor=valor;}}else D.planos.push({id:uid(),nome:nome,valor:valor});salvar();fecharM();ir('mais');toast('Plano salvo!');}
+function togglePgDia(){
+  var sel=el('mpl-pgmes');var wrap=el('mpl-dia-wrap');var lbl=el('mpl-dia-lbl');
+  if(!sel||!wrap)return;
+  if(sel.value==='dias'){lbl.textContent='Quantidade de dias';wrap.style.display='block';}
+  else if(sel.value==='mesmo'||sel.value==='seguinte'){lbl.textContent='Dia do mês';wrap.style.display='block';}
+}
+function salvarPlano(){
+  var pid=el('mpl-id').value;var nome=el('mpl-nome').value.trim();
+  var valor=parseFloat(el('mpl-val').value)||0;
+  if(!nome){toast('Nome obrigatorio');return;}
+  var pgMes=el('mpl-pgmes')?el('mpl-pgmes').value:'mesmo';
+  var pgDia=parseInt(el('mpl-pgdia')?el('mpl-pgdia').value:30)||30;
+  var pgAlerta=parseInt(el('mpl-alerta')?el('mpl-alerta').value:3)||3;
+  if(pid){
+    var pl=D.planos.find(function(x){return x.id===pid;});
+    if(pl){pl.nome=nome;pl.valor=valor;pl.pgMes=pgMes;pl.pgDia=pgDia;pl.pgAlerta=pgAlerta;}
+  } else {
+    D.planos.push({id:uid(),nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta});
+  }
+  salvar();fecharM();ir('mais');toast('Plano salvo!');
+}
 function delPlano(pid){if(D.planos.length<=1){toast('Mantenha ao menos 1 plano');return;}if(!confirm('Excluir plano?'))return;D.planos=D.planos.filter(function(x){return x.id!==pid;});salvar();ir('mais');toast('Plano excluído');}
 function mTipo(tid){var t=tid?D.tipos.find(function(x){return x.id===tid;}):null;t=t||{id:'',nome:'',cor:'#2563eb'};var h='<div class="mh"><h3>'+(t.id?'Editar':'Novo')+' Tipo</h3><button class="mc" onclick="fecharM()">✕</button></div>';h+='<input type="hidden" id="mtp-id" value="'+esc(t.id)+'"/>';h+='<div class="fg"><label>Nome</label><input class="fi" type="text" id="mtp-nome" value="'+esc(t.nome)+'"/></div>';h+='<div class="fg"><label>Cor</label><input class="fi" type="color" id="mtp-cor" value="'+esc(t.cor)+'" style="height:42px;cursor:pointer"/></div>';h+='<button class="btn btn-p btn-bl" onclick="salvarTipo()">Salvar</button>';abrirM(h);}
 function salvarTipo(){var tid=el('mtp-id').value;var nome=el('mtp-nome').value.trim();var cor=el('mtp-cor').value;if(!nome){toast('Nome obrigatório');return;}if(tid){var t=D.tipos.find(function(x){return x.id===tid;});if(t){t.nome=nome;t.cor=cor;}}else D.tipos.push({id:uid(),nome:nome,cor:cor});salvar();fecharM();ir('mais');toast('Tipo salvo!');}
@@ -1321,6 +3036,40 @@ function rAjuda(el2){
     ['Restaurar backup','Importe um arquivo JSON em Mais → Importar JSON para restaurar dados.']
   ],'Seus dados nunca são perdidos ao atualizar o app — apenas o código muda, os dados ficam na nuvem.');
 
+  
+  // Nova seção: Prontuário
+  h+=sec('🏥','Prontuário eletrônico',[
+    ['CID-10','No cadastro do paciente, campo CID-10 com busca automática. Digite o código ou a descrição para buscar.'],
+    ['Escalas clínicas','No perfil do paciente, botão Escalas. Registre EVA (dor 0-10), Índice de Barthel (independência funcional) e Escala de Berg (equilíbrio).'],
+    ['Histórico de escalas','Cada registro salva a data. Os valores aparecem resumidos na aba Dados do paciente.'],
+    ['Termo de consentimento','Ative em Mais → Funcionalidades opcionais → Termo de consentimento. Aparece botão no perfil do paciente para gerar e registrar o aceite.'],
+  ],'O CID-10 e as escalas ficam salvos no perfil do paciente e podem ser exportados nos relatórios.');
+
+  // Nova seção: Aparência
+  h+=sec('🎨','Aparência e personalização',[
+    ['Modo escuro/claro','Em Mais → Aparência → Modo: toque em Claro ou Escuro.'],
+    ['Cor principal','Escolha entre 6 cores predefinidas ou use o seletor de cor personalizada.'],
+    ['Imagem de fundo','Toque em Escolher imagem para usar uma foto do dispositivo como fundo. Salvo apenas neste dispositivo.'],
+    ['Cores da agenda','Em Mais → Aparência → Cores da agenda: personalize a cor do dia atual, feriados e células.'],
+  ],'A imagem de fundo é salva localmente no dispositivo — não sincroniza com a nuvem.');
+
+  // Nova seção: Financeiro avançado
+  h+=sec('💰','Financeiro avançado',[
+    ['Regras de pagamento','Ao cadastrar ou editar um plano em Mais → Planos e Convênios, configure quando recebe (mesmo mês, mês seguinte ou X dias), o dia do pagamento e quantos dias antes alertar.'],
+    ['Alertas no dashboard','Quando o pagamento estiver chegando ou atrasado, um alerta amarelo aparece na tela Início com botão Pago.'],
+    ['Buscar recebimentos','No Financeiro → Buscar recebimentos: filtre por período, plano, paciente e status. Veja total e percentual por plano.'],
+    ['Gráfico por tipo (IR)','Em Mais → IR: veja a receita separada por plano com gráfico e exporte relatório formatado para declaração de Imposto de Renda.'],
+  ],'Configure as regras de pagamento em cada plano para o sistema calcular automaticamente as previsões.');
+
+  // Nova seção: Pacientes avançado
+  h+=sec('👥','Pacientes — recursos avançados',[
+    ['Tipo de atendimento','No cadastro do paciente, campo Tipo: Domiciliar, Clínica, Consultório ou Misto.'],
+    ['Filtros rápidos','Na lista de pacientes, botões de filtro rápido por tipo de atendimento.'],
+    ['Escalas EVA','Escala Visual Analógica — 0 a 10. 0 = sem dor, 10 = dor máxima.'],
+    ['Índice de Barthel','Avalia independência funcional em 10 atividades. 0-20 = dependência total, 85-100 = independente.'],
+    ['Escala de Berg','Avalia risco de queda. 0-35 = alto risco, 36-44 = médio risco, 45-56 = baixo risco.'],
+  ],'As escalas são registradas com data e ficam no histórico do paciente para acompanhar a evolução.');
+
   el2.innerHTML=h;
 }
 // ── INIT ────────────────────────────────────────────────────────
@@ -1426,13 +3175,15 @@ function getFeriadosAno(ano){
 }
 function iniciarFeriadosNacionais(){
   var ano=new Date().getFullYear();
+  // Remover feriados nacionais antigos e recriar com formato correto AAAA-MM-DD
+  D.feriados=D.feriados.filter(function(f){return!f.nacional;});
   var nacionais=getFeriadosAno(ano).concat(getFeriadosAno(ano+1));
   nacionais.forEach(function(f){
-    var existe=D.feriados.find(function(x){return x.data===f.data&&x.nacional;});
-    if(!existe)D.feriados.push({id:'nac_'+f.data,data:f.data,nome:f.nome,nacional:true});
+    D.feriados.push({id:'nac_'+f.data,data:f.data,nome:f.nome,nacional:true});
   });
 }
 
-carregar();fbInit();</script>
+carregar();fbInit();
+</script>
 </body>
 </html>
