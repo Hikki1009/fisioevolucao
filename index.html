@@ -415,7 +415,7 @@ function baixarXLS(nome,linhas){
 }
 
 // ── Navegação ────────────────────────────────────────────────────
-var ABA='inicio',PAC_ID=null,PAC_ABA='evo',BtnVolCb=null;
+var ABA='inicio',PAC_ID=null,PAC_ABA='resumo',BtnVolCb=null;
 var _semRef=new Date();
 
 function boot(){
@@ -818,8 +818,7 @@ function renderPacs(q){
 
 function irPerfilEvo(pid){
   if(!pid)return;
-  PAC_ID=pid;PAC_ABA='evo';renderizar();
-  setTimeout(function(){mEvo(pid,'');},300);
+  PAC_ID=pid;PAC_ABA='resumo';renderizar();
 }
 function abrirPerfil(pid){PAC_ID=pid;PAC_ABA='evo';renderizar();}
 function voltarPac(){PAC_ID=null;ir('pacientes');}
@@ -839,7 +838,7 @@ function rPerfil(el2){
   h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
   if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistoricoEscalas(this.dataset.pid)">Historico ('+((p.escalasDin||[]).length)+')</button>';
   if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'📄 Termo ✅':'📄 Termo')+'</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="mSessao(null,null,null)">+ Sessão</button>';
+  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,this.dataset.pid)">+ Sessão</button>';
   h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)" title="Editar paciente" style="padding:6px 10px">✏️</button></div>';
   h+='<div class="ptab">';
   abas.forEach(function(a){h+='<div class="pt '+(PAC_ABA===a?'on':'')+'" data-a="'+a+'" onclick="trocarAba(this.dataset.a)">'+abaL[a]+'</div>';});
