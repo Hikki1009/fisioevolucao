@@ -4007,7 +4007,7 @@ function togglePilatesModulo(ativo){
 }
 
 function removerPin(){PR=true;mostrarPin('ver');}
-function toggleOpc(cb){D.cfg[cb.dataset.k]=cb.checked;salvar();}
+function toggleOpc(cb){if(cb.dataset.k==='usarPilates'){togglePilatesModulo(cb.checked);return;}D.cfg[cb.dataset.k]=cb.checked;salvar();}
 function salvarHorario(){var ini=el('ag-ini'),fim=el('ag-fim');if(!ini||!fim)return;var iv=parseInt(ini.value),fv=parseInt(fim.value);if(iv>=fv){toast('Início deve ser antes do fim!');return;}D.cfg.horaIni=iv;D.cfg.horaFim=fv;salvar();toast('Horário atualizado!');}
 function mPlano(pid){
   var pl=pid?D.planos.find(function(x){return x.id===pid;}):null;
