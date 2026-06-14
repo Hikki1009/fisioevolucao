@@ -139,9 +139,11 @@ body.tema-escuro .gcel{background:#1e293b;border-color:#334155;}
 body.tema-escuro .gcel:hover{background:#334155;}
 body.tema-escuro .gsess{color:#f8fafc !important;}
 body.tema-escuro .hr-label{color:#94a3b8 !important;}
-body.tema-escuro .ghora{background:var(--card);color:var(--sl) !important;border-color:var(--borda);}
-body.tema-escuro .grade{background:var(--bg);}
-body.tema-escuro .gw{border-color:var(--borda);}
+body.tema-escuro .ghora{background:#1e293b !important;color:#e2e8f0 !important;border-color:#334155 !important;}
+body.tema-escuro .grade{background:#0f172a !important;}
+body.tema-escuro .gw{border-color:#334155 !important;}
+body.tema-escuro .gc{background:#0f172a !important;border-color:#334155 !important;}
+body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
 .leg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:8px;background:var(--bg);border-radius:8px}
@@ -510,7 +512,7 @@ function renderizar(){
   // topo usa logo PNG fixo
   BtnVolCb=null;
   var div=document.createElement('div');div.className='fi-an';
-  if(PAC_ID){rPerfil(div);c.appendChild(div);return;}
+  if(PAC_ID){var leg2=el('legenda-adf');if(leg2)leg2.style.display='none';rPerfil(div);c.appendChild(div);return;}
   if(ABA==='inicio')rInicio(div);
   else if(ABA==='agenda')rAgenda(div);
   else if(ABA==='pacientes')rPacientes(div);
