@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1e6b3f"/>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <title>FisioEvolução</title>
 <style>*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -20,7 +17,7 @@
   --blue:#2563eb;--bluebg:#dbeafe;
   --purple:#7c3aed;--purplebg:#ede9fe;
 }
-body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none}
 button,input,select,textarea{font-family:inherit}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--borda);border-radius:4px}
 #app{padding-bottom:68px;min-height:100vh}
@@ -142,20 +139,6 @@ body.tema-escuro .gcel{background:#1e293b;border-color:#334155;}
 body.tema-escuro .gcel:hover{background:#334155;}
 body.tema-escuro .gsess{color:#f8fafc !important;}
 body.tema-escuro .hr-label{color:#94a3b8 !important;}
-
-@media(min-width:768px){
-  .agenda-wrapper{display:grid;grid-template-columns:160px 1fr;gap:12px;}
-  .agenda-sidebar{background:var(--card);border-radius:12px;padding:12px;border:1px solid var(--borda);height:fit-content;position:sticky;top:10px;}
-  .agenda-main{min-width:0;}
-  .agenda-sidebar .sb-titulo{font-size:12px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--borda);}
-  .agenda-sidebar .sb-btn{display:block;width:100%;text-align:left;padding:6px 8px;margin-bottom:4px;border-radius:6px;border:none;background:transparent;cursor:pointer;font-size:12px;color:var(--sl);}
-  .agenda-sidebar .sb-btn:hover{background:var(--g4);}
-  .agenda-sidebar .sb-btn.on{background:var(--g1);color:#fff;font-weight:700;}
-}
-@media(max-width:767px){
-  .agenda-sidebar{display:none;}
-  .agenda-wrapper{display:block;}
-}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
 .leg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:8px;background:var(--bg);border-radius:8px}
@@ -667,8 +650,6 @@ function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toa
 var _filtroPlano='';var _filtroAgenda='';
 function rAgenda(el2){
   var leg=el('legenda-adf');if(leg)leg.style.display='none';
-  // Verificar semana especial
-  var semEsp=verificarSemanaEspecial();
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mSessao(null,null,null);};
   var seg=semIni(_semRef);var dias=[];
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
@@ -712,8 +693,6 @@ function rAgenda(el2){
   h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
   h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
   h+='<button class="btn btn-s btn-sm" onclick="exportarSessoes()">Exportar Excel</button>';
-  h+='<button class="btn btn-a btn-sm" onclick="mSemanaEspecial()">📅 Sem. Especial</button>';
-  if(semEsp)h+='<div style="padding:8px 12px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;font-weight:600;width:100%;margin-top:6px">⚠️ Semana especial: '+esc(semEsp.aviso||'Horário diferente')+(semEsp.hora?' — '+esc(semEsp.hora):'')+'</div>';
   // Filtros rápidos
   h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="filtros-agenda">';
   var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clinica',v:'clinica'},{l:'Consultorio',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convenio',v:'convenio'}];
@@ -722,7 +701,6 @@ function rAgenda(el2){
   });
   h+='</div>';
   h+='</div>';
-  h+='</div></div></div>';
   el2.innerHTML=h;
 }
 function semIni(ref){var d=new Date(ref);d.setHours(0,0,0,0);var dw=d.getDay();d.setDate(d.getDate()-(dw===0?6:dw-1));return d;}
@@ -901,21 +879,9 @@ function exportarSessoes(){
 
 // ── PACIENTES ────────────────────────────────────────────────────
 function rPacientes(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mPaciente(null);};
   var inatCount=D.pacientes.filter(function(p){return p.inativo;}).length;
-  window._filtrosPac=window._filtrosPac||{tipo:'',plano:''};
-  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-  [{v:'',l:'Todos'},{v:'domiciliar',l:'Domiciliar'},{v:'clinica',l:'Clínica'},{v:'consultorio',l:'Consultório'},{v:'misto',l:'Misto'}].forEach(function(f){
-    h+='<button class="btn btn-sm '+((_filtroTipoPac===f.v)?'btn-p':'btn-s')+'" onclick="setFiltroPacTipo(\''+f.v+'\')">'+f.l+'</button>';
-  });
-  h+='</div>';
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-  h+='<button class="btn btn-sm '+((window._filtrosPac.plano==='')?'btn-p':'btn-s')+'" onclick="setFiltroPacPlano(\'\')">Todos planos</button>';
-  D.planos.forEach(function(pl){h+='<button class="btn btn-sm '+((window._filtrosPac.plano===pl.id)?'btn-p':'btn-s')+'" onclick="setFiltroPacPlano(\''+esc(pl.id)+'\')">'+esc(pl.nome)+'</button>';});
-  h+='</div>';
-  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--sl3)">'+D.pacientes.length+' paciente(s) cadastrado(s)</div></div>';
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--sl3)">'+D.pacientes.length+' paciente(s) cadastrado(s)</div></div>';
   h+='<input class="fi" style="margin-bottom:12px" placeholder="Buscar paciente..." oninput="filtroPac(this.value)" id="busca-pac"/>';
   h+='<div id="lista-pac"></div>';
   h+='<div id="pac-loading" style="text-align:center;padding:30px;color:var(--sl3)"><div style="font-size:24px;margin-bottom:8px">⏳</div>Carregando pacientes...</div>';
@@ -955,12 +921,6 @@ function renderPacs(q){
     if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
     if(p.tipoAtend)h+='<div style="font-size:10px;color:var(--g1);font-weight:600;text-transform:uppercase">'+esc(p.tipoAtend)+'</div>';
     if(p.inativo)h+='<div style="font-size:10px;color:#dc2626;font-weight:700">INATIVO — '+esc(p.motivoInativo||'')+'</div>';
-    var hj2=hoje();var f30=D.sessoes.filter(function(s){
-      if(s.pacienteId!==p.id||s.status!=='falta')return false;
-      var d=new Date(s.data+'T12:00:00');var dh=new Date();
-      return(dh-d)/(864e5)<=30;
-    }).length;
-    if(f30>=3)h+='<div style="font-size:10px;color:#dc2626;font-weight:700">⚠️ '+f30+' faltas/30 dias</div>';
     if(prox[0])h+='<div style="font-size:11px;color:var(--g1);font-weight:600">Próx: '+fmtD(prox[0].data)+' '+esc(prox[0].hora)+'</div>';
     h+='</div>';
     if(semEvo>0)h+='<span class="badge bg-r" style="cursor:pointer" title="'+semEvo+' sessão(ões) realizada(s) sem evolução registrada — Toque para registrar" onclick="event.stopPropagation();irPerfilEvo(p.id)">'+semEvo+' sem evo</span>';
@@ -981,8 +941,6 @@ function abrirPerfil(pid){PAC_ID=pid;PAC_ABA='evo';renderizar();}
 function voltarPac(){PAC_ID=null;ir('pacientes');}
 
 function rPerfil(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var p=D.pacientes.find(function(x){return x.id===PAC_ID;});if(!p){voltarPac();return;}
   // nome do paciente mostrado no btn-vol
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';
@@ -1650,16 +1608,9 @@ var ABA_PIL='inicio_pil'; // aba atual do pilates
 function setModulo(mod){
   ABA_MOD=mod;
   localStorage.setItem('fe_modulo_ativo',mod);
-  // Indicador visual do módulo ativo
-  var topo=el('topo');
-  if(topo){
-    var indic=el('mod-indic');
-    if(!indic){indic=document.createElement('div');indic.id='mod-indic';indic.style.cssText='font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px';topo.querySelector('#topo-logo').appendChild(indic);}
-    if(mod==='pilates'){indic.textContent='🧘 Pilates';indic.style.background='#7c3aed';indic.style.color='#fff';}
-    else{indic.textContent='🏥 Fisioterapia';indic.style.background='var(--g1)';indic.style.color='#fff';}
-  }
   if(mod==='pilates'){
     carregarPilates();
+    renderizarModuloEscolha(false);
     ABA_PIL='inicio_pil';
     renderizarPilates();
   } else {
@@ -1668,9 +1619,6 @@ function setModulo(mod){
 }
 
 function trocarModulo(){
-  // Ao trocar, mostrar escolha mas preservar dados
-  var nav=el('nav');if(nav)nav.style.display='none';
-  var navP=el('nav-pilates');if(navP)navP.style.display='none';
   renderizarModuloEscolha(true);
 }
 
@@ -1701,21 +1649,20 @@ function renderizarModuloEscolha(mostrar){
 }
 
 function renderizarFisio(){
-  // Mostrar nav fisio
-  var nav=el('nav');if(nav)nav.style.display='flex';
-  // Esconder nav pilates
-  var navP=el('nav-pilates');if(navP)navP.style.display='none';
-  // Mostrar botão trocar módulo se pilates ativo
+  var nav=el('nav');
+  if(nav)nav.style.display='flex';
+  // Esconder botão trocar módulo do pilates
   var btnTrocar=el('btn-trocar-mod');
-  if(btnTrocar)btnTrocar.style.display=D.cfg.usarPilates?'flex':'none';
+  if(btnTrocar)btnTrocar.style.display='none';
   renderizar();
 }
 
 function renderizarPilates(){
   var cont=el('conteudo');if(!cont)return;
-  // Botão trocar sempre visível no Pilates
-  var btnTrocar=el('btn-trocar-mod');if(btnTrocar)btnTrocar.style.display='flex';
-  // Esconder nav fisio, mostrar nav pilates
+  // Mostrar botão trocar módulo
+  var btnTrocar=el('btn-trocar-mod');
+  if(btnTrocar)btnTrocar.style.display='flex';
+  // Esconder nav da fisio, mostrar nav pilates
   var nav=el('nav');if(nav)nav.style.display='none';
   var navPil=el('nav-pilates');if(navPil)navPil.style.display='flex';
   // Atualizar abas ativas
@@ -1728,7 +1675,6 @@ function renderizarPilates(){
   else if(ABA_PIL==='alunos_pil')rAlunosPilates(div);
   else if(ABA_PIL==='turmas_pil')rTurmasPilates(div);
   else if(ABA_PIL==='mais_pil')rMaisPilates(div);
-  else if(ABA_PIL==='financeiro_pil')rFinanceiroPilates(div);
   cont.innerHTML='';cont.appendChild(div);
 }
 
@@ -1784,20 +1730,13 @@ function compEvo(pid,eid){var p=D.pacientes.find(function(x){return x.id===pid;}
 
 // ── EVOLUÇÕES (aba) ──────────────────────────────────────────────
 function rEvolucoes(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var fab2=el('fab');fab2.style.display='none';
   var hj=hoje();
   var semIni=new Date();semIni.setDate(semIni.getDate()-semIni.getDay());
   var sem0=semIni.getFullYear()+'-'+(semIni.getMonth()<9?'0':'')+(semIni.getMonth()+1)+'-'+(semIni.getDate()<10?'0':'')+semIni.getDate();
   var mes0=hj.slice(0,7)+'-01';
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:12px">Evoluções Clínicas</div>';
-  h+='<div style="display:flex;gap:6px;margin-bottom:8px">';
-  h+='<input class="fi" placeholder="Buscar paciente..." id="busca-evo" oninput="filtrarEvo()" style="flex:1"/>';
-  h+='<select class="fi" style="flex:1" id="evo-plano-fil" onchange="setFiltroEvoPac(this.value)">';
-  h+='<option value="">Todos os planos</option>';
-  D.planos.forEach(function(pl){h+='<option value="'+esc(pl.id)+'">'+esc(pl.nome)+'</option>';});
-  h+='</select></div>';
+  h+='<input class="fi" style="margin-bottom:8px" placeholder="Buscar paciente..." id="busca-evo" oninput="filtrarEvo()"/>';
   // Filtros de data
   h+='<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">';
   h+='<button class="btn btn-sm btn-p" id="evo-ft-hj" onclick="setFiltroEvo(\'hj\')">Hoje</button>';
@@ -1814,10 +1753,6 @@ function rEvolucoes(el2){
   el2.innerHTML=h;
   filtrarEvo();
 }
-function setFiltroEvoPac(pid){
-  window._filtroEvoPac=pid;
-  filtrarEvo();
-}
 function setFiltroEvo(tipo){
   var ativo=el('evo-ft-ativo');if(ativo)ativo.value=tipo;
   ['hj','sem','mes','per'].forEach(function(t){
@@ -1829,7 +1764,6 @@ function setFiltroEvo(tipo){
 }
 function filtrarEvo(){
   var q=(el('busca-evo')?el('busca-evo').value:'').toLowerCase();
-  var _evoPlan=window._filtroEvoPac||'';
   var tipo=el('evo-ft-ativo')?el('evo-ft-ativo').value:'hj';
   var hj=hoje();
   var semIni=new Date();semIni.setDate(semIni.getDate()-semIni.getDay());
@@ -1850,7 +1784,6 @@ function filtrarEvo(){
   var evos=[];
   D.pacientes.forEach(function(p){
     if(q&&!(p.nome||'').toLowerCase().includes(q))return;
-    if(_evoPlan){var temPlan=D.sessoes.some(function(s){return s.pacienteId===p.id&&s.planoId===_evoPlan;});if(!temPlan)return;}
     (p.evolucoes||[]).forEach(function(e){
       var dt=new Date(e.ts||0).toISOString().slice(0,10);
       if(dt>=dtIni&&dt<=dtFim)evos.push({pac:p,evo:e,dt:dt});
@@ -1908,8 +1841,6 @@ function renderEvoLista(q){
 
 // ── FINANCEIRO ───────────────────────────────────────────────────
 function rFinanceiro(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('mais');};
   var now=new Date();var ano=now.getFullYear();
   var mesSel=window._finMes!=null?window._finMes:now.getMonth();
@@ -2035,8 +1966,6 @@ function gerarLinhasRelPacotes(){
 }
 
 function rRelatorios(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('mais');};
   var now=new Date();var ma=now.getMonth();var aa=now.getFullYear();
   var meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -2096,8 +2025,6 @@ function relTodos(){relFin();setTimeout(relEvo,350);setTimeout(relFalt,700);setT
 
 // ── MAIS ─────────────────────────────────────────────────────────
 function rMais(el2){
-  var _leg=el('legenda-adf');if(_leg)_leg.style.display='none';
-  
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Configurações</div>';
   if(FBU){h+='<div class="card" style="display:flex;align-items:center;gap:12px"><div class="av" style="width:46px;height:46px;font-size:17px">'+(FBU.displayName?FBU.displayName.charAt(0).toUpperCase():'U')+'</div><div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(FBU.displayName||'Usuário')+'</div><div style="font-size:12px;color:var(--sl3)">'+esc(FBU.email)+'</div></div><div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="editarNome()">Editar</button><button class="btn btn-d btn-sm" onclick="sairConta()">Sair</button></div></div>';}
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Segurança (PIN)</div>';
@@ -2118,11 +2045,10 @@ function rMais(el2){
   h+='</select></div><div class="fg"><label>Fim</label><select class="fi" id="ag-fim" onchange="salvarHorario()">';
   for(var hf=17;hf<=23;hf++)h+='<option value="'+hf+'"'+((D.cfg.horaFim||20)===hf?' selected':'')+'>'+('0'+hf).slice(-2)+':00</option>';
   h+='</select></div></div><p style="font-size:11px;color:var(--sl3)">Define os horários na grade da agenda.</p></div>';
-  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div><div style="max-height:320px;overflow-y:auto;padding-right:4px">';
-  [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'},{k:'usarPilates',l:'🧘 Módulo Pilates',d:'Agenda e gestão de turmas de Pilates'},{k:'usarTermo',l:'Termo de consentimento',d:'Gerar e registrar aceite do paciente'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div>';
+  [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'},{k:'usarPilates',l:'🧘 Módulo Pilates',d:'Agenda e gestão de turmas de Pilates'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
 
-  h+='</div>';
-  h+='</div></div>';
+  h+='<div class="opc-item"><label><input type="checkbox" id="opc-termo" onchange="toggleOpc(\'usarTermo\',this.checked)"'+(D.cfg.usarTermo?' checked':'')+'/> Termo de consentimento</label></div>';  h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistorico()">🕐 Histórico de versões</button></div></div>';
@@ -3368,265 +3294,6 @@ function verHistoricoPacotes(pid){
 }
 
 
-
-function filtrarEvosPil(tipo){
-  var ft=el('epil-ft');if(ft)ft.value=tipo;
-  var turmaId=el('epil-turma')?el('epil-turma').value:'';
-  var alunoId=el('epil-aluno')?el('epil-aluno').value:'';
-  var hj=hoje();var semI=new Date();semI.setDate(semI.getDate()-semI.getDay());
-  var sem0=semI.toISOString().slice(0,10);var mes0=hj.slice(0,7)+'-01';
-  var dtIni=tipo==='sem'?sem0:tipo==='mes'?mes0:hj;
-  var evos=(DP.evolucoesPil||[]).filter(function(e){
-    if(e.data<dtIni||e.data>hj)return false;
-    if(turmaId&&e.turmaId!==turmaId)return false;
-    if(alunoId&&e.alunoId!==alunoId)return false;
-    return true;
-  }).sort(function(a,b){return(b.ts||0)-(a.ts||0);});
-  var lista=el('epil-lista');if(!lista)return;
-  if(!evos.length){lista.innerHTML='<p style="text-align:center;padding:20px;color:var(--sl3)">Nenhuma evolução no período.</p>';return;}
-  var h='';
-  evos.forEach(function(e){
-    var t=e.turmaId?DP.turmas.find(function(x){return x.id===e.turmaId;}):null;
-    var a=e.alunoId?DP.alunos.find(function(x){return x.id===e.alunoId;}):null;
-    var exNm=(e.exercicios||[]).map(function(eid){var ex=PILATES_EXERCICIOS.find(function(x){return x.id===eid;});return ex?nomeExerc(ex):'';}).filter(Boolean);
-    h+='<div class="card" style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:4px">';
-    h+='<div><div style="font-size:13px;font-weight:700">'+(t?esc(t.nome):'')+(a?' — '+esc(a.nome):'')+'</div>';
-    h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(e.data)+'</div></div>';
-    h+='<button class="btn btn-d btn-sm" data-eid="'+esc(e.id)+'" onclick="delEvolucaoPil(this.dataset.eid)">✕</button></div>';
-    if(exNm.length)h+='<div style="font-size:11px;color:#7c3aed">'+exNm.slice(0,4).join(', ')+'</div>';
-    if(e.obs)h+='<div style="font-size:11px;color:var(--sl2)">'+esc(e.obs.slice(0,60))+'</div>';
-    h+='</div>';
-  });
-  lista.innerHTML=h;
-}
-function mostrarGraficoPil(aid){
-  var a=DP.alunos.find(function(x){return x.id===aid;});if(!a)return;
-  var hist=a.historicaAval||[];
-  if(hist.length<2){toast('Avaliação salva! Registre mais para ver o gráfico.');return;}
-  var campos=[{k:'dor',l:'Dor',c:'#dc2626'},{k:'forca',l:'Força',c:'#16a34a'},{k:'flex',l:'Flex.',c:'#2563eb'},{k:'equil',l:'Equil.',c:'#7c3aed'}];
-  var h='<div class="mh"><h3>Evolução — '+esc(a.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin-bottom:8px;border-bottom:1px solid var(--borda)">';
-  hist.slice(-6).forEach(function(av){
-    h+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;height:100%">';
-    campos.forEach(function(c){var pct=Math.round((av[c.k]||0)/10*100);h+='<div style="width:100%;flex:1;display:flex;align-items:flex-end"><div style="width:100%;height:'+pct+'%;background:'+c.c+';border-radius:2px 2px 0 0;opacity:.8"></div></div>';});
-    h+='<div style="font-size:8px;color:var(--sl3)">'+new Date(av.dt).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+'</div></div>';
-  });
-  h+='</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">';
-  campos.forEach(function(c){h+='<span style="font-size:11px;display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;background:'+c.c+';display:inline-block;border-radius:2px"></span>'+c.l+'</span>';});
-  h+='</div>';
-  if(hist.length>=2){var p=hist[0];var u=hist[hist.length-1];campos.forEach(function(c){var d=u[c.k]-p[c.k];var cor=c.k==='dor'?(d<0?'#16a34a':'#dc2626'):(d>0?'#16a34a':'#dc2626');if(d!==0)h+='<div style="font-size:12px;margin-bottom:4px">'+c.l+': <strong style="color:'+cor+'">'+p[c.k]+' → '+u[c.k]+' ('+(d>0?'+':'')+d+')</strong></div>';});}
-  abrirM(h);
-}
-function relatorioAlunosPilates(){
-  var linhas=[['Nome','Turmas','Objetivo','Nível','Aulas','Pacote','Vencimento','Valor/Aula']];
-  DP.alunos.filter(function(a){return!a.inativo;}).forEach(function(a){
-    var nA=DP.aulas.filter(function(au){return(au.presencas||[]).some(function(p){return p.alunoId===a.id&&p.status==='presente';});}).length;
-    var tNm=(a.turmas||[]).map(function(tid){var t=DP.turmas.find(function(x){return x.id===tid;});return t?t.nome:'';}).filter(Boolean).join(', ');
-    linhas.push([a.nome,tNm,a.objetivo||'',a.nivel||'',nA,a.pacoteAulas||0,fmtD(a.dtVenc||''),(a.valorAula||0).toFixed(2)]);
-  });
-  baixarXLS('pilates-alunos',linhas);toast('Exportado!');
-}
-
-
-function rFinanceiroPilates(el2){
-  var hj=hoje();var mes=hj.slice(0,7);
-  var ano=parseInt(hj.slice(0,4));var mesN=parseInt(hj.slice(5,7));
-  var recMes=0;var recPorTurma={};var recPorHora={};
-  DP.turmas.forEach(function(t){recPorTurma[t.id]=0;recPorHora[t.horario||'00:00']=recPorHora[t.horario||'00:00']||0;});
-  DP.alunos.filter(function(a){return!a.inativo&&a.valorAula>0;}).forEach(function(a){
-    (a.turmas||[]).forEach(function(tid){
-      var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-      var aulasA=DP.aulas.filter(function(au){
-        return au.turmaId===tid&&au.data.slice(0,7)===mes&&(au.presencas||[]).some(function(p){return p.alunoId===a.id&&p.status==='presente';});
-      }).length;
-      var val=aulasA*(a.valorAula||0);
-      recMes+=val;
-      recPorTurma[tid]=(recPorTurma[tid]||0)+val;
-      var hora=t.horario||'00:00';
-      recPorHora[hora]=(recPorHora[hora]||0)+val;
-    });
-  });
-  var totalAlunos=DP.alunos.filter(function(a){return!a.inativo;}).length;
-  var totalCap=DP.turmas.reduce(function(a,t){return a+(t.capacidade||6);},0);
-  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px;color:#7c3aed">💰 Financeiro Pilates</div>';
-  // Cards
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
-  h+='<div class="card" style="margin:0;text-align:center"><div style="font-size:18px;font-weight:800;color:#7c3aed">R$'+recMes.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Recebido/mês</div></div>';
-  h+='<div class="card" style="margin:0;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--g1)">'+totalAlunos+'</div><div style="font-size:11px;color:var(--sl3)">Alunos ativos</div></div>';
-  h+='</div>';
-  // Ocupação
-  if(totalCap>0){
-    var ocup=Math.round(totalAlunos/totalCap*100);
-    h+='<div class="card" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-size:13px;font-weight:700">Ocupação geral</span><span style="font-size:14px;font-weight:800;color:'+(ocup>=80?'#16a34a':ocup>=50?'#d97706':'#dc2626')+'">'+ocup+'%</span></div>';
-    h+='<div style="height:8px;background:var(--g3);border-radius:4px"><div style="height:8px;background:'+(ocup>=80?'#16a34a':ocup>=50?'#d97706':'#dc2626')+';border-radius:4px;width:'+Math.min(100,ocup)+'%"></div></div>';
-    h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">'+totalAlunos+'/'+totalCap+' vagas ocupadas</div></div>';
-  }
-  // Receita por turma
-  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Receita por turma — '+mes.slice(5,7)+'/'+mes.slice(0,4)+'</div>';
-  var maxRec=Math.max.apply(null,DP.turmas.map(function(t){return recPorTurma[t.id]||0;})||[0]);
-  DP.turmas.forEach(function(t){
-    var rec=recPorTurma[t.id]||0;var pct=maxRec>0?Math.round(rec/maxRec*100):0;
-    var nA=DP.alunos.filter(function(a){return!a.inativo&&(a.turmas||[]).includes(t.id);}).length;
-    h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-size:12px;font-weight:600">'+esc(t.nome)+'</span><span style="font-size:13px;font-weight:700;color:#7c3aed">R$'+rec.toFixed(2)+'</span></div>';
-    h+='<div style="height:6px;background:var(--g3);border-radius:3px"><div style="height:6px;background:#7c3aed;border-radius:3px;width:'+pct+'%"></div></div>';
-    h+='<div style="font-size:10px;color:var(--sl3)">'+nA+' aluno(s) · '+esc(t.horario||'')+'</div></div>';
-  });
-  h+='</div>';
-  // Receita por horário
-  var horas=Object.keys(recPorHora).filter(function(hr){return recPorHora[hr]>0;}).sort();
-  if(horas.length>0){
-    h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Receita por horário</div>';
-    var maxH=Math.max.apply(null,horas.map(function(hr){return recPorHora[hr];}));
-    horas.forEach(function(hr){
-      var rec=recPorHora[hr];var pct=maxH>0?Math.round(rec/maxH*100):0;
-      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="width:45px;font-size:11px;font-weight:600">'+hr+'</div>';
-      h+='<div style="flex:1;height:20px;background:var(--g3);border-radius:3px"><div style="height:20px;background:#7c3aed;border-radius:3px;width:'+pct+'%;display:flex;align-items:center;padding-left:4px">';
-      if(pct>15)h+='<span style="font-size:10px;color:#fff;font-weight:700">R$'+rec.toFixed(0)+'</span>';
-      h+='</div></div>'+(pct<=15?'<span style="font-size:11px;color:#7c3aed;font-weight:700">R$'+rec.toFixed(0)+'</span>':'')+'</div>';
-    });
-    h+='</div>';
-  }
-  h+='<button class="btn btn-p btn-sm" onclick="exportarRelPilates()">📊 Exportar Excel</button>';
-  el2.innerHTML=h;
-}
-function exportarRelPilates(){
-  var hj=hoje();var mes=hj.slice(0,7);
-  var linhas=[['Aluno','Turma','Horário','Aulas no mês','Valor/aula','Total']];
-  DP.alunos.filter(function(a){return!a.inativo;}).forEach(function(a){
-    (a.turmas||[]).forEach(function(tid){
-      var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-      var auls=DP.aulas.filter(function(au){return au.turmaId===tid&&au.data.slice(0,7)===mes&&(au.presencas||[]).some(function(p){return p.alunoId===a.id&&p.status==='presente';});}).length;
-      linhas.push([a.nome,t.nome,t.horario||'',auls,(a.valorAula||0).toFixed(2),(auls*(a.valorAula||0)).toFixed(2)]);
-    });
-  });
-  baixarXLS('pilates-financeiro-'+mes,linhas);toast('Exportado!');
-}
-
-
-var COLUNAS_PIL_PADRAO=[
-  {id:'presenca',nome:'Presença',ativo:true},
-  {id:'aparelho',nome:'Aparelho Utilizado',ativo:true},
-  {id:'mmii',nome:'Fortalecimento MMII',ativo:true},
-  {id:'mmss',nome:'Fortalecimento MMSS',ativo:true},
-  {id:'coluna',nome:'Coluna',ativo:true},
-  {id:'alongamento',nome:'Alongamento',ativo:true},
-  {id:'equilibrio',nome:'Treino de Equilíbrio',ativo:true},
-  {id:'abdominais',nome:'Abdominais',ativo:true},
-  {id:'respiratorio',nome:'Exercícios Respiratórios',ativo:false},
-  {id:'mobilidade',nome:'Mobilidade Articular',ativo:true},
-  {id:'coordenacao',nome:'Coordenação Motora',ativo:false},
-  {id:'funcional',nome:'Treino Funcional',ativo:false},
-  {id:'condicionamento',nome:'Condicionamento Físico',ativo:false},
-  {id:'flexibilidade',nome:'Flexibilidade',ativo:true},
-  {id:'outros',nome:'Outros',ativo:false},
-  {id:'obs',nome:'Observações',ativo:true},
-];
-
-
-function getColunasT(turmaId){
-  var t=DP.turmas.find(function(x){return x.id===turmaId;});
-  if(t&&t.colunas&&t.colunas.length)return t.colunas;
-  return JSON.parse(JSON.stringify(COLUNAS_PIL_PADRAO.filter(function(c){return c.ativo;})));
-}
-
-
-function mListaEspera(turmaId){
-  var t=DP.turmas.find(function(x){return x.id===turmaId;});if(!t)return;
-  t.listaEspera=t.listaEspera||[];
-  var cap=t.capacidade||6;
-  var nAtivos=DP.alunos.filter(function(a){return!a.inativo&&(a.turmas||[]).includes(turmaId);}).length;
-  var vagas=Math.max(0,cap-nAtivos);
-  var h='<div class="mh"><h3>Lista de Espera — '+esc(t.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:12px">'+nAtivos+'/'+cap+' alunos. '+(vagas>0?vagas+' vaga(s) disponível(is).':'Turma lotada.')+'</div>';
-  if(!t.listaEspera.length){
-    h+='<p style="text-align:center;padding:20px;color:var(--sl3)">Nenhum aluno na lista de espera.</p>';
-  } else {
-    t.listaEspera.forEach(function(aid,idx){
-      var a=DP.alunos.find(function(x){return x.id===aid;});if(!a)return;
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--borda)">';
-      h+='<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(a.nome)+'</div>';
-      h+='<div style="font-size:11px;color:var(--sl3)">'+(idx+1)+'º na fila</div></div>';
-      if(vagas>0)h+='<button class="btn btn-p btn-sm" data-aid="'+esc(aid)+'" data-tid="'+esc(turmaId)+'" onclick="promoverEspera(this.dataset.aid,this.dataset.tid)">Matricular</button>';
-      h+='<button class="btn btn-d btn-sm" data-aid="'+esc(aid)+'" data-tid="'+esc(turmaId)+'" onclick="removerEspera(this.dataset.aid,this.dataset.tid)">✕</button>';
-      h+='</div>';
-    });
-  }
-  h+='<div class="fg" style="margin-top:12px"><label>Adicionar à lista de espera</label>';
-  h+='<select class="fi" id="esp-aluno"><option value="">Selecione...</option>';
-  DP.alunos.filter(function(a){return!a.inativo&&!(a.turmas||[]).includes(turmaId)&&!t.listaEspera.includes(a.id);}).forEach(function(a){
-    h+='<option value="'+esc(a.id)+'">'+esc(a.nome)+'</option>';
-  });
-  h+='</select></div>';
-  h+='<button class="btn btn-p btn-sm" data-tid="'+esc(turmaId)+'" onclick="addEspera(el(\'esp-aluno\').value,this.dataset.tid)">+ Adicionar</button>';
-  abrirM(h);
-}
-function addEspera(aid,tid){
-  if(!aid){toast('Selecione um aluno');return;}
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  t.listaEspera=t.listaEspera||[];
-  if(!t.listaEspera.includes(aid))t.listaEspera.push(aid);
-  salvarPilates();fecharM();mListaEspera(tid);toast('Adicionado à lista de espera!');
-}
-function removerEspera(aid,tid){
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  t.listaEspera=(t.listaEspera||[]).filter(function(x){return x!==aid;});
-  salvarPilates();fecharM();mListaEspera(tid);toast('Removido!');
-}
-function promoverEspera(aid,tid){
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  var a=DP.alunos.find(function(x){return x.id===aid;});if(!a)return;
-  t.listaEspera=(t.listaEspera||[]).filter(function(x){return x!==aid;});
-  a.turmas=a.turmas||[];if(!a.turmas.includes(tid))a.turmas.push(tid);
-  salvarPilates();fecharM();toast('✅ '+a.nome+' matriculado!');irPil('turmas_pil');
-}
-
-
-function mColunasT(turmaId){
-  var t=DP.turmas.find(function(x){return x.id===turmaId;});if(!t)return;
-  var cols=t.colunas||JSON.parse(JSON.stringify(COLUNAS_PIL_PADRAO));
-  var h='<div class="mh"><h3>Colunas — '+esc(t.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Selecione as colunas que aparecerão na evolução desta turma.</p>';
-  h+='<div style="max-height:300px;overflow-y:auto">';
-  cols.forEach(function(c,i){
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--borda)">';
-    h+='<label style="flex:1;display:flex;align-items:center;gap:8px;cursor:pointer">';
-    h+='<input type="checkbox" class="col-pil-chk" data-id="'+c.id+'" '+(c.ativo?'checked':'')+' style="width:16px;height:16px"/>';
-    h+='<span style="font-size:13px">'+esc(c.nome)+'</span></label>';
-    if(c.custom)h+='<button class="btn btn-d btn-sm" onclick="delColunaT(\''+turmaId+'\','+i+')">✕</button>';
-    h+='</div>';
-  });
-  h+='</div>';
-  h+='<div style="display:flex;gap:8px;margin-top:12px">';
-  h+='<input class="fi" type="text" id="nova-col-nome" placeholder="Nova coluna personalizada..."/>';
-  h+='<button class="btn btn-p btn-sm" data-tid="'+esc(turmaId)+'" onclick="addColunaT(this.dataset.tid)">+</button>';
-  h+='</div>';
-  h+='<button class="btn btn-p btn-bl" data-tid="'+esc(turmaId)+'" onclick="salvarColunasT(this.dataset.tid)">Salvar</button>';
-  abrirM(h);
-}
-function addColunaT(tid){
-  var nome=el('nova-col-nome')?el('nova-col-nome').value.trim():'';
-  if(!nome){toast('Digite o nome');return;}
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  t.colunas=t.colunas||JSON.parse(JSON.stringify(COLUNAS_PIL_PADRAO));
-  t.colunas.push({id:'c_'+uid(),nome:nome,ativo:true,custom:true});
-  salvarPilates();fecharM();mColunasT(tid);
-}
-function delColunaT(tid,idx){
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  t.colunas=(t.colunas||[]).filter(function(c,i){return i!==idx;});
-  salvarPilates();fecharM();mColunasT(tid);
-}
-function salvarColunasT(tid){
-  var t=DP.turmas.find(function(x){return x.id===tid;});if(!t)return;
-  var cols=t.colunas||JSON.parse(JSON.stringify(COLUNAS_PIL_PADRAO));
-  document.querySelectorAll('.col-pil-chk').forEach(function(chk){
-    var c=cols.find(function(x){return x.id===chk.dataset.id;});
-    if(c)c.ativo=chk.checked;
-  });
-  t.colunas=cols;
-  salvarPilates();fecharM();toast('Colunas salvas!');
-}
-
 function cancelarPin(){
   var pinSc=el('pin-sc');
   if(pinSc)pinSc.style.display='none';
@@ -3852,119 +3519,61 @@ function rInicioPilates(el2){
 
 // ── Agenda Pilates ───────────────────────────────────────────────
 function rAgendaPilates(el2){
-  var fab2=el('fab');if(fab2)fab2.style.display='none';
   var hj=hoje();
   var semana=[];
   var ini=semIni(hj);
   for(var i=0;i<7;i++){var d=new Date(ini);d.setDate(d.getDate()+i);semana.push(d);}
   var dNms=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-  // Filtro de turma
-  window._filtroTurmaPil=window._filtroTurmaPil||'';
-  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">';
   h+='<button class="btn btn-s btn-sm" onclick="navSemPil(-1)">‹ Ant</button>';
   h+='<div style="font-size:13px;font-weight:700">'+semana[0].toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+' – '+semana[6].toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'})+'</div>';
   h+='<button class="btn btn-s btn-sm" onclick="navSemPil(1)">Próx ›</button>';
   h+='</div>';
-  // Filtros por turma
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-  h+='<button class="btn btn-sm '+(window._filtroTurmaPil===''?'btn-p':'btn-s')+'" onclick="setFiltroTurmaPil(\'\')">Todas</button>';
-  DP.turmas.forEach(function(t){
-    h+='<button class="btn btn-sm '+(window._filtroTurmaPil===t.id?'btn-p':'btn-s')+'" data-tid="'+esc(t.id)+'" onclick="setFiltroTurmaPil(this.dataset.tid)">'+esc(t.nome)+'</button>';
-  });
-  h+='</div>';
-  // Grade
-  h+='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 220px);padding-bottom:60px">';
-  h+='<div style="display:grid;grid-template-columns:40px repeat(7,1fr);min-width:460px">';
+  // Grade semanal
+  h+='<div style="overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 200px)">';
+  h+='<div style="display:grid;grid-template-columns:40px repeat(7,1fr);min-width:500px">';
   // Cabeçalhos
-  h+='<div style="background:var(--g1);color:#fff;padding:5px;font-size:10px;font-weight:700">Hr</div>';
+  h+='<div style="background:var(--g1);color:#fff;padding:6px;font-size:11px;font-weight:700">Hr</div>';
   semana.forEach(function(d){
     var ds=d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
     var isHj=ds===hj;
-    // Resumo do dia
-    var aulasDia=DP.aulas.filter(function(a){return a.data===ds;});
-    var presTotal=0,faltaTotal=0;
-    aulasDia.forEach(function(a){(a.presencas||[]).forEach(function(p){if(p.status==='presente')presTotal++;else if(p.status==='falta')faltaTotal++;});});
-    h+='<div style="background:'+(isHj?'var(--g1)':'var(--g2)')+';color:#fff;padding:5px;font-size:10px;font-weight:700;text-align:center;cursor:pointer" onclick="resumoDiaPil(\''+ds+'\')">'+dNms[d.getDay()]+'<br><strong>'+d.getDate()+'</strong>';
-    if(presTotal>0||faltaTotal>0)h+='<br><span style="font-size:8px">✅'+presTotal+' ❌'+faltaTotal+'</span>';
-    h+='</div>';
+    h+='<div style="background:'+(isHj?'var(--g1)':'var(--g2)')+';color:#fff;padding:6px;font-size:11px;font-weight:700;text-align:center">'+dNms[d.getDay()]+'<br><strong>'+d.getDate()+'</strong></div>';
   });
   // Horários
   var horas=[];for(var hh=6;hh<=22;hh++)horas.push((hh<10?'0':'')+hh+':00');
   horas.forEach(function(hora){
-    h+='<div style="background:var(--g4);border:1px solid var(--borda);padding:3px;font-size:9px;color:var(--sl3)">'+hora+'</div>';
+    h+='<div style="background:var(--g4);border:1px solid var(--borda);padding:4px;font-size:10px;color:var(--sl3)">'+hora+'</div>';
     semana.forEach(function(d){
       var ds=d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();
       var dow=d.getDay();
-      var turmasSlot=DP.turmas.filter(function(t){
-        if(window._filtroTurmaPil&&t.id!==window._filtroTurmaPil)return false;
-        return(t.dias||[]).includes(dow)&&t.horario===hora;
-      });
-      // Conflito com fisio
-      var conflitoFisio=D.sessoes.some(function(s){return s.data===ds&&s.hora===hora;});
-      h+='<div style="background:#fff;border:1px solid var(--borda);padding:2px;min-height:32px">';
-      if(conflitoFisio&&turmasSlot.length===0)h+='<div style="font-size:8px;color:#d97706;padding:2px">⚠️ Fisio</div>';
+      // Turmas neste dia e hora
+      var turmasSlot=DP.turmas.filter(function(t){return(t.dias||[]).includes(dow)&&t.horario===hora;});
+      h+='<div style="background:#fff;border:1px solid var(--borda);padding:2px;min-height:36px;cursor:pointer" onclick="celulaClickPil(\''+ds+'\',\''+hora+'\')">';
       turmasSlot.forEach(function(t){
         var nA=DP.alunos.filter(function(a){return!a.inativo&&(a.turmas||[]).includes(t.id);}).length;
-        var cap=t.capacidade||6;var lotado=nA>=cap;
-        var aula=DP.aulas.find(function(a){return a.turmaId===t.id&&a.data===ds&&a.hora===hora;});
-        var presentes=aula?(aula.presencas||[]).filter(function(p){return p.status==='presente';}).length:0;
-        var faltas=aula?(aula.presencas||[]).filter(function(p){return p.status==='falta';}).length:0;
-        var temEvoP=aula&&aula.obs&&aula.obs.length>0;
-        // Cor por status da aula
-        var corAula=aula&&presentes>0?'#dcfce7':lotado?'#fee2e2':'#f3e8ff';
-        var corBorda=aula&&presentes>0?'#16a34a':lotado?'#dc2626':'#7c3aed';
-        h+='<div style="position:relative;background:'+corAula+';border-left:3px solid '+corBorda+';border-radius:3px;padding:2px 4px;font-size:8px;margin-bottom:2px;cursor:pointer" onclick="abrirTurmaAula(\''+t.id+'\',\''+ds+'\',\''+hora+'\')">';
-        h+=esc(t.nome.slice(0,10))+'<br>';
-        h+=nA+'/'+cap+(lotado?' 🔴':'');
-        if(aula)h+=' ✅'+presentes+(faltas>0?' ❌'+faltas:'');
-        if(!temEvoP&&presentes>0)h+='<span style="position:absolute;top:1px;right:1px;width:5px;height:5px;background:#ef4444;border-radius:50%"></span>';
-        if(conflitoFisio)h+='<br><span style="color:#d97706">⚠️</span>';
+        var cap=t.capacidade||6;
+        var lotado=nA>=cap;
+        // Verificar conflito com fisio
+        var conflitoFisio=D.sessoes.some(function(s){return s.data===ds&&s.hora===hora;});
+        h+='<div style="background:'+(lotado?'#fee2e2':'#f3e8ff')+';color:'+(lotado?'#dc2626':'#7c3aed')+';border-left:3px solid #7c3aed;border-radius:3px;padding:2px 4px;font-size:9px;margin-bottom:2px;cursor:pointer" onclick="event.stopPropagation();abrirTurmaAula(\''+t.id+'\',\''+ds+'\',\''+hora+'\')">';
+        h+=esc(t.nome.slice(0,10));
+        h+='<br>'+nA+'/'+cap+(lotado?' 🔴':'');
+        if(conflitoFisio)h+='<br><span style="color:#d97706">⚠️ Conflito</span>';
         h+='</div>';
       });
       h+='</div>';
     });
   });
   h+='</div></div>';
-  // Legenda
-  h+='<div style="display:flex;gap:12px;margin-top:8px;font-size:11px;flex-wrap:wrap">';
-  h+='<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#dcfce7;border-left:3px solid #16a34a;display:inline-block"></span>Com presença</span>';
-  h+='<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#f3e8ff;border-left:3px solid #7c3aed;display:inline-block"></span>Agendado</span>';
-  h+='<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#fee2e2;border-left:3px solid #dc2626;display:inline-block"></span>Lotado</span>';
-  h+='<span style="display:flex;align-items:center;gap:4px"><span style="width:5px;height:5px;background:#ef4444;border-radius:50%;display:inline-block"></span>Evolução pendente</span>';
-  h+='</div>';
   el2.innerHTML=h;
 }
-function setFiltroTurmaPil(tid){window._filtroTurmaPil=tid;irPil('agenda_pil');}
-function resumoDiaPil(ds){
-  var turmasDow=DP.turmas.filter(function(t){return(t.dias||[]).includes(new Date(ds+'T12:00:00').getDay());});
-  var aulasDia=DP.aulas.filter(function(a){return a.data===ds;});
-  var presTotal=0,faltaTotal=0,repTotal=0;
-  aulasDia.forEach(function(a){(a.presencas||[]).forEach(function(p){
-    if(p.status==='presente')presTotal++;
-    else if(p.status==='falta')faltaTotal++;
-    else if(p.status==='reposicao')repTotal++;
-  });});
-  var dt=new Date(ds+'T12:00:00');
-  var h='<div class="mh"><h3>'+dt.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
-  h+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:8px"><div style="font-size:20px;font-weight:800;color:var(--g1)">'+turmasDow.length+'</div><div style="font-size:11px;color:var(--sl3)">Turmas</div></div>';
-  h+='<div style="text-align:center;padding:10px;background:#dcfce7;border-radius:8px"><div style="font-size:20px;font-weight:800;color:#16a34a">'+presTotal+'</div><div style="font-size:11px;color:var(--sl3)">Presenças</div></div>';
-  h+='<div style="text-align:center;padding:10px;background:#fee2e2;border-radius:8px"><div style="font-size:20px;font-weight:800;color:#dc2626">'+faltaTotal+'</div><div style="font-size:11px;color:var(--sl3)">Faltas</div></div>';
-  h+='</div>';
-  if(repTotal>0)h+='<div style="padding:8px;background:#fffbeb;border-radius:8px;font-size:13px;color:#d97706;font-weight:600;margin-bottom:10px">🔄 '+repTotal+' reposição(ões)</div>';
-  turmasDow.forEach(function(t){
-    var nA=DP.alunos.filter(function(a){return!a.inativo&&(a.turmas||[]).includes(t.id);}).length;
-    var aula=DP.aulas.find(function(a){return a.turmaId===t.id&&a.data===ds;});
-    var pres=aula?(aula.presencas||[]).filter(function(p){return p.status==='presente';}).length:0;
-    h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)">';
-    h+='<div style="flex:1"><div style="font-size:13px;font-weight:700">'+esc(t.nome)+'</div>';
-    h+='<div style="font-size:11px;color:var(--sl3)">'+esc(t.horario||'')+'</div></div>';
-    h+='<div style="text-align:right"><div style="font-size:14px;font-weight:700;color:'+(pres>0?'#16a34a':'var(--sl3)')+'">'+pres+'/'+nA+'</div>';
-    h+='<div style="font-size:10px;color:var(--sl3)">presentes</div></div>';
-    h+='</div>';
-  });
-  abrirM(h);
+
+var _semRefPil=new Date();
+function navSemPil(dir){
+  _semRefPil.setDate(_semRefPil.getDate()+dir*7);
+  irPil('agenda_pil');
 }
+function semIniPil(ref){var d=new Date(ref);d.setHours(0,0,0,0);var dw=d.getDay();d.setDate(d.getDate()-(dw===0?6:dw-1));return d;}
 
 function celulaClickPil(ds,hora){
   // Nova aula avulsa ou ver turmas
@@ -3997,10 +3606,7 @@ function abrirTurmaAula(turmaId,ds,hora){
   h+='<div class="fg" style="margin-top:12px"><label>Observações da aula</label>';
   h+='<textarea class="fi" id="aula-obs" rows="2">'+esc(aula.obs||'')+'</textarea></div>';
   h+='<button class="btn btn-p btn-bl" data-turmaid="'+turmaId+'" data-ds="'+ds+'" data-hora="'+hora+'" onclick="salvarAula(this.dataset.turmaid,this.dataset.ds,this.dataset.hora)">Salvar aula</button>';
-  h+='<div style="display:flex;gap:8px;margin-top:8px">';
-  h+='<button class="btn btn-a btn-sm" style="flex:1" data-turmaid="'+turmaId+'" data-ds="'+ds+'" data-hora="'+hora+'" onclick="fecharM();evoluirAula(this.dataset.turmaid,this.dataset.ds,this.dataset.hora)">📝 Evolução</button>';
-  h+='<button class="btn btn-s btn-sm" style="flex:1" data-turmaid="'+turmaId+'" onclick="fecharM();buscarEvolucoesPil(this.dataset.turmaid,\'\')">📋 Ver evoluções</button>';
-  h+='</div>';
+  h+='<button class="btn btn-a btn-sm" style="margin-top:8px;width:100%" data-turmaid="'+turmaId+'" data-ds="'+ds+'" data-hora="'+hora+'" onclick="fecharM();evoluirAula(this.dataset.turmaid,this.dataset.ds,this.dataset.hora)">📝 Registrar evolução</button>';
   abrirM(h);
 }
 
@@ -4031,13 +3637,9 @@ function salvarAula(turmaId,ds,hora){
 // ── Lista de Alunos ──────────────────────────────────────────────
 function rAlunosPilates(el2){
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mAlunoPilates(null);};
-  var ativos=DP.alunos.filter(function(a){return _verInativosPil?a.inativo:!a.inativo;});
-  var inatCount=DP.alunos.filter(function(a){return a.inativo;}).length;
+  var ativos=DP.alunos.filter(function(a){return!a.inativo;});
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:12px;color:#7c3aed">👥 Alunos de Pilates</div>';
-  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
-  h+='<div style="font-size:12px;color:var(--sl3)">'+ativos.length+' '+(_verInativosPil?'inativo(s)':'ativo(s)')+(inatCount&&!_verInativosPil?' | '+inatCount+' inativo(s)':'')+'</div>';
-  h+='<button class="btn btn-sm '+(_verInativosPil?'btn-d':'btn-s')+'" onclick="toggleInativosPil()">'+(_verInativosPil?'Ver ativos':'Ver inativos')+'</button>';
-  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:8px">'+ativos.length+' aluno(s) ativo(s)</div>';
   h+='<input class="fi" style="margin-bottom:12px" placeholder="Buscar aluno..." id="busca-aluno-pil" oninput="filtrarAlunosPil(this.value)"/>';
   h+='<div id="lista-alunos-pil">';
   if(!ativos.length){
@@ -4090,10 +3692,8 @@ function rTurmasPilates(el2){
       h+='<div style="height:6px;background:var(--g3);border-radius:3px;margin-bottom:8px"><div style="height:6px;background:'+(lotado?'#dc2626':'#7c3aed')+';border-radius:3px;width:'+Math.min(100,Math.round(nA/cap*100))+'%"></div></div>';
       h+='<div style="display:flex;gap:6px">';
       h+='<button class="btn btn-p btn-sm" data-tid="'+esc(t.id)+'" onclick="verAlunosTurma(this.dataset.tid)">Ver alunos</button>';
-      h+='<button class="btn btn-s btn-sm" data-tid="'+esc(t.id)+'" onclick="mTurmaPilates(this.dataset.tid)">✏️ Editar</button>';
-      h+='<button class="btn btn-s btn-sm" data-tid="'+esc(t.id)+'" onclick="mColunasT(this.dataset.tid)">⚙️ Colunas</button>';
-      h+='<button class="btn btn-a btn-sm" data-tid="'+esc(t.id)+'" onclick="mListaEspera(this.dataset.tid)">⏳ Espera ('+(t.listaEspera||[]).length+')</button>';
-      h+='<button class="btn btn-d btn-sm" data-tid="'+esc(t.id)+'" onclick="delTurmaPilates(this.dataset.tid)">🗑️</button>';
+      h+='<button class="btn btn-s btn-sm" data-tid="'+esc(t.id)+'" onclick="mTurmaPilates(this.dataset.tid)">Editar</button>';
+      h+='<button class="btn btn-d btn-sm" data-tid="'+esc(t.id)+'" onclick="delTurmaPilates(this.dataset.tid)">✕</button>';
       h+='</div></div>';
     });
   }
@@ -4123,23 +3723,6 @@ function mTurmaPilates(tid){
   h+='<button class="btn btn-p btn-bl" onclick="salvarTurmaPilates()">Salvar turma</button>';
   abrirM(h);
 }
-function verificarConflitoHorario(dias,hora,excludeTid){
-  // Verificar conflito com fisioterapia
-  var conflitos=[];
-  D.sessoes.forEach(function(s){
-    var d=new Date(s.data+'T12:00:00');
-    var dow=d.getDay();
-    if(dias.includes(dow)&&s.hora===hora)
-      conflitos.push(nomePac(s.pacienteId)+' ('+fmtD(s.data)+')');
-  });
-  // Verificar conflito com outras turmas Pilates
-  DP.turmas.forEach(function(t){
-    if(t.id===excludeTid)return;
-    if(t.horario===hora&&(t.dias||[]).some(function(d){return dias.includes(d);}))
-      conflitos.push('Turma Pilates: '+t.nome);
-  });
-  return conflitos;
-}
 function salvarTurmaPilates(){
   var tid=el('tp-id')?el('tp-id').value:'';
   var nome=el('tp-nome')?el('tp-nome').value.trim():'';
@@ -4147,11 +3730,6 @@ function salvarTurmaPilates(){
   var dias=[];document.querySelectorAll('.tp-dia:checked').forEach(function(c){dias.push(parseInt(c.value));});
   var hora=(el('tp-hora')?el('tp-hora').value:'08:00');
   if(hora.length===5)hora+=':00';
-  // Verificar conflitos
-  var conflitos=verificarConflitoHorario(dias,hora,tid);
-  if(conflitos.length>0){
-    if(!confirm('⚠️ Conflito de horário detectado:\n'+conflitos.slice(0,3).join('\n')+'\n\nDeseja salvar mesmo assim?'))return;
-  }
   var t={id:tid||uid(),nome:nome,nivel:el('tp-nivel')?el('tp-nivel').value:'Iniciante',
     dias:dias,horario:hora,capacidade:parseInt(el('tp-cap')?el('tp-cap').value:6)||6,
     valor:parseFloat(el('tp-val')?el('tp-val').value:0)||0};
@@ -4267,92 +3845,491 @@ function perfilAlunoPil(aid){
   var a=DP.alunos.find(function(x){return x.id===aid;});if(!a)return;
   var aulasFeitas=DP.aulas.filter(function(au){return(au.presencas||[]).some(function(p){return p.alunoId===aid&&p.status==='presente';});}).length;
   var saldo=a.pacoteAulas?(a.pacoteAulas-aulasFeitas):null;
-  var turmasNome=(a.turmas||[]).map(function(tid){var t=DP.turmas.find(function(x){return x.id===tid;});return t?t.nome:'';}).filter(Boolean).join(', ');
   var h='<div class="mh"><h3>'+esc(a.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  // Abas
-  var abaPil=window._abaPilPerfil||'resumo';
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;justify-content:center">';
-  [{v:'resumo',l:'Resumo'},{v:'evolucoes',l:'Evoluções'},{v:'avaliacoes',l:'Avaliações'},{v:'financeiro',l:'Financeiro'}].forEach(function(ab){
-    h+='<button class="btn btn-sm '+(abaPil===ab.v?'btn-p':'btn-s')+'" onclick="mudarAbaPilPerfil(\''+aid+'\',\''+ab.v+'\')">'+ab.l+'</button>';
-  });
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
+  h+='<div style="padding:10px;background:var(--g4);border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#7c3aed">'+aulasFeitas+'</div><div style="font-size:11px;color:var(--sl3)">Aulas realizadas</div></div>';
+  if(saldo!==null)h+='<div style="padding:10px;background:var(--g4);border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:'+(saldo<=2?'#dc2626':'var(--g1)')+'">'+saldo+'</div><div style="font-size:11px;color:var(--sl3)">Aulas restantes</div></div>';
   h+='</div>';
-  // Conteúdo da aba
-  if(abaPil==='resumo'){
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
-    h+='<div style="padding:10px;background:var(--g4);border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:#7c3aed">'+aulasFeitas+'</div><div style="font-size:11px;color:var(--sl3)">Aulas realizadas</div></div>';
-    if(saldo!==null)h+='<div style="padding:10px;background:var(--g4);border-radius:8px;text-align:center"><div style="font-size:22px;font-weight:800;color:'+(saldo<=2?'#dc2626':'var(--g1)')+'">'+saldo+'</div><div style="font-size:11px;color:var(--sl3)">Aulas restantes</div></div>';
-    h+='</div>';
-    if(turmasNome)h+='<div class="di"><div class="di-l">Turmas</div><div class="di-v">'+esc(turmasNome)+'</div></div>';
-    if(a.objetivo)h+='<div class="di"><div class="di-l">Objetivo</div><div class="di-v">'+esc(a.objetivo)+'</div></div>';
-    if(a.nivel)h+='<div class="di"><div class="di-l">Nível</div><div class="di-v">'+esc(a.nivel)+'</div></div>';
-    if((a.restricoes||[]).length)h+='<div class="di"><div class="di-l">Restrições</div><div class="di-v">'+esc(a.restricoes.join(', '))+'</div></div>';
-    if(a.dtVenc)h+='<div class="di"><div class="di-l">Vencimento</div><div class="di-v">'+fmtD(a.dtVenc)+'</div></div>';
-    if(a.obs)h+='<div class="di"><div class="di-l">Observações</div><div class="di-v">'+esc(a.obs)+'</div></div>';
-    // Verificar se é também paciente de fisio
-    var pacFisio=D.pacientes.find(function(p){return p.nome&&a.nome&&p.nome.toLowerCase()===a.nome.toLowerCase();});
-    if(pacFisio)h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534;margin-top:8px">✅ Também é paciente de fisioterapia</div>';
-  } else if(abaPil==='evolucoes'){
-    var evos=(DP.evolucoesPil||[]).filter(function(e){return e.alunoId===aid;}).sort(function(a,b){return(b.ts||0)-(a.ts||0);});
-    if(!evos.length){h+='<p style="text-align:center;padding:20px;color:var(--sl3)">Nenhuma evolução registrada.</p>';}
-    else{
-      evos.slice(0,10).forEach(function(e){
-        var exercNomes=(e.exercicios||[]).map(function(eid){var ex=PILATES_EXERCICIOS.find(function(x){return x.id===eid;});return ex?ex.pt:'';}).filter(Boolean);
-        h+='<div class="card" style="margin-bottom:6px">';
-        h+='<div style="display:flex;justify-content:space-between"><span style="font-size:12px;font-weight:700">'+fmtD(e.data)+'</span>';
-        h+='<button class="btn btn-d btn-sm" data-eid="'+esc(e.id)+'" onclick="delEvolucaoPil(this.dataset.eid);fecharM()">✕</button></div>';
-        if(exercNomes.length)h+='<div style="font-size:11px;color:#7c3aed">'+exercNomes.slice(0,3).join(', ')+'</div>';
-        if(e.obs)h+='<div style="font-size:11px;color:var(--sl2)">'+esc(e.obs.slice(0,60))+'</div>';
-        h+='</div>';
-      });
-    }
-  } else if(abaPil==='avaliacoes'){
-    var hist=a.historicaAval||[];
-    if(!hist.length){
-      h+='<p style="text-align:center;padding:20px;color:var(--sl3)">Nenhuma avaliação registrada.</p>';
-    } else {
-      // Mini gráfico
-      var campos2=[{k:'dor',l:'Dor',c:'#dc2626'},{k:'forca',l:'Força',c:'#16a34a'},{k:'flex',l:'Flex.',c:'#2563eb'},{k:'equil',l:'Equil.',c:'#7c3aed'}];
-      hist.slice(-5).forEach(function(av){
-        h+='<div class="card" style="margin-bottom:8px">';
-        h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:6px">'+new Date(av.dt).toLocaleDateString('pt-BR')+'</div>';
-        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-        campos2.forEach(function(c){
-          h+='<div><div style="font-size:11px;color:var(--sl3)">'+c.l+'</div>';
-          h+='<div style="height:6px;background:var(--g3);border-radius:3px;margin-top:2px"><div style="height:6px;background:'+c.c+';border-radius:3px;width:'+(av[c.k]||0)*10+'%"></div></div>';
-          h+='<div style="font-size:10px;font-weight:700">'+av[c.k]+'/10</div></div>';
-        });
-        h+='</div></div>';
-      });
-    }
-  } else if(abaPil==='financeiro'){
-    var recTotal=0;
-    (a.turmas||[]).forEach(function(tid){
-      var aulsT=DP.aulas.filter(function(au){return au.turmaId===tid&&(au.presencas||[]).some(function(p){return p.alunoId===aid&&p.status==='presente';});}).length;
-      recTotal+=aulsT*(a.valorAula||0);
-    });
-    h+='<div style="padding:12px;background:var(--g4);border-radius:8px;text-align:center;margin-bottom:12px">';
-    h+='<div style="font-size:12px;color:var(--sl3)">Total recebido (estimado)</div>';
-    h+='<div style="font-size:24px;font-weight:800;color:#7c3aed">R$'+recTotal.toFixed(2)+'</div>';
-    h+='<div style="font-size:11px;color:var(--sl3)">'+aulasFeitas+' aulas × R$'+(a.valorAula||0).toFixed(2)+'</div>';
-    h+='</div>';
-    if(a.dtVenc)h+='<div class="di"><div class="di-l">Vencimento plano</div><div class="di-v">'+fmtD(a.dtVenc)+'</div></div>';
-    if(saldo!==null){
-      h+='<div class="di"><div class="di-l">Pacote</div><div class="di-v">'+aulasFeitas+'/'+a.pacoteAulas+' aulas ('+(saldo<=0?'<span style="color:#dc2626">Esgotado</span>':saldo+' restantes')+')</div></div>';
-    }
-  }
-  // Botões de ação
-  h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
+  if(a.objetivo)h+='<div class="di"><div class="di-l">Objetivo</div><div class="di-v">'+esc(a.objetivo)+'</div></div>';
+  if(a.nivel)h+='<div class="di"><div class="di-l">Nível</div><div class="di-v">'+esc(a.nivel)+'</div></div>';
+  if((a.restricoes||[]).length)h+='<div class="di"><div class="di-l">Restrições</div><div class="di-v">'+esc(a.restricoes.join(', '))+'</div></div>';
+  if(a.dtVenc)h+='<div class="di"><div class="di-l">Vencimento</div><div class="di-v">'+fmtD(a.dtVenc)+'</div></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:14px">';
   h+='<button class="btn btn-p btn-sm" data-aid="'+esc(aid)+'" onclick="fecharM();mAlunoPilates(this.dataset.aid)">✏️ Editar</button>';
   h+='<button class="btn btn-a btn-sm" data-aid="'+esc(aid)+'" onclick="fecharM();evoluirAlunoPil(this.dataset.aid)">📝 Evolução</button>';
-  h+='<button class="btn btn-s btn-sm" data-aid="'+esc(aid)+'" onclick="fecharM();mAvaliacaoPil(this.dataset.aid)">📊 Avaliar</button>';
-  if(!a.inativo){h+='<button class="btn btn-d btn-sm" data-aid="'+esc(aid)+'" onclick="fecharM();inativarAlunoPil(this.dataset.aid)">Inativar</button>';}
-  else{h+='<button class="btn btn-p btn-sm" data-aid="'+esc(aid)+'" onclick="fecharM();reativarAlunoPil(this.dataset.aid)">Reativar</button>';}
-  h+='<button class="btn btn-d btn-sm" data-aid="'+esc(aid)+'" onclick="delAlunoPilates(this.dataset.aid)" style="background:#dc2626">🗑️</button>';
   h+='</div>';
   abrirM(h);
 }
-function mudarAbaPilPerfil(aid,aba){window._abaPilPerfil=aba;fecharM();perfilAlunoPil(aid);}
 
+// ── Evolução Pilates ─────────────────────────────────────────────
+function evoluirAula(turmaId,ds,hora){
+  var t=DP.turmas.find(function(x){return x.id===turmaId;});if(!t)return;
+  var h='<div class="mh"><h3>Evolução — '+esc(t.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:12px">'+fmtD(ds)+' às '+hora+'</div>';
+  h+=formEvolucaoPil(turmaId,ds,hora);
+  abrirM(h);
+}
+function evoluirAlunoPil(aid){
+  var a=DP.alunos.find(function(x){return x.id===aid;});if(!a)return;
+  var h='<div class="mh"><h3>Evolução — '+esc(a.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+=formEvolucaoPil(null,hoje(),null,aid);
+  abrirM(h);
+}
+function formEvolucaoPil(turmaId,ds,hora,alunoId){
+  var h='';
+  // Filtro de categoria
+  var cats=['Todos','Reformer','Cadillac','Chair','Ladder Barrel','Mat Pilates','Idosos','Lombalgia','Core','Flexibilidade'];
+  h+='<div style="font-size:12px;font-weight:700;color:var(--sl3);margin-bottom:6px">EXERCÍCIOS REALIZADOS</div>';
+  h+='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">';
+  cats.forEach(function(c){
+    h+='<button class="btn btn-sm btn-s" onclick="filtrarExercPil(\''+c+'\')" style="font-size:11px">'+c+'</button>';
+  });
+  h+='</div>';
+  h+='<div id="exer-pil-lista" style="max-height:200px;overflow-y:auto;margin-bottom:12px">';
+  var lang=DP.cfg.nomeLang||'ambos';
+  PILATES_EXERCICIOS.forEach(function(ex){
+    var nm=lang==='en'?ex.en:lang==='pt'?ex.pt:ex.en+' / '+ex.pt;
+    h+='<label style="display:flex;align-items:center;gap:8px;padding:5px;cursor:pointer;border-bottom:1px solid var(--borda)" data-cat="'+ex.cat+'">';
+    h+='<input type="checkbox" class="exer-pil-check" value="'+ex.id+'" style="width:16px;height:16px"/>';
+    h+='<div><div style="font-size:12px;font-weight:600">'+nm+'</div><div style="font-size:10px;color:var(--sl3)">'+ex.cat+' · '+ex.nivel+'</div></div>';
+    h+='</label>';
+  });
+  h+='</div>';
+  h+='<div class="fg"><label>Observações gerais da aula</label><textarea class="fi" id="evpil-obs" rows="3" placeholder="Ex: Aluno apresentou melhora do equilíbrio..."></textarea></div>';
+  h+='<input type="hidden" id="evpil-turmaid" value="'+(turmaId||'')+'"/>';
+  h+='<input type="hidden" id="evpil-ds" value="'+(ds||'')+'"/>';
+  h+='<input type="hidden" id="evpil-hora" value="'+(hora||'')+'"/>';
+  h+='<input type="hidden" id="evpil-aid" value="'+(alunoId||'')+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarEvolucaoPil()">Salvar evolução</button>';
+  return h;
+}
+function filtrarExercPil(cat){
+  var items=document.querySelectorAll('#exer-pil-lista label');
+  items.forEach(function(item){
+    item.style.display=(cat==='Todos'||item.dataset.cat===cat)?'flex':'none';
+  });
+}
+function salvarEvolucaoPil(){
+  var exercSel=[];
+  document.querySelectorAll('.exer-pil-check:checked').forEach(function(c){exercSel.push(c.value);});
+  var obs=el('evpil-obs')?el('evpil-obs').value:'';
+  var turmaId=el('evpil-turmaid')?el('evpil-turmaid').value:'';
+  var ds=el('evpil-ds')?el('evpil-ds').value:hoje();
+  var hora=el('evpil-hora')?el('evpil-hora').value:'';
+  var aid=el('evpil-aid')?el('evpil-aid').value:'';
+  var evo={id:uid(),turmaId:turmaId,alunoId:aid,data:ds,hora:hora,exercicios:exercSel,obs:obs,ts:Date.now()};
+  if(!DP.evolucoesPil)DP.evolucoesPil=[];
+  DP.evolucoesPil.push(evo);
+  salvarPilates();
+  var h='<div style="text-align:center;padding:24px"><div style="font-size:48px;margin-bottom:10px">✅</div><div style="font-size:18px;font-weight:800;margin-bottom:16px">Evolução salva!</div><button class="btn btn-p btn-sm" onclick="fecharM();irPil(\'inicio_pil\')">Voltar</button></div>';
+  el('mbody').innerHTML=h;
+}
+
+// ── Mais Pilates ─────────────────────────────────────────────────
+function rMaisPilates(el2){
+  var h='<div style="font-size:16px;font-weight:800;margin-bottom:16px;color:#7c3aed">⚙️ Pilates — Configurações</div>';
+  // Idioma dos exercícios
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Idioma dos exercícios</div>';
+  h+='<div style="display:flex;gap:8px">';
+  [{v:'ambos',l:'Inglês / PT'},{v:'en',l:'Inglês'},{v:'pt',l:'Português'}].forEach(function(op){
+    h+='<button class="btn btn-sm '+(DP.cfg.nomeLang===op.v?'btn-p':'btn-s')+'" onclick="setLangPil(\''+op.v+'\')">'+op.l+'</button>';
+  });
+  h+='</div></div>';
+  // Financeiro
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">💰 Financeiro Pilates</div>';
+  h+='<button class="btn btn-p btn-sm" onclick="irPil(\'financeiro_pil\')">Ver financeiro</button>';
+  if(D.cfg.usarPilates){
+    h+='<button class="btn btn-a btn-sm" style="margin-left:8px" onclick="relatorioUnificado()">Relatório unificado Fisio+Pilates</button>';
+  }
+  h+='</div>';
+  // Exercícios personalizados
+  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">📚 Biblioteca de exercícios</div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:8px">'+PILATES_EXERCICIOS.length+' exercícios pré-cadastrados. Adicione os seus:</p>';
+  h+='<button class="btn btn-p btn-sm" onclick="mNovoExercPil()">+ Exercício personalizado</button></div>';
+  el2.innerHTML=h;
+}
+function setLangPil(lang){DP.cfg.nomeLang=lang;salvarPilates();irPil('mais_pil');}
+
+function relatorioUnificado(){
+  var hj=hoje();var mes=hj.slice(0,7);
+  var recFisio=D.sessoes.filter(function(s){return s.data.slice(0,7)===mes&&s.statusPag==='pago';}).reduce(function(a,s){return a+(s.valor||0);},0);
+  var recPilates=0;
+  (DP.evolucoesPil||[]).filter(function(e){return e.data&&e.data.slice(0,7)===mes;}).forEach(function(e){
+    var a=DP.alunos.find(function(x){return x.id===e.alunoId;});
+    if(a)recPilates+=a.valorAula||0;
+  });
+  var h='<div class="mh"><h3>Relatório Unificado</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:14px">'+mes.slice(5,7)+'/'+mes.slice(0,4)+'</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
+  h+='<div class="card" style="margin:0;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--g1)">R$'+recFisio.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Fisioterapia</div></div>';
+  h+='<div class="card" style="margin:0;text-align:center"><div style="font-size:18px;font-weight:800;color:#7c3aed">R$'+recPilates.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Pilates</div></div>';
+  h+='</div>';
+  h+='<div style="padding:12px;background:var(--g4);border-radius:8px;text-align:center"><div style="font-size:13px;color:var(--sl3)">Total combinado</div><div style="font-size:26px;font-weight:900;color:var(--g1)">R$'+(recFisio+recPilates).toFixed(2)+'</div></div>';
+  abrirM(h);
+}
+
+function mNovoExercPil(){
+  var h='<div class="mh"><h3>Novo Exercício</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>Nome em inglês</label><input class="fi" type="text" id="nex-en" placeholder="Ex: Teaser Variation"/></div>';
+  h+='<div class="fg"><label>Nome em português</label><input class="fi" type="text" id="nex-pt" placeholder="Ex: Variação do Teaser"/></div>';
+  h+='<div class="fg"><label>Categoria/Aparelho</label><select class="fi" id="nex-cat">';
+  ['Reformer','Cadillac','Chair','Ladder Barrel','Mat Pilates','Idosos','Lombalgia','Core','Flexibilidade','Outro'].forEach(function(c){h+='<option>'+c+'</option>';});
+  h+='</select></div>';
+  h+='<div class="fg"><label>Nível</label><select class="fi" id="nex-niv"><option>Iniciante</option><option>Intermediário</option><option>Avançado</option></select></div>';
+  h+='<div class="fg"><label>Objetivo</label><input class="fi" type="text" id="nex-obj" placeholder="Ex: Fortalecimento de core"/></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarExercPil()">Salvar exercício</button>';
+  abrirM(h);
+}
+function salvarExercPil(){
+  var en=el('nex-en')?el('nex-en').value.trim():'';
+  var pt=el('nex-pt')?el('nex-pt').value.trim():'';
+  if(!en&&!pt){toast('Informe pelo menos um nome');return;}
+  PILATES_EXERCICIOS.push({
+    id:'custom_'+uid(),cat:el('nex-cat')?el('nex-cat').value:'Outro',
+    en:en||pt,pt:pt||en,obj:el('nex-obj')?el('nex-obj').value:'',
+    nivel:el('nex-niv')?el('nex-niv').value:'Iniciante',grupo:'',custom:true
+  });
+  fecharM();toast('Exercício adicionado!');
+}
+
+
+function togglePilatesModulo(ativo){
+  D.cfg.usarPilates=ativo;
+  salvar();
+  if(ativo){
+    toast('Módulo Pilates ativado!');
+    setTimeout(function(){renderizarModuloEscolha(false);},800);
+  } else {
+    var btnT=el('btn-trocar-mod');if(btnT)btnT.style.display='none';
+    var navP=el('nav-pilates');if(navP)navP.style.display='none';
+    toast('Módulo Pilates desativado.');
+  }
+}
+
+function removerPin(){PR=true;mostrarPin('ver');}
+function toggleOpc(cb){if(cb.dataset.k==='usarPilates'){togglePilatesModulo(cb.checked);return;}D.cfg[cb.dataset.k]=cb.checked;salvar();}
+function salvarHorario(){var ini=el('ag-ini'),fim=el('ag-fim');if(!ini||!fim)return;var iv=parseInt(ini.value),fv=parseInt(fim.value);if(iv>=fv){toast('Início deve ser antes do fim!');return;}D.cfg.horaIni=iv;D.cfg.horaFim=fv;salvar();toast('Horário atualizado!');}
+function mPlano(pid){
+  var pl=pid?D.planos.find(function(x){return x.id===pid;}):null;
+  pl=pl||{id:'',nome:'',valor:0,pgMes:'mesmo',pgDia:30,pgAlerta:3};
+  var h='<div class="mh"><h3>'+(pl.id?'Editar':'Novo')+' Plano</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<input type="hidden" id="mpl-id" value="'+esc(pl.id)+'"/>';
+  h+='<div class="fg"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
+  h+='<div class="fg"><label>Valor padrão (R$)</label><input class="fi" type="number" id="mpl-val" min="0" step="0.01" value="'+(pl.valor||'')+'" placeholder="0,00"/></div>';
+  h+='<div class="fsec"><div class="fsec-t">Regras de pagamento</div>';
+  h+='<div class="fg"><label>Quando recebe</label><select class="fi" id="mpl-pgmes" onchange="togglePgDia()">';
+  h+='<option value="mesmo"'+(( pl.pgMes||'mesmo')==='mesmo'?' selected':'')+'>Mesmo mês do atendimento</option>';
+  h+='<option value="seguinte"'+(pl.pgMes==='seguinte'?' selected':'')+'>Mês seguinte</option>';
+  h+='<option value="dias"'+(pl.pgMes==='dias'?' selected':'')+'>X dias após o atendimento</option>';
+  h+='</select></div>';
+  h+='<div class="fg" id="mpl-dia-wrap"><label id="mpl-dia-lbl">Dia do pagamento</label><input class="fi" type="number" id="mpl-pgdia" min="1" max="31" value="'+(pl.pgDia||30)+'" placeholder="Ex: 25"/></div>';
+  h+='<div class="fg"><label>Alertar X dias antes</label><input class="fi" type="number" id="mpl-alerta" min="0" max="30" value="'+(pl.pgAlerta||3)+'" placeholder="3"/></div>';
+  h+='<div style="padding:8px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;margin-top:4px">';
+  h+='💡 O app vai gerar um alerta quando o pagamento estiver chegando e cobrar confirmação após a data passar.</div>';
+  h+='</div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarPlano()">Salvar</button>';
+  abrirM(h);
+  togglePgDia();
+}
+function togglePgDia(){
+  var sel=el('mpl-pgmes');var wrap=el('mpl-dia-wrap');var lbl=el('mpl-dia-lbl');
+  if(!sel||!wrap)return;
+  if(sel.value==='dias'){lbl.textContent='Quantidade de dias';wrap.style.display='block';}
+  else if(sel.value==='mesmo'||sel.value==='seguinte'){lbl.textContent='Dia do mês';wrap.style.display='block';}
+}
+function salvarPlano(){
+  var pid=el('mpl-id').value;var nome=el('mpl-nome').value.trim();
+  var valor=parseFloat(el('mpl-val').value)||0;
+  if(!nome){toast('Nome obrigatorio');return;}
+  var pgMes=el('mpl-pgmes')?el('mpl-pgmes').value:'mesmo';
+  var pgDia=parseInt(el('mpl-pgdia')?el('mpl-pgdia').value:30)||30;
+  var pgAlerta=parseInt(el('mpl-alerta')?el('mpl-alerta').value:3)||3;
+  if(pid){
+    var pl=D.planos.find(function(x){return x.id===pid;});
+    if(pl){pl.nome=nome;pl.valor=valor;pl.pgMes=pgMes;pl.pgDia=pgDia;pl.pgAlerta=pgAlerta;}
+  } else {
+    D.planos.push({id:uid(),nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta});
+  }
+  salvar();fecharM();ir('mais');toast('Plano salvo!');
+}
+function delPlano(pid){if(D.planos.length<=1){toast('Mantenha ao menos 1 plano');return;}if(!confirm('Excluir plano?'))return;D.planos=D.planos.filter(function(x){return x.id!==pid;});salvar();ir('mais');toast('Plano excluído');}
+function mTipo(tid){var t=tid?D.tipos.find(function(x){return x.id===tid;}):null;t=t||{id:'',nome:'',cor:'#2563eb'};var h='<div class="mh"><h3>'+(t.id?'Editar':'Novo')+' Tipo</h3><button class="mc" onclick="fecharM()">✕</button></div>';h+='<input type="hidden" id="mtp-id" value="'+esc(t.id)+'"/>';h+='<div class="fg"><label>Nome</label><input class="fi" type="text" id="mtp-nome" value="'+esc(t.nome)+'"/></div>';h+='<div class="fg"><label>Cor</label><input class="fi" type="color" id="mtp-cor" value="'+esc(t.cor)+'" style="height:42px;cursor:pointer"/></div>';h+='<button class="btn btn-p btn-bl" onclick="salvarTipo()">Salvar</button>';abrirM(h);}
+function salvarTipo(){var tid=el('mtp-id').value;var nome=el('mtp-nome').value.trim();var cor=el('mtp-cor').value;if(!nome){toast('Nome obrigatório');return;}if(tid){var t=D.tipos.find(function(x){return x.id===tid;});if(t){t.nome=nome;t.cor=cor;}}else D.tipos.push({id:uid(),nome:nome,cor:cor});salvar();fecharM();ir('mais');toast('Tipo salvo!');}
+function delTipo(tid){if(D.tipos.length<=1){toast('Mantenha ao menos 1 tipo');return;}if(!confirm('Excluir tipo?'))return;D.tipos=D.tipos.filter(function(x){return x.id!==tid;});salvar();ir('mais');toast('Tipo excluído');}
+function editarCorTipo(tid){var inp=document.createElement('input');inp.type='color';var t=D.tipos.find(function(x){return x.id===tid;});if(!t)return;inp.value=t.cor;inp.oninput=function(){t.cor=inp.value;salvar();ir('mais');};inp.click();}
+function exportarBkp(){var d={pacientes:D.pacientes,sessoes:D.sessoes,feriados:D.feriados,planos:D.planos,tipos:D.tipos,cfg:D.cfg,notas:D.notas,exportadoEm:new Date().toISOString()};var b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='fisio-backup-'+hoje()+'.json';a.click();URL.revokeObjectURL(u);toast('Backup exportado!');}
+function importarBkp(){var inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(!confirm('Restaurar? Os dados atuais serão substituídos.'))return;if(d.pacientes)D.pacientes=d.pacientes;if(d.sessoes)D.sessoes=d.sessoes;if(d.feriados)D.feriados=d.feriados;if(d.planos)D.planos=d.planos;if(d.tipos)D.tipos=d.tipos;if(d.notas!=null)D.notas=d.notas;salvar();ir('inicio');toast('Backup restaurado!');}catch(err){toast('Arquivo inválido.');}};r.readAsText(f);};inp.click();}
+
+// ── MANUAL ───────────────────────────────────────────────────────
+function rAjuda(el2){
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('mais');};
+  function sec(e,t,ps,dica){
+    var s='<div style="margin-bottom:20px"><div style="font-size:14px;font-weight:800;color:var(--g1);margin-bottom:10px;border-bottom:2px solid var(--g3);padding-bottom:6px">'+e+' '+t+'</div>';
+    ps.forEach(function(p,i){s+='<div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start"><div style="min-width:22px;height:22px;border-radius:50%;background:var(--g1);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div><div style="font-size:13px;color:var(--sl2);line-height:1.55"><strong>'+p[0]+':</strong> '+p[1]+'</div></div>';});
+    if(dica)s+='<div style="background:var(--g4);border-left:3px solid var(--g1);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--sl2);margin-top:6px">💡 '+dica+'</div>';
+    return s+'</div>';
+  }
+  var h='<div style="font-size:18px;font-weight:800;margin-bottom:4px">Manual de Uso</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:20px">Guia completo do FisioEvolução — todas as funcionalidades</div>';
+
+  h+=sec('🔐','Primeiro acesso',[
+    ['Cadastro','Toque em "Não tem conta? Cadastre-se", preencha seu nome, e-mail e senha (mínimo 6 caracteres).'],
+    ['Login','Digite seu e-mail e senha e toque em Entrar.'],
+    ['Esqueci a senha','Toque em "Esqueci minha senha", digite seu e-mail e um link será enviado.'],
+    ['Editar nome','Em Mais, toque em "Editar" ao lado do seu nome para alterar.'],
+    ['Sair','Em Mais, toque em "Sair". Seus dados ficam salvos na nuvem.']
+  ],'Seus dados ficam salvos na nuvem e podem ser acessados de qualquer dispositivo com o mesmo e-mail e senha.');
+
+  h+=sec('🔒','Segurança (PIN)',[
+    ['Ativar PIN','Em Mais → Segurança, toque em "Ativar PIN" e crie um código de 4 dígitos.'],
+    ['Verificar','A cada abertura do app, o PIN será solicitado antes de entrar.'],
+    ['Alterar','Em Mais → Segurança → Alterar. Digite o PIN atual e depois o novo.'],
+    ['Remover','Em Mais → Segurança → Remover. Confirme com o PIN atual.'],
+    ['Esqueci o PIN','Na tela do PIN, toque em "Esqueci meu PIN" para remover.']
+  ],'O PIN protege os dados dos seus pacientes caso alguém pegue seu dispositivo.');
+
+  h+=sec('🏠','Início (Dashboard)',[
+    ['Resumo','Veja sessões de hoje, valor recebido no mês e faltas.'],
+    ['Previsão','Valor total de sessões com pagamento pendente aparece em destaque.'],
+    ['Feriados','Feriados nos próximos 15 dias aparecem com alerta.'],
+    ['Sessões de hoje','Lista com horário, nome do paciente e status.'],
+    ['Botão A','Toque em A (verde) para marcar a sessão como Atendido.'],
+    ['Botão D','Toque em D (cinza) para marcar como Desmarcado. O app oferece remarcar.'],
+    ['Botão F','Toque em F (vermelho) para marcar Falta do Profissional. O app oferece remarcar.'],
+    ['Legenda de cores','Verde = Atendido · Amarelo = Pendente · Vermelho = Falta · Roxo = Remarcado'],
+    ['Sessões em aberto','Sessões passadas ainda como Agendado aparecem como alerta no final.'],
+    ['Notas rápidas','Ative em Mais → Notas rápidas. Bloco de texto visível na tela inicial.']
+  ],'Toque no nome do paciente nas sessões de hoje para abrir o perfil rapidamente.');
+
+  h+=sec('📅','Agenda',[
+    ['Grade semanal','Grade com os dias da semana e horários. Use as setas para navegar.'],
+    ['Filtrar por plano','Use os botões no topo para ver apenas SUS, Particular, etc.'],
+    ['Agendar','Toque em qualquer célula vazia para abrir o formulário de nova sessão.'],
+    ['Editar sessão','Toque no nome do paciente dentro da grade para editar.'],
+    ['Tipo Clínica','Selecione Clínica → informe a quantidade de pacientes → preencha os nomes.'],
+    ['Recorrência por semanas','Cria a mesma sessão toda semana. Ex: 4 semanas = 4 sessões automáticas.'],
+    ['Pacote de sessões','Ex: 10 sessões cria 10 sessões semanais em sequência.'],
+    ['Status Adiado','Mude o status para Adiado → botão "Remarcar" abre nova sessão pré-preenchida.'],
+    ['Feriados','Toque em "Feriados" para cadastrar. Aparecem na grade com fundo amarelo.'],
+    ['Exportar planilha','Toque em "Exportar Excel" para baixar as sessões da semana em .csv.'],
+    ['Horário da agenda','Configure início e fim em Mais → Horário da agenda (05:00 a 23:00).']
+  ],'As cores na grade representam o tipo de atendimento. Personalize em Mais → Tipos de atendimento.');
+
+  h+=sec('👥','Pacientes',[
+    ['Lista','Aparece automaticamente em ordem alfabética ao entrar na aba.'],
+    ['Buscar','Digite o nome no campo de busca para filtrar.'],
+    ['Cadastrar','Toque no +. Apenas o nome é obrigatório.'],
+    ['Campos disponíveis','Nome, nascimento, diagnóstico, telefone, celular, cidade, bairro, número, observações e foto.'],
+    ['Duplicado','Se já existir paciente com o mesmo nome, o app avisa antes de salvar.'],
+    ['Editar dados','Dentro do perfil do paciente, toque em "Editar" no topo.'],
+    ['Perfil — Evoluções','Histórico de evoluções clínicas registradas.'],
+    ['Perfil — Sessões','Todas as sessões agendadas e realizadas.'],
+    ['Perfil — Gráfico','Evolução da dor e mobilidade ao longo do tempo (ative em Mais).'],
+    ['Perfil — Dados','Dados cadastrais e de endereço.'],
+    ['Badge vermelho','Número ao lado do paciente = sessões realizadas sem evolução registrada.']
+  ],'Toque em "+ Evolução" no topo do perfil para registrar rapidamente sem mudar de aba.');
+
+  h+=sec('📝','Evoluções',[
+    ['Aba dedicada','A aba Evoluções lista todos os pacientes com status de registro.'],
+    ['Badge na aba','Número vermelho na aba = total de sessões sem evolução em todos os pacientes.'],
+    ['Adicionar','Toque em "+ Evo" ao lado do paciente ou no + do perfil.'],
+    ['Modelos rápidos','Toque em Modelo 1, 2, 3 ou 4 para preencher automaticamente com textos prontos.'],
+    ['Escalas','Registre dor (0-10) e mobilidade (0-10) para gerar o gráfico de evolução.'],
+    ['Editar','Toque em "Editar" em qualquer evolução registrada.'],
+    ['Compartilhar','Ative em Mais → Compartilhar evoluções. Botão aparece em cada evolução.']
+  ],'Mantenha as evoluções sempre atualizadas! O badge vermelho avisa quando há pendências.');
+
+  h+=sec('💰','Financeiro',[
+    ['Acessar','Em Mais → Acesso rápido → Financeiro.'],
+    ['Total anual','Recebido, a receber e em atraso no ano selecionado.'],
+    ['Filtro de mês','Selecione mês e ano no topo. Clique nas barras do gráfico para filtrar.'],
+    ['Por plano','Valor recebido separado por cada plano (Particular, SUS, Convênio).'],
+    ['Pagamento futuro','Ao agendar, informe a data prevista de recebimento. Ex: "60 dias" ou "Março/2026".'],
+    ['Marcar como pago','Na lista de pendentes, toque em "Pago" para confirmar o recebimento.'],
+    ['Valor automático','Cadastre o valor padrão em cada plano e ele é preenchido automaticamente ao agendar.']
+  ],'Registre o plano e valor em cada sessão para o controle financeiro funcionar corretamente.');
+
+  h+=sec('📊','Relatórios',[
+    ['Acessar','Em Mais → Acesso rápido → Relatórios.'],
+    ['Selecionar período','Escolha o mês e ano no topo antes de baixar.'],
+    ['Financeiro','Valores recebidos, pendentes e por plano em planilha Excel.'],
+    ['Evoluções','Evoluções clínicas de todos os pacientes no período.'],
+    ['Faltas e Prejuízo','Sessões perdidas com valor estimado de prejuízo.'],
+    ['Pacientes','Resumo completo de cada paciente no período.'],
+    ['Baixar todos','Toque em "Baixar todos" para gerar os 4 relatórios de uma vez.'],
+    ['Formato','Arquivos .csv que abrem diretamente no Excel ou Google Planilhas.']
+  ],'Os relatórios são gerados para o período selecionado. Ajuste o mês e ano antes de baixar.');
+
+  h+=sec('⚙️','Configurações (Mais)',[
+    ['Planos e convênios','Cadastre seus planos com valor padrão. Ex: SUS = R$50, Particular = R$120.'],
+    ['Tipos de atendimento','Crie e personalize cores para cada tipo. Ex: Clínica (vermelho), Domiciliar (laranja).'],
+    ['Horário da agenda','Defina o horário de início e fim da grade semanal (de 05:00 a 23:00).'],
+    ['Gráfico de evolução','Ativa o gráfico de dor e mobilidade no perfil do paciente.'],
+    ['Anamnese','Ativa campos extras no cadastro: alergias, medicamentos, cirurgias, etc.'],
+    ['Compartilhar evoluções','Ativa botão de compartilhar em cada evolução registrada.'],
+    ['Notas rápidas','Ativa bloco de notas na tela inicial.'],
+    ['Exportar JSON','Salva todos os dados em arquivo para backup manual.'],
+    ['Importar JSON','Restaura dados de um backup JSON salvo anteriormente.'],
+    ['Histórico de versões','Restaura uma das últimas 3 versões salvas automaticamente.']
+  ],'Faça backup manual regularmente em Mais → Exportar JSON para máxima segurança.');
+
+  h+=sec('🛡️','Proteção de dados',[
+    ['Nuvem (Firebase)','Todos os dados ficam salvos na nuvem vinculados ao seu e-mail.'],
+    ['Backup local','Cópia automática salva no navegador a cada login.'],
+    ['Histórico de versões','As últimas 3 versões são salvas automaticamente. Restaure em Mais → Histórico.'],
+    ['Alerta ao fechar','Se tentar fechar com dados não salvos, o app avisa.'],
+    ['Backup manual','Exporte JSON regularmente em Mais → Exportar JSON como segurança extra.'],
+    ['Restaurar backup','Importe um arquivo JSON em Mais → Importar JSON para restaurar dados.']
+  ],'Seus dados nunca são perdidos ao atualizar o app — apenas o código muda, os dados ficam na nuvem.');
+
+  
+  // Nova seção: Prontuário
+  h+=sec('🏥','Prontuário eletrônico',[
+    ['CID-10','No cadastro do paciente, campo CID-10 com busca automática. Digite o código ou a descrição para buscar.'],
+    ['Escalas clínicas','No perfil do paciente, botão Escalas. Registre EVA (dor 0-10), Índice de Barthel (independência funcional) e Escala de Berg (equilíbrio).'],
+    ['Histórico de escalas','Cada registro salva a data. Os valores aparecem resumidos na aba Dados do paciente.'],
+    ['Termo de consentimento','Ative em Mais → Funcionalidades opcionais → Termo de consentimento. Aparece botão no perfil do paciente para gerar e registrar o aceite.'],
+  ],'O CID-10 e as escalas ficam salvos no perfil do paciente e podem ser exportados nos relatórios.');
+
+  // Nova seção: Aparência
+  h+=sec('🎨','Aparência e personalização',[
+    ['Modo escuro/claro','Em Mais → Aparência → Modo: toque em Claro ou Escuro.'],
+    ['Cor principal','Escolha entre 6 cores predefinidas ou use o seletor de cor personalizada.'],
+    ['Imagem de fundo','Toque em Escolher imagem para usar uma foto do dispositivo como fundo. Salvo apenas neste dispositivo.'],
+    ['Cores da agenda','Em Mais → Aparência → Cores da agenda: personalize a cor do dia atual, feriados e células.'],
+  ],'A imagem de fundo é salva localmente no dispositivo — não sincroniza com a nuvem.');
+
+  // Nova seção: Financeiro avançado
+  h+=sec('💰','Financeiro avançado',[
+    ['Regras de pagamento','Ao cadastrar ou editar um plano em Mais → Planos e Convênios, configure quando recebe (mesmo mês, mês seguinte ou X dias), o dia do pagamento e quantos dias antes alertar.'],
+    ['Alertas no dashboard','Quando o pagamento estiver chegando ou atrasado, um alerta amarelo aparece na tela Início com botão Pago.'],
+    ['Buscar recebimentos','No Financeiro → Buscar recebimentos: filtre por período, plano, paciente e status. Veja total e percentual por plano.'],
+    ['Gráfico por tipo (IR)','Em Mais → IR: veja a receita separada por plano com gráfico e exporte relatório formatado para declaração de Imposto de Renda.'],
+  ],'Configure as regras de pagamento em cada plano para o sistema calcular automaticamente as previsões.');
+
+  // Nova seção: Pacientes avançado
+  h+=sec('👥','Pacientes — recursos avançados',[
+    ['Tipo de atendimento','No cadastro do paciente, campo Tipo: Domiciliar, Clínica, Consultório ou Misto.'],
+    ['Filtros rápidos','Na lista de pacientes, botões de filtro rápido por tipo de atendimento.'],
+    ['Escalas EVA','Escala Visual Analógica — 0 a 10. 0 = sem dor, 10 = dor máxima.'],
+    ['Índice de Barthel','Avalia independência funcional em 10 atividades. 0-20 = dependência total, 85-100 = independente.'],
+    ['Escala de Berg','Avalia risco de queda. 0-35 = alto risco, 36-44 = médio risco, 45-56 = baixo risco.'],
+  ],'As escalas são registradas com data e ficam no histórico do paciente para acompanhar a evolução.');
+
+  el2.innerHTML=h;
+}
+// ── INIT ────────────────────────────────────────────────────────
+
+// ── Proteção de dados ────────────────────────────────────────────
+var _dadosSujos = false;
+
+function salvarHistorico(){
+  try{
+    var hist = JSON.parse(localStorage.getItem('fe_historico')||'[]');
+    var snapshot = {
+      ts: Date.now(),
+      data: JSON.stringify({pacientes:D.pacientes,sessoes:D.sessoes,feriados:D.feriados,planos:D.planos,tipos:D.tipos})
+    };
+    hist.unshift(snapshot);
+    if(hist.length > 3) hist = hist.slice(0,3);
+    localStorage.setItem('fe_historico', JSON.stringify(hist));
+  }catch(e){}
+}
+
+function restaurarHistorico(){
+  try{
+    var hist = JSON.parse(localStorage.getItem('fe_historico')||'[]');
+    if(!hist.length){ toast('Nenhum histórico disponível'); return; }
+    var h='<div class="mh"><h3>Restaurar versão anterior</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+    h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Escolha uma versão para restaurar. Os dados atuais serão substituídos.</p>';
+    hist.forEach(function(v,i){
+      var d = new Date(v.ts);
+      var dados = JSON.parse(v.data);
+      h+='<div class="card" style="margin-bottom:8px;cursor:pointer">';
+      h+='<div style="font-size:13px;font-weight:700">Versão '+(i+1)+' — '+d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div>';
+      h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+dados.pacientes.length+' pacientes · '+dados.sessoes.length+' sessões</div>';
+      h+='<button class="btn btn-p btn-sm" style="margin-top:8px" data-idx="'+i+'" onclick="confirmarRestore(this.dataset.idx)">Restaurar esta versão</button>';
+      h+='</div>';
+    });
+    abrirM(h);
+  }catch(e){ toast('Erro ao carregar histórico'); }
+}
+
+function confirmarRestore(idx){
+  if(!confirm('Restaurar esta versão? Os dados atuais serão substituídos.')) return;
+  try{
+    var hist = JSON.parse(localStorage.getItem('fe_historico')||'[]');
+    var dados = JSON.parse(hist[parseInt(idx)].data);
+    if(dados.pacientes) D.pacientes=dados.pacientes;
+    if(dados.sessoes) D.sessoes=dados.sessoes;
+    if(dados.feriados) D.feriados=dados.feriados;
+    if(dados.planos) D.planos=dados.planos;
+    if(dados.tipos) D.tipos=dados.tipos;
+    salvar(); fecharM(); ir('inicio'); toast('Versão restaurada com sucesso!');
+  }catch(e){ toast('Erro ao restaurar'); }
+}
+
+function backupAutomatico(){
+  try{
+    var d={pacientes:D.pacientes,sessoes:D.sessoes,feriados:D.feriados,planos:D.planos,tipos:D.tipos,cfg:D.cfg,notas:D.notas,ts:Date.now()};
+    localStorage.setItem('fe_bkp_silencioso',JSON.stringify(d));
+    var ul=parseInt(localStorage.getItem('fe_lembrete_bkp')||'0');
+    if(Date.now()-ul>7*24*60*60*1000){
+      localStorage.setItem('fe_lembrete_bkp',String(Date.now()));
+      setTimeout(function(){toast('💾 Lembre-se de fazer backup! Vá em Mais → Exportar JSON.',5000);},3000);
+    }
+  }catch(e){}
+}
+
+// Alerta ao fechar com dados não salvos
+window.addEventListener('beforeunload', function(e){
+  if(_dadosSujos){
+    e.preventDefault();
+    e.returnValue = 'Você tem dados não salvos. Deseja sair mesmo assim?';
+    return e.returnValue;
+  }
+});
+
+function calcPascoa(ano){
+  var a=ano%19,b=Math.floor(ano/100),c=ano%100;
+  var d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25);
+  var g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  var i2=Math.floor(c/4),k=c%4,l=(32+2*e+2*i2-h-k)%7;
+  var m=Math.floor((a+11*h+22*l)/451);
+  var mes=Math.floor((h+l-7*m+114)/31);
+  var dia=(h+l-7*m+114)%31+1;
+  return new Date(ano,mes-1,dia);
+}
+function getFeriadosAno(ano){
+  var fixos=[
+    {d:'01-01',n:'Ano Novo'},{d:'21-04',n:'Tiradentes'},
+    {d:'01-05',n:'Dia do Trabalho'},{d:'07-09',n:'Independência do Brasil'},
+    {d:'12-10',n:'Nossa Senhora Aparecida'},{d:'02-11',n:'Finados'},
+    {d:'15-11',n:'Proclamação da República'},{d:'20-11',n:'Consciência Negra'},
+    {d:'25-12',n:'Natal'}
+  ];
+  var result=fixos.map(function(f){return{data:ano+'-'+f.d,nome:f.n,nacional:true};});
+  var pascoa=calcPascoa(ano);
+  function ad(d,n){var r=new Date(d);r.setDate(r.getDate()+n);return r;}
+  function fmt(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();}
+  result.push({data:fmt(ad(pascoa,-48)),nome:'Segunda de Carnaval',nacional:true});
+  result.push({data:fmt(ad(pascoa,-47)),nome:'Terça de Carnaval',nacional:true});
+  result.push({data:fmt(ad(pascoa,-2)),nome:'Sexta-feira Santa',nacional:true});
+  result.push({data:fmt(pascoa),nome:'Páscoa',nacional:true});
+  result.push({data:fmt(ad(pascoa,60)),nome:'Corpus Christi',nacional:true});
+  return result;
+}
+function iniciarFeriadosNacionais(){
+  var ano=new Date().getFullYear();
+  // Remover feriados nacionais antigos e recriar com formato correto AAAA-MM-DD
+  D.feriados=D.feriados.filter(function(f){return!f.nacional;});
+  var nacionais=getFeriadosAno(ano).concat(getFeriadosAno(ano+1));
+  nacionais.forEach(function(f){
+    D.feriados.push({id:'nac_'+f.data,data:f.data,nome:f.nome,nacional:true});
+  });
+}
+
+carregar();fbInit();
 </script>
 </body>
 </html>
