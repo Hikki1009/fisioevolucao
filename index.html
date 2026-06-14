@@ -139,6 +139,9 @@ body.tema-escuro .gcel{background:#1e293b;border-color:#334155;}
 body.tema-escuro .gcel:hover{background:#334155;}
 body.tema-escuro .gsess{color:#f8fafc !important;}
 body.tema-escuro .hr-label{color:#94a3b8 !important;}
+body.tema-escuro .ghora{background:var(--card);color:var(--sl) !important;border-color:var(--borda);}
+body.tema-escuro .grade{background:var(--bg);}
+body.tema-escuro .gw{border-color:var(--borda);}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
 .leg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:8px;background:var(--bg);border-radius:8px}
@@ -146,14 +149,15 @@ body.tema-escuro .hr-label{color:#94a3b8 !important;}
 .leg-dot{width:10px;height:10px;border-radius:50%}
 @media(min-width:768px){
   #agenda-layout{display:flex;gap:16px;align-items:flex-start;}
-  #agenda-sidebar{width:180px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;position:sticky;top:70px;}
+  #agenda-sidebar{width:155px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;}
   #agenda-main{flex:1;min-width:0;}
   #agenda-sidebar .btn{width:100%;justify-content:flex-start;}
-  #agenda-sidebar .filtros-plano{display:flex;flex-direction:column;gap:6px;}
   #agenda-sidebar .filtros-tipo{display:flex;flex-direction:column;gap:6px;}
+  #filtros-tipo-mobile{display:none !important;}
+  #agenda-acoes-mobile{display:none !important;}
 }
 @media(max-width:767px){
-  #agenda-sidebar{display:block;}
+  #agenda-sidebar{display:none !important;}
 }
 </style>
 </head>
@@ -499,6 +503,7 @@ function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
 function renderizar(){
   atualizarBadge();
+  var leg=el('legenda-adf');if(leg)leg.style.display='none';
   var c=el('conteudo');c.innerHTML='';
   var fab=el('fab');fab.style.display='none';fab.onclick=null;
   var bv=el('btn-vol');bv.style.display='none';bv.textContent='';
@@ -657,22 +662,42 @@ function rAgenda(el2){
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
   var dN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];var horas=getHoras();var hj=hoje();
   var label=dias[0].toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+' – '+dias[6].toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'});
-  var h='<div id="agenda-layout"><div id="agenda-sidebar">';
-  // Navegação semana (mobile: inline, PC: no sidebar)
-  h+='<div class="nsem" style="flex-wrap:wrap"><button class="nbtn" onclick="navSem(-1)">‹ Ant</button><strong style="font-size:12px">'+label+'</strong><button class="nbtn" onclick="navSem(1)">Próx ›</button></div>';
-  h+='<div style="margin-top:8px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Plano</div><div class="filtros-plano">';
+  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convênio',v:'convenio'}];
+
+  var h='<div id="agenda-layout">';
+
+  // ── SIDEBAR ESQUERDA (só no PC) ──
+  h+='<div id="agenda-sidebar">';
+  // Filtro Tipo
+  h+='<div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Tipo</div>';
+  h+='<div class="filtros-tipo">';
+  filtros.forEach(function(f){h+='<button class="btn btn-sm '+((_filtroAgenda||'')===f.v?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px">'+f.l+'</button>';});
+  h+='</div>';
+  // Botões ação
+  h+='<div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">';
+  h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar</button>';
+  h+='</div></div>';
+
+  // ── ÁREA PRINCIPAL ──
+  h+='<div id="agenda-main">';
+
+  // Navegação semana — acima da grade
+  h+='<div class="nsem"><button class="nbtn" onclick="navSem(-1)">‹ Ant</button><strong>'+label+'</strong><button class="nbtn" onclick="navSem(1)">Próx ›</button></div>';
+
+  // Filtro Plano — horizontal, acima da grade
+  h+='<div style="display:flex;gap:5px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px;scrollbar-width:none">';
   h+='<button class="btn btn-sm '+(_filtroPlano===''?'btn-p':'btn-s')+'" data-v="" onclick="setFiltroPlano(this)">Todos</button>';
   D.planos.forEach(function(pl){h+='<button class="btn btn-sm '+(_filtroPlano===pl.id?'btn-p':'btn-s')+'" data-v="'+esc(pl.id)+'" onclick="setFiltroPlano(this)">'+esc(pl.nome)+'</button>';});
-  h+='</div></div>';
-  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convênio',v:'convenio'}];
-  h+='<div style="margin-top:8px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Tipo</div><div class="filtros-tipo">';
-  filtros.forEach(function(f){h+='<button class="btn btn-sm '+( (_filtroAgenda||'')=== f.v?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px">'+f.l+'</button>';});
-  h+='</div></div>';
-  h+='<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">';
-  h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="exportarSessoes()">Exportar Excel</button>';
-  h+='</div></div>';
-  h+='<div id="agenda-main"><div class="gw"><div class="grade" style="grid-template-columns:38px repeat(7,1fr)">';
+  h+='</div>';
+
+  // Filtro Tipo — horizontal no MOBILE (abaixo da grade)
+  h+='<div id="filtros-tipo-mobile" style="display:flex;gap:5px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px;scrollbar-width:none">';
+  filtros.forEach(function(f){h+='<button class="btn btn-sm '+((_filtroAgenda||'')===f.v?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px">'+f.l+'</button>';});
+  h+='</div>';
+
+  // Grade
+  h+='<div class="gw"><div class="grade" style="grid-template-columns:38px repeat(7,1fr)">';
   h+='<div class="gh" style="font-size:9px;top:0;z-index:3;position:sticky">Hr</div>';
   dias.forEach(function(d3){
     var ds=d3.getFullYear()+'-'+(d3.getMonth()<9?'0':'')+(d3.getMonth()+1)+'-'+(d3.getDate()<10?'0':'')+d3.getDate();var isHj=ds===hj;
@@ -702,18 +727,57 @@ function rAgenda(el2){
     });
   });
   h+='</div></div>';
-  h+='<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
+
+  // Botões mobile (abaixo da grade)
+  h+='<div id="agenda-acoes-mobile" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
   h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="exportarSessoes()">Exportar Excel</button>';
-  // Filtros rápidos
-  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px" id="filtros-agenda">';
-  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clinica',v:'clinica'},{l:'Consultorio',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convenio',v:'convenio'}];
-  filtros.forEach(function(f){
-    h+='<button class="btn btn-sm '+((_filtroAgenda||''===f.v)?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px">'+f.l+'</button>';
-  });
+  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar</button>';
   h+='</div>';
-  h+='</div>';
+
+  h+='</div></div>';
   el2.innerHTML=h;
+}
+
+function mExportarAgenda(){
+  var h='<div class="mh"><h3>📥 Exportar dados</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">Selecione o que deseja exportar:</p>';
+  var opcoes=[
+    {id:'exp-fin',label:'💰 Financeiro',desc:'Sessões com valores e status de pagamento'},
+    {id:'exp-evo',label:'📝 Evoluções',desc:'Evoluções clínicas por paciente'},
+    {id:'exp-falt',label:'❌ Faltas',desc:'Sessões com falta e cancelamento'},
+    {id:'exp-pac',label:'👥 Pacientes',desc:'Cadastro completo de pacientes'},
+    {id:'exp-sess',label:'📅 Agenda',desc:'Todas as sessões agendadas'},
+  ];
+  opcoes.forEach(function(op){
+    h+='<label style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--borda);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--card)">';
+    h+='<input type="checkbox" id="'+op.id+'" style="width:18px;height:18px;margin-top:2px;flex-shrink:0"/>';
+    h+='<div><div style="font-size:13px;font-weight:700">'+op.label+'</div>';
+    h+='<div style="font-size:11px;color:var(--sl3)">'+op.desc+'</div></div></label>';
+  });
+  h+='<div style="display:flex;gap:8px;margin-top:4px">';
+  h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(true)">Selecionar todos</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(false)">Limpar</button>';
+  h+='</div>';
+  h+='<button class="btn btn-p btn-bl" style="margin-top:14px" onclick="confirmarExportacao()">📥 Exportar selecionados</button>';
+  abrirM(h);
+}
+
+function selecionarTodosExp(val){
+  ['exp-fin','exp-evo','exp-falt','exp-pac','exp-sess'].forEach(function(id){
+    var cb=el(id);if(cb)cb.checked=val;
+  });
+}
+
+function confirmarExportacao(){
+  var nenhum=true;
+  var now=new Date();var per=now.getFullYear()+'-'+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
+  if(el('exp-fin')&&el('exp-fin').checked){relFin();nenhum=false;}
+  if(el('exp-evo')&&el('exp-evo').checked){setTimeout(function(){relEvo();},300);nenhum=false;}
+  if(el('exp-falt')&&el('exp-falt').checked){setTimeout(function(){relFalt();},600);nenhum=false;}
+  if(el('exp-pac')&&el('exp-pac').checked){setTimeout(function(){relPac();},900);nenhum=false;}
+  if(el('exp-sess')&&el('exp-sess').checked){setTimeout(function(){exportarSessoes();},1200);nenhum=false;}
+  if(nenhum){toast('Selecione ao menos um item para exportar');return;}
+  fecharM();toast('Exportando arquivos...');
 }
 function semIni(ref){var d=new Date(ref);d.setHours(0,0,0,0);var dw=d.getDay();d.setDate(d.getDate()-(dw===0?6:dw-1));return d;}
 function navSem(n){_semRef.setDate(_semRef.getDate()+n*7);renderizar();}
