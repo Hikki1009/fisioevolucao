@@ -448,8 +448,12 @@ function toast(m,d){var t=el('toast');t.textContent=m;t.classList.add('on');clea
 function dowN(ds){var d=new Date(ds+'T12:00:00');return['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];}
 function getHoras(){var h=[];for(var i=(D.cfg.horaIni||7);i<=(D.cfg.horaFim||20);i++)h.push((i<10?'0':'')+i+':00');return h;}
 function mData(e2){
-  var v=e2.value.replace(/\\D/g,'').slice(0,8);
-  var f=v.length>4?v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4):v.length>2?v.slice(0,2)+'/'+v.slice(2):v;
+  var cur=e2.selectionStart;
+  var v=e2.value.replace(/[^0-9]/g,'').slice(0,8);
+  var f='';
+  if(v.length>=1)f=v.slice(0,2);
+  if(v.length>=3)f+='/'+v.slice(2,4);
+  if(v.length>=5)f+='/'+v.slice(4,8);
   e2.value=f;
 }
 function mascaraPA(inp){
@@ -838,12 +842,21 @@ function mSessao(s,ds,hr){
   var qtdC=(s.pacientesClinica&&s.pacientesClinica.length>0)?s.pacientesClinica.length:2;
   var isMulti=!!(s.atendimentoMultiplo);
   h+='<div id="ms-pac-clin" style="display:'+(isC?'block':'none')+'">';
-  h+='<div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="ms-multi" '+(isMulti?'checked':'')+' onchange="toggleMulti(this)"/> Atendimento múltiplo (valor × nº pacientes)</label></div>';
-  h+='<div id="ms-multi-wrap" style="display:'+(isMulti?'block':'none')+'"><div class="fg"><label>Qtd. de pacientes na clínica</label><input class="fi" type="number" id="ms-qtd-clin" min="1" max="30" value="'+qtdC+'" oninput="atualizarClin();calcMulti()"/></div>';
+  // Checkbox atendimento múltiplo
+  h+='<div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">';
+  h+='<input type="checkbox" id="ms-multi" '+(isMulti?'checked':'')+' onchange="toggleMulti(this)" style="width:18px;height:18px"/>';
+  h+='Atendimento múltiplo (valor × nº pacientes)</label></div>';
+  // Bloco que aparece ao marcar — quantidade + lista de pacientes + preview
+  h+='<div id="ms-multi-wrap" style="display:'+(isMulti?'block':'none')+'">';
+  h+='<div class="fg"><label>Qtd. de pacientes</label><input class="fi" type="number" id="ms-qtd-clin" min="1" max="30" value="'+qtdC+'" oninput="atualizarClin();calcMulti()"/></div>';
   h+='<div id="ms-clin-pacs">';
-  for(var ci=0;ci<qtdC;ci++){var opts2='<option value="">Opcional...</option>'+D.pacientes.slice().sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');}).map(function(p2){var s2=(s.pacientesClinica&&s.pacientesClinica[ci]===p2.id)?' selected':'';return'<option value="'+esc(p2.id)+'"'+s2+'>'+esc(p2.nome)+'</option>';}).join('');h+='<div class="fg"><label>Paciente '+(ci+1)+'</label><select class="fi ms-cpac">'+opts2+'</select></div>';}
-  h+='</div></div>';
-  h+='<div id="ms-multi-preview" style="display:none;background:var(--amberbg);color:var(--amber);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;margin-bottom:10px"></div>';
+  for(var ci=0;ci<qtdC;ci++){
+    var opts2='<option value="">Opcional...</option>'+D.pacientes.slice().sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');}).map(function(p2){var s2=(s.pacientesClinica&&s.pacientesClinica[ci]===p2.id)?' selected':'';return'<option value="'+esc(p2.id)+'"'+s2+'>'+esc(p2.nome)+'</option>';}).join('');
+    h+='<div class="fg"><label>Paciente '+(ci+1)+'</label><select class="fi ms-cpac">'+opts2+'</select></div>';
+  }
+  h+='</div>';
+  h+='<div id="ms-multi-preview" style="display:none;background:var(--amberbg);color:var(--amber);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;margin-top:6px"></div>';
+  h+='</div>';
   h+='<div class="fr"><div class="fg"><label>Data</label><input class="fi" type="date" id="ms-data" value="'+esc(s.data||hoje())+'"/></div>';
   h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
   h+='<div class="fr"><div class="fg"><label>Plano</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
@@ -884,10 +897,12 @@ function toggleMulti(cb){
   else calcMulti();
 }
 function calcMulti(){
+  var multiCb=el('ms-multi');
+  if(!multiCb||!multiCb.checked)return;
   var qtdEl=el('ms-qtd-clin');var valEl=el('ms-valor');var prev=el('ms-multi-preview');
   if(!qtdEl||!valEl||!prev)return;
   var qtd=parseInt(qtdEl.value)||1;var val=parseFloat(valEl.value)||0;
-  if(val>0&&qtd>1){prev.style.display='block';prev.textContent='R$'+val.toFixed(2)+' × '+qtd+' pacientes = R$'+(val*qtd).toFixed(2);}
+  if(val>0&&qtd>1){prev.style.display='block';prev.textContent='R$ '+val.toFixed(2)+' × '+qtd+' pacientes = R$ '+(val*qtd).toFixed(2);}
   else prev.style.display='none';
 }
 function atualizarClin(){
@@ -1541,6 +1556,45 @@ var ESCALAS_DB={
       ]
     },
   ],
+  lombar:[
+    {
+      id:'roland_morris',nome:'Questionário Roland Morris',cat:'Coluna e Dor Lombar',
+      descricao:'Muito utilizado em lombalgia. 24 afirmações sobre limitações causadas pela dor nas costas. Pontuação 0-24.',
+      aplicacao:'Peca ao paciente para marcar apenas as afirmações que descrevem como ele se sente HOJE por causa das suas dores nas costas.',
+      campos:[
+        {tipo:'check',id:'rm01',label:'Fico em casa a maior parte do tempo por causa das minhas costas'},
+        {tipo:'check',id:'rm02',label:'Mudo de posição frequentemente tentando deixar as costas mais confortáveis'},
+        {tipo:'check',id:'rm03',label:'Ando mais devagar que o habitual por causa das minhas costas'},
+        {tipo:'check',id:'rm04',label:'Por causa das minhas costas não estou fazendo nenhum dos trabalhos que faço em casa'},
+        {tipo:'check',id:'rm05',label:'Por causa das minhas costas uso o corrimão para subir escadas'},
+        {tipo:'check',id:'rm06',label:'Por causa das minhas costas preciso me deitar mais vezes para descansar'},
+        {tipo:'check',id:'rm07',label:'Por causa das minhas costas preciso me apoiar em algo para me levantar de uma cadeira'},
+        {tipo:'check',id:'rm08',label:'Por causa das minhas costas peço aos outros que façam as coisas por mim'},
+        {tipo:'check',id:'rm09',label:'Fico me vestindo mais devagar que o habitual por causa das minhas costas'},
+        {tipo:'check',id:'rm10',label:'Fico em pé somente por curtos períodos de tempo por causa das minhas costas'},
+        {tipo:'check',id:'rm11',label:'Por causa das minhas costas procuro não me abaixar ou ajoelhar'},
+        {tipo:'check',id:'rm12',label:'Tenho dificuldade em me levantar de uma cadeira por causa das minhas costas'},
+        {tipo:'check',id:'rm13',label:'As minhas costas doem quase todo o tempo'},
+        {tipo:'check',id:'rm14',label:'Tenho dificuldade em me virar na cama por causa das minhas costas'},
+        {tipo:'check',id:'rm15',label:'Não tenho muito apetite por causa das dores nas minhas costas'},
+        {tipo:'check',id:'rm16',label:'Tenho dificuldade para colocar meias por causa das dores nas costas'},
+        {tipo:'check',id:'rm17',label:'Caminho somente curtas distâncias por causa das dores nas costas'},
+        {tipo:'check',id:'rm18',label:'Durmo pior por causa das minhas costas'},
+        {tipo:'check',id:'rm19',label:'Por causa das dores nas costas me visto com ajuda de outras pessoas'},
+        {tipo:'check',id:'rm20',label:'Fico sentado a maior parte do dia por causa das minhas costas'},
+        {tipo:'check',id:'rm21',label:'Evito trabalhos pesados em casa por causa das minhas costas'},
+        {tipo:'check',id:'rm22',label:'Por causa das dores nas costas fico mais irritado e mal-humorado que o habitual'},
+        {tipo:'check',id:'rm23',label:'Por causa das minhas costas subo escadas mais devagar que o habitual'},
+        {tipo:'check',id:'rm24',label:'Fico de cama a maior parte do tempo por causa das minhas costas'},
+      ],
+      refs:[
+        {faixa:'0-4',interp:'Incapacidade mínima'},
+        {faixa:'5-10',interp:'Incapacidade moderada'},
+        {faixa:'11-16',interp:'Incapacidade grave'},
+        {faixa:'17-24',interp:'Incapacidade muito grave'},
+      ]
+    },
+  ],
   dor:[
     {
       id:'pdi',nome:'Pain Disability Index (PDI)',cat:'Dor e Impacto Funcional',
@@ -1583,7 +1637,9 @@ function mEvo(pid,eid){
   var MODELOS=D.cfg.modelosEvo||MODELOS_DEFAULT;MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
   h+='</div></div>';
   if(D.cfg.usarGrafico){h+='<div class="fr"><div class="fg"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" value="'+(e.dor!=null?e.dor:'')+'" placeholder="0-10"/></div><div class="fg"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" value="'+(e.mob!=null?e.mob:'')+'" placeholder="0-10"/></div></div>';}
-  h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';
+  var _evoTs=e.ts||0;var _evoBloq=e.id&&(Date.now()-_evoTs)>86400000;
+  if(_evoBloq){h+='<div style="padding:10px;background:var(--redbg);border-radius:8px;font-size:12px;color:var(--red);font-weight:700;margin-bottom:10px">🔒 Esta evolução não pode mais ser editada (passou de 24h).</div>';}
+  else{h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';}
   abrirM(h);
 }
 function usarModelo(idx){var t=el('me-txt');if(t){var mds=D.cfg.modelosEvo||MODELOS_DEFAULT;t.value=mds[parseInt(idx)]||'';}}
@@ -1607,6 +1663,34 @@ function salvarEvo(){
   hpop+='</div></div>';
   el('mbody').innerHTML=hpop;
 }
+function mAdendo(pid,eid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;
+  var h='<div class="mh"><h3>📎 Adendo à Evolução</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="background:var(--g4);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--sl3)">';
+  h+='Evolução original: '+new Date(e.ts||0).toLocaleDateString('pt-BR')+' — '+esc((e.texto||'').slice(0,80))+(e.texto&&e.texto.length>80?'...':'');
+  h+='</div>';
+  h+='<div class="fg"><label>Texto do adendo *</label><textarea class="fi" id="ad-txt" rows="4" placeholder="Descreva a complementação..."></textarea></div>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:12px">O adendo será registrado com a data e hora atuais e não poderá ser editado.</div>';
+  h+='<input type="hidden" id="ad-pid" value="'+esc(pid)+'"/>';
+  h+='<input type="hidden" id="ad-eid" value="'+esc(eid)+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarAdendo()">Salvar adendo</button>';
+  abrirM(h);
+}
+
+function salvarAdendo(){
+  var pid=el('ad-pid')?el('ad-pid').value:'';
+  var eid=el('ad-eid')?el('ad-eid').value:'';
+  var txt=el('ad-txt')?el('ad-txt').value.trim():'';
+  if(!txt){toast('Escreva o texto do adendo');return;}
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;
+  if(!e.adendos)e.adendos=[];
+  e.adendos.push({id:uid(),ts:Date.now(),texto:txt});
+  salvar();fecharM();PAC_ABA='evo';renderizar();toast('Adendo registrado!');
+}
+
+
 function delEvo(pid,eid){registrarHistoricoAlteracao('Evolucao excluida');if(!confirm('Excluir evolução?'))return;var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;p.evolucoes=(p.evolucoes||[]).filter(function(x){return x.id!==eid;});salvar();renderizar();atualizarBadge();toast('Evolução excluída');}
 function compEvo(pid,eid){var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;var txt='Evolução - '+p.nome+'\n'+fmtDH(e.ts)+'\n\n'+e.texto+(e.dor!=null?'\nDor: '+e.dor+'/10 | Mobilidade: '+e.mob+'/10':'');if(navigator.share)navigator.share({title:'Evolução',text:txt});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Copiado!');});}
 
@@ -2459,6 +2543,7 @@ function abrirCatalogoEscalas(pid){
     qualidade:'Qualidade de Vida',
     neurologico:'Neurologico',
     neuromuscular:'Doencas Neuromusculares',
+    lombar:'Coluna e Dor Lombar',
     dor:'Dor e Impacto Funcional'
   };
   var h='<div class="mh"><h3>Adicionar Escala</h3><button class="mc" onclick="fecharM()">X</button></div>';
@@ -3120,6 +3205,31 @@ function rAbaAvaliacoes(p){
     h+='</div>';
   });
   return h;
+}
+
+
+function editarPlanoTrat(pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var pt=p.planoTrat||{};
+  var h='<div class="mh"><h3>🎯 Metas e Plano de Tratamento</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>Objetivo geral do tratamento</label><textarea class="fi" id="pt-obj" rows="2" placeholder="Ex: Recuperar amplitude de movimento do ombro direito">'+esc(pt.objetivo||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Metas (uma por linha)</label><textarea class="fi" id="pt-metas" rows="4" placeholder="Ex: Elevar o braço a 90° em 4 semanas&#10;Retornar às atividades domésticas em 6 semanas">'+esc(pt.metas||'')+'</textarea></div>';
+  h+='<div class="fg"><label>Plano de tratamento</label><textarea class="fi" id="pt-plano" rows="4" placeholder="Ex: Cinesioterapia 3x/semana, ultrassom pulsado, fortalecimento progressivo">'+esc(pt.plano||'')+'</textarea></div>';
+  h+='<input type="hidden" id="pt-pid" value="'+esc(pid)+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarPlanoTrat()">Salvar</button>';
+  abrirM(h);
+}
+
+function salvarPlanoTrat(){
+  var pid=el('pt-pid')?el('pt-pid').value:'';
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  p.planoTrat={
+    objetivo:el('pt-obj')?el('pt-obj').value.trim():'',
+    metas:el('pt-metas')?el('pt-metas').value.trim():'',
+    plano:el('pt-plano')?el('pt-plano').value.trim():'',
+    dt:new Date().toISOString()
+  };
+  salvar();fecharM();PAC_ABA='avaliacoes';renderizar();toast('Plano de tratamento salvo!');
 }
 
 
