@@ -448,12 +448,10 @@ function toast(m,d){var t=el('toast');t.textContent=m;t.classList.add('on');clea
 function dowN(ds){var d=new Date(ds+'T12:00:00');return['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];}
 function getHoras(){var h=[];for(var i=(D.cfg.horaIni||7);i<=(D.cfg.horaFim||20);i++)h.push((i<10?'0':'')+i+':00');return h;}
 function mData(e2){
-  var cur=e2.selectionStart;
   var v=e2.value.replace(/[^0-9]/g,'').slice(0,8);
-  var f='';
-  if(v.length>=1)f=v.slice(0,2);
-  if(v.length>=3)f+='/'+v.slice(2,4);
-  if(v.length>=5)f+='/'+v.slice(4,8);
+  var f=v;
+  if(v.length>4)f=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2)f=v.slice(0,2)+'/'+v.slice(2);
   e2.value=f;
 }
 function mascaraPA(inp){
@@ -764,6 +762,9 @@ function mExportarAgenda(){
   h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(true)">Selecionar todos</button>';
   h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(false)">Limpar</button>';
   h+='</div>';
+  h+='<div class="fg" style="margin-top:12px"><label>Enviar para e-mail (opcional)</label>';
+  h+='<input class="fi" type="email" id="exp-email" placeholder="seu@email.com"/>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">Se preenchido, abrirá seu e-mail com os dados no corpo da mensagem.</div></div>';
   h+='<button class="btn btn-p btn-bl" style="margin-top:14px" onclick="confirmarExportacao()">📥 Exportar selecionados</button>';
   abrirM(h);
 }
@@ -776,13 +777,19 @@ function selecionarTodosExp(val){
 
 function confirmarExportacao(){
   var nenhum=true;
-  var now=new Date();var per=now.getFullYear()+'-'+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
-  if(el('exp-fin')&&el('exp-fin').checked){relFin();nenhum=false;}
-  if(el('exp-evo')&&el('exp-evo').checked){setTimeout(function(){relEvo();},300);nenhum=false;}
-  if(el('exp-falt')&&el('exp-falt').checked){setTimeout(function(){relFalt();},600);nenhum=false;}
-  if(el('exp-pac')&&el('exp-pac').checked){setTimeout(function(){relPac();},900);nenhum=false;}
-  if(el('exp-sess')&&el('exp-sess').checked){setTimeout(function(){exportarSessoes();},1200);nenhum=false;}
+  var email=el('exp-email')?el('exp-email').value.trim():'';
+  var itens=[];
+  if(el('exp-fin')&&el('exp-fin').checked){relFin();itens.push('Financeiro');nenhum=false;}
+  if(el('exp-evo')&&el('exp-evo').checked){setTimeout(function(){relEvo();},300);itens.push('Evoluções');nenhum=false;}
+  if(el('exp-falt')&&el('exp-falt').checked){setTimeout(function(){relFalt();},600);itens.push('Faltas');nenhum=false;}
+  if(el('exp-pac')&&el('exp-pac').checked){setTimeout(function(){relPac();},900);itens.push('Pacientes');nenhum=false;}
+  if(el('exp-sess')&&el('exp-sess').checked){setTimeout(function(){exportarSessoes();},1200);itens.push('Agenda');nenhum=false;}
   if(nenhum){toast('Selecione ao menos um item para exportar');return;}
+  if(email){
+    var assunto='FisioEvolução — Exportação de dados: '+itens.join(', ');
+    var corpo='Olá,\n\nSegue exportação de dados do FisioEvolução.\n\nItens exportados: '+itens.join(', ')+'\nData: '+new Date().toLocaleDateString('pt-BR')+'\n\nOs arquivos foram baixados no seu dispositivo. Anexe-os a este e-mail antes de enviar.\n\n— FisioEvolução';
+    setTimeout(function(){window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo));},1500);
+  }
   fecharM();toast('Exportando arquivos...');
 }
 function semIni(ref){var d=new Date(ref);d.setHours(0,0,0,0);var dw=d.getDay();d.setDate(d.getDate()-(dw===0?6:dw-1));return d;}
@@ -1625,8 +1632,15 @@ function mEvo(pid,eid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var e=eid?(p.evolucoes||[]).find(function(x){return x.id===eid;}):null;
   e=e||{id:'',texto:'',dor:undefined,mob:undefined};
+  var dataEvo=e.dataEvo||hoje();
   var h='<div class="mh"><h3>'+(e.id?'Editar':'Nova')+' Evolução — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="me-pid" value="'+esc(pid)+'"/><input type="hidden" id="me-eid" value="'+esc(e.id)+'"/>';
+  // Data do atendimento (pode ser retroativa até 1 ano)
+  var maxDt=hoje();
+  var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
+  var minDtStr=minDt.getFullYear()+'-'+(minDt.getMonth()<9?'0':'')+(minDt.getMonth()+1)+'-'+(minDt.getDate()<10?'0':'')+minDt.getDate();
+  h+='<div class="fg"><label>Data do atendimento</label><input class="fi" type="date" id="me-data-evo" value="'+esc(dataEvo)+'" min="'+minDtStr+'" max="'+maxDt+'"/>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de até 1 ano atrás.</div></div>';
   h+='<div class="fsec" style="margin-bottom:10px"><div class="fsec-t">Dados vitais (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   h+='<div class="fg" style="margin:0"><label>PA (mmHg)</label><input class="fi" type="text" id="me-pa" value="'+esc(e.pa||'')+'" placeholder="120 x 80" oninput="mascaraPA(this)" maxlength="9"/></div>';
   h+='<div class="fg" style="margin:0"><label>Saturação (%)</label><div style="position:relative"><input class="fi" type="number" id="me-sat" min="0" max="100" value="'+(e.sat!=null?e.sat:'')+'" placeholder="98" style="padding-right:28px"/><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--sl3);font-size:13px;pointer-events:none">%</span></div></div>';
@@ -1651,7 +1665,7 @@ function salvarEvo(){
   var dEl=el('me-dor'),mEl=el('me-mob');
   var dor=dEl?parseInt(dEl.value):NaN,mob=mEl?parseInt(mEl.value):NaN;
   var paV=el('me-pa')?el('me-pa').value.trim():'';var satV=el('me-sat')?el('me-sat').value:'';var bpmV=el('me-bpm')?el('me-bpm').value:'';if(eid){var ev3=p.evolucoes.find(function(x){return x.id===eid;});if(ev3){ev3.texto=txt;if(!isNaN(dor))ev3.dor=dor;if(!isNaN(mob))ev3.mob=mob;if(paV)ev3.pa=paV;if(satV)ev3.sat=satV;if(bpmV)ev3.bpm=bpmV;}}
-  else{var nv3={id:uid(),ts:Date.now(),texto:txt};if(!isNaN(dor))nv3.dor=dor;if(!isNaN(mob))nv3.mob=mob;if(paV)nv3.pa=paV;if(satV)nv3.sat=satV;if(bpmV)nv3.bpm=bpmV;p.evolucoes.push(nv3);}
+  else{var nv3={id:uid(),ts:Date.now(),texto:txt};if(!isNaN(dor))nv3.dor=dor;if(!isNaN(mob))nv3.mob=mob;if(paV)nv3.pa=paV;if(satV)nv3.sat=satV;if(bpmV)nv3.bpm=bpmV;var dtEvo=el('me-data-evo')?el('me-data-evo').value:hoje();nv3.dataEvo=dtEvo||hoje();p.evolucoes.push(nv3);}
   salvar();atualizarBadge();
   var hpop='<div style="text-align:center;padding:24px">';
   hpop+='<div style="font-size:48px;margin-bottom:10px">✅</div>';
@@ -1989,6 +2003,37 @@ function relPac(){
 }
 function relTodos(){relFin();setTimeout(relEvo,350);setTimeout(relFalt,700);setTimeout(relPac,1050);}
 
+function mEnviarRelEmail(){
+  var h='<div class="mh"><h3>✉️ Enviar relatórios por e-mail</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>E-mail de destino *</label><input class="fi" type="email" id="rel-email" placeholder="destinatario@email.com"/></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Selecione quais relatórios enviar:</p>';
+  var ops=[{id:'re-fin',l:'💰 Financeiro'},{id:'re-evo',l:'📝 Evoluções'},{id:'re-falt',l:'❌ Faltas'},{id:'re-pac',l:'👥 Pacientes'}];
+  ops.forEach(function(op){
+    h+='<label style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--borda);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--card)">';
+    h+='<input type="checkbox" id="'+op.id+'" checked style="width:18px;height:18px"/>';
+    h+='<span style="font-size:13px;font-weight:600">'+op.l+'</span></label>';
+  });
+  h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:12px">Os arquivos serão baixados no dispositivo. Anexe-os ao e-mail antes de enviar.</div>';
+  h+='<button class="btn btn-p btn-bl" onclick="confirmarRelEmail()">Baixar e abrir e-mail</button>';
+  abrirM(h);
+}
+
+function confirmarRelEmail(){
+  var email=el('rel-email')?el('rel-email').value.trim():'';
+  if(!email){toast('Informe o e-mail de destino');return;}
+  var itens=[];
+  if(el('re-fin')&&el('re-fin').checked){relFin();itens.push('Financeiro');}
+  if(el('re-evo')&&el('re-evo').checked){setTimeout(function(){relEvo();},300);itens.push('Evoluções');}
+  if(el('re-falt')&&el('re-falt').checked){setTimeout(function(){relFalt();},600);itens.push('Faltas');}
+  if(el('re-pac')&&el('re-pac').checked){setTimeout(function(){relPac();},900);itens.push('Pacientes');}
+  if(!itens.length){toast('Selecione ao menos um relatório');return;}
+  var per=nomePer();
+  var assunto='FisioEvolução — Relatórios '+per+': '+itens.join(', ');
+  var corpo='Olá,\n\nSegue os relatórios do FisioEvolução referentes ao período '+per+'.\n\nRelatórios: '+itens.join(', ')+'\n\nOs arquivos foram baixados no dispositivo. Anexe-os a este e-mail antes de enviar.\n\n— FisioEvolução';
+  setTimeout(function(){window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo));},1500);
+  fecharM();toast('Baixando relatórios e abrindo e-mail...');
+}
+
 // ── MAIS ─────────────────────────────────────────────────────────
 function rMais(el2){
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Configurações</div>';
@@ -2199,40 +2244,6 @@ function mAparencia(){
 }
 
 
-function aplicarTema(){
-  var tema=D.cfg.tema||'claro';var cor=D.cfg.corPrincipal||'';var img=localStorage.getItem('fe_img_fundo')||'';
-  document.body.className=tema==='escuro'?'tema-escuro':'';
-  if(cor){document.documentElement.style.setProperty('--g1',cor);document.documentElement.style.setProperty('--g2',cor);}
-  else{document.documentElement.style.removeProperty('--g1');document.documentElement.style.removeProperty('--g2');}
-  if(img){document.body.style.backgroundImage='url('+img+')';document.body.style.backgroundSize='cover';document.body.style.backgroundAttachment='fixed';}
-  else document.body.style.backgroundImage='';
-}
-function setTema(t){D.cfg.tema=t;salvar();aplicarTema();fecharM();mAparencia();}
-function setCorPrincipal(c){D.cfg.corPrincipal=c;salvar();aplicarTema();}
-function escolherImagem(){
-  var inp=document.createElement('input');inp.type='file';inp.accept='image/*';
-  inp.onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){localStorage.setItem('fe_img_fundo',ev.target.result);aplicarTema();fecharM();mAparencia();toast('Imagem aplicada!');};r.readAsDataURL(f);};inp.click();
-}
-function removerImagem(){localStorage.removeItem('fe_img_fundo');aplicarTema();fecharM();mAparencia();toast('Imagem removida!');}
-function mAparencia(){
-  var tema=D.cfg.tema||'claro';var cor=D.cfg.corPrincipal||'#1e6b3f';var img=localStorage.getItem('fe_img_fundo')||'';
-  var h='<div class="mh"><h3>Aparencia</h3><button class="mc" onclick="fecharM()">X</button></div>';
-  h+='<div class="fsec"><div class="fsec-t">Modo</div><div style="display:flex;gap:8px">';
-  h+='<button class="btn btn-sm '+(tema==='claro'?'btn-p':'btn-s')+'" onclick="setTema(\'claro\')">Claro</button>';
-  h+='<button class="btn btn-sm '+(tema==='escuro'?'btn-p':'btn-s')+'" onclick="setTema(\'escuro\')">Escuro</button>';
-  h+='</div></div>';
-  h+='<div class="fsec"><div class="fsec-t">Cor principal</div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">';
-  var cores=[['#1e6b3f','Verde'],['#1d4ed8','Azul'],['#7c3aed','Roxo'],['#dc2626','Vermelho'],['#d97706','Laranja'],['#db2777','Rosa']];
-  cores.forEach(function(c){h+='<div onclick="setCorPrincipal(\''+c[0]+'\')" style="width:32px;height:32px;border-radius:50%;background:'+c[0]+';border:3px solid '+(cor===c[0]?'#fff':'transparent')+';cursor:pointer"></div>';});
-  h+='<input type="color" value="'+cor+'" oninput="setCorPrincipal(this.value)" style="width:32px;height:32px;border-radius:50%;cursor:pointer;padding:1px"/>';
-  h+='</div></div>';
-  h+='<div class="fsec"><div class="fsec-t">Imagem de fundo</div>';
-  if(img)h+='<img src="'+img+'" style="width:100%;height:80px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>';
-  h+='<div style="display:flex;gap:8px"><button class="btn btn-s btn-sm" onclick="escolherImagem()">Escolher imagem</button>';
-  if(img)h+='<button class="btn btn-d btn-sm" onclick="removerImagem()">Remover</button>';
-  h+='</div><p style="font-size:11px;color:var(--sl3);margin-top:6px">Salva apenas neste dispositivo.</p></div>';
-  abrirM(h);
-}
 
 
 function rGraficoFin(el2){
@@ -3509,154 +3520,150 @@ function rAjuda(el2){
     return s+'</div>';
   }
   var h='<div style="font-size:18px;font-weight:800;margin-bottom:4px">Manual de Uso</div>';
-  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:20px">Guia completo do FisioEvolução — todas as funcionalidades</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:20px">Guia completo do FisioEvolução — todas as funcionalidades explicadas</div>';
 
-  h+=sec('🔐','Primeiro acesso',[
+  h+=sec('🔐','Primeiro acesso e login',[
     ['Cadastro','Toque em "Não tem conta? Cadastre-se", preencha seu nome, e-mail e senha (mínimo 6 caracteres).'],
     ['Login','Digite seu e-mail e senha e toque em Entrar.'],
-    ['Esqueci a senha','Toque em "Esqueci minha senha", digite seu e-mail e um link será enviado.'],
-    ['Editar nome','Em Mais, toque em "Editar" ao lado do seu nome para alterar.'],
-    ['Sair','Em Mais, toque em "Sair". Seus dados ficam salvos na nuvem.']
-  ],'Seus dados ficam salvos na nuvem e podem ser acessados de qualquer dispositivo com o mesmo e-mail e senha.');
+    ['Esqueci a senha','Toque em "Esqueci minha senha", digite seu e-mail e um link de redefinição será enviado.'],
+    ['Editar nome','Em Mais → toque em "Editar" ao lado do seu nome para alterar como aparece no app.'],
+    ['Sair','Em Mais → toque em "Sair". Seus dados ficam salvos na nuvem — basta entrar novamente.'],
+  ],'Seus dados ficam salvos na nuvem (Firebase) e podem ser acessados de qualquer dispositivo com o mesmo e-mail e senha.');
 
-  h+=sec('🔒','Segurança (PIN)',[
-    ['Ativar PIN','Em Mais → Segurança, toque em "Ativar PIN" e crie um código de 4 dígitos.'],
-    ['Verificar','A cada abertura do app, o PIN será solicitado antes de entrar.'],
-    ['Alterar','Em Mais → Segurança → Alterar. Digite o PIN atual e depois o novo.'],
-    ['Remover','Em Mais → Segurança → Remover. Confirme com o PIN atual.'],
-    ['Esqueci o PIN','Na tela do PIN, toque em "Esqueci meu PIN" para remover.']
+  h+=sec('🔒','Segurança — PIN de acesso',[
+    ['Ativar PIN','Em Mais → Segurança → toque em "Ativar PIN" e crie um código de 4 dígitos.'],
+    ['Verificar','A cada abertura do app, o PIN será solicitado antes de liberar o acesso.'],
+    ['Alterar PIN','Em Mais → Segurança → "Alterar PIN". Digite o PIN atual e depois o novo.'],
+    ['Remover PIN','Em Mais → Segurança → "Remover PIN". Confirme com o PIN atual.'],
+    ['Esqueci o PIN','Na tela do PIN, toque em "Esqueci meu PIN" para remover o bloqueio.'],
   ],'O PIN protege os dados dos seus pacientes caso alguém pegue seu dispositivo.');
 
-  h+=sec('🏠','Início (Dashboard)',[
-    ['Resumo','Veja sessões de hoje, valor recebido no mês e faltas.'],
-    ['Previsão','Valor total de sessões com pagamento pendente aparece em destaque.'],
-    ['Feriados','Feriados nos próximos 15 dias aparecem com alerta.'],
-    ['Sessões de hoje','Lista com horário, nome do paciente e status.'],
-    ['Botão A','Toque em A (verde) para marcar a sessão como Atendido.'],
-    ['Botão D','Toque em D (cinza) para marcar como Desmarcado. O app oferece remarcar.'],
-    ['Botão F','Toque em F (vermelho) para marcar Falta do Profissional. O app oferece remarcar.'],
-    ['Legenda de cores','Verde = Atendido · Amarelo = Pendente · Vermelho = Falta · Roxo = Remarcado'],
-    ['Sessões em aberto','Sessões passadas ainda como Agendado aparecem como alerta no final.'],
-    ['Notas rápidas','Ative em Mais → Notas rápidas. Bloco de texto visível na tela inicial.']
-  ],'Toque no nome do paciente nas sessões de hoje para abrir o perfil rapidamente.');
+  h+=sec('🏠','Início — Dashboard',[
+    ['Resumo do dia','Cards com: sessões de hoje, valor recebido no mês e faltas do mês.'],
+    ['Previsão de recebimento','Valor total de todas as sessões com pagamento pendente.'],
+    ['Feriados próximos','Alerta automático dos feriados nos próximos 15 dias.'],
+    ['Sessões de hoje','Lista com horário e nome. Botões rápidos: A (Atendido), D (Desmarcado), F (Falta do Profissional).'],
+    ['Pendências','Se não houver nada em aberto, aparece "✅ Nenhuma pendência". Se houver, aparece quantas sessões precisam de atualização.'],
+    ['Sessões em aberto','Sessões de dias passados ainda como "Agendado" — atualize o status para manter o controle.'],
+    ['Pacotes no limite','Alerta quando algum paciente tem pacote de sessões prestes a acabar.'],
+  ],'Toque no nome do paciente nas sessões de hoje para abrir o perfil diretamente.');
 
-  h+=sec('📅','Agenda',[
-    ['Grade semanal','Grade com os dias da semana e horários. Use as setas para navegar.'],
-    ['Filtrar por plano','Use os botões no topo para ver apenas SUS, Particular, etc.'],
-    ['Agendar','Toque em qualquer célula vazia para abrir o formulário de nova sessão.'],
-    ['Editar sessão','Toque no nome do paciente dentro da grade para editar.'],
-    ['Tipo Clínica','Selecione Clínica → informe a quantidade de pacientes → preencha os nomes.'],
-    ['Recorrência por semanas','Cria a mesma sessão toda semana. Ex: 4 semanas = 4 sessões automáticas.'],
-    ['Pacote de sessões','Ex: 10 sessões cria 10 sessões semanais em sequência.'],
-    ['Status Adiado','Mude o status para Adiado → botão "Remarcar" abre nova sessão pré-preenchida.'],
-    ['Feriados','Toque em "Feriados" para cadastrar. Aparecem na grade com fundo amarelo.'],
-    ['Exportar planilha','Toque em "Exportar Excel" para baixar as sessões da semana em .csv.'],
-    ['Horário da agenda','Configure início e fim em Mais → Horário da agenda (05:00 a 23:00).']
+  h+=sec('📅','Agenda — Grade semanal',[
+    ['Navegar semanas','Use os botões ‹ Ant e Próx › para avançar ou voltar semanas.'],
+    ['Filtro por plano','Botões horizontais acima da grade — filtre para ver só os pacientes de um plano específico.'],
+    ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica, Consultório, Particular ou Convênio.'],
+    ['Criar sessão','Toque em qualquer célula vazia da grade para abrir o formulário de nova sessão.'],
+    ['Editar sessão','Toque no nome do paciente dentro da grade para ver detalhes e editar.'],
+    ['Tipo Clínica','Selecione o tipo Clínica → marque "Atendimento múltiplo" → informe a quantidade → o app calcula o valor total automaticamente.'],
+    ['Recorrência semanal','Ao criar sessão, escolha "Por semanas" e informe quantas semanas repetir.'],
+    ['Pacote de sessões','Escolha "Pacote (nº de sessões)" para criar todas as sessões automaticamente.'],
+    ['Remarcar','Mude o status para Adiado → aparece botão "Remarcar" que abre nova sessão pré-preenchida.'],
+    ['Feriados','Clique em "Feriados" para cadastrar feriados locais. Os nacionais já aparecem automaticamente.'],
+    ['Exportar dados','Clique em "Exportar" para escolher quais dados baixar (Financeiro, Evoluções, Faltas, Pacientes, Agenda). Opção de enviar por e-mail.'],
+    ['Repetir agenda','Nos primeiros 5 dias do mês, o app pergunta se deseja repetir a agenda do mês anterior, com opção de definir quantas sessões por paciente.'],
+    ['Resumo do dia','Toque na data no cabeçalho da grade para ver o resumo daquele dia.'],
   ],'As cores na grade representam o tipo de atendimento. Personalize em Mais → Tipos de atendimento.');
 
-  h+=sec('👥','Pacientes',[
-    ['Lista','Aparece automaticamente em ordem alfabética ao entrar na aba.'],
-    ['Buscar','Digite o nome no campo de busca para filtrar.'],
-    ['Cadastrar','Toque no +. Apenas o nome é obrigatório.'],
-    ['Campos disponíveis','Nome, nascimento, diagnóstico, telefone, celular, cidade, bairro, número, observações e foto.'],
-    ['Duplicado','Se já existir paciente com o mesmo nome, o app avisa antes de salvar.'],
-    ['Editar dados','Dentro do perfil do paciente, toque em "Editar" no topo.'],
-    ['Perfil — Evoluções','Histórico de evoluções clínicas registradas.'],
-    ['Perfil — Sessões','Todas as sessões agendadas e realizadas.'],
-    ['Perfil — Gráfico','Evolução da dor e mobilidade ao longo do tempo (ative em Mais).'],
-    ['Perfil — Dados','Dados cadastrais e de endereço.'],
-    ['Badge vermelho','Número ao lado do paciente = sessões realizadas sem evolução registrada.']
+  h+=sec('👥','Pacientes — Cadastro e lista',[
+    ['Lista','Ordenada alfabeticamente. Busca por nome no campo do topo.'],
+    ['Filtros rápidos','Botões de filtro por tipo de atendimento. Toque em "Ver inativos" para listar pacientes desativados.'],
+    ['Cadastrar','Toque no + . Apenas o nome é obrigatório. Preencha nascimento no formato DD/MM/AAAA.'],
+    ['Campos disponíveis','Nome, nascimento, diagnóstico + CID-10 (com busca automática), telefone, celular, cidade, bairro, número, observações e tipo de atendimento.'],
+    ['Paciente duplicado','Se já existir paciente com mesmo nome, o app avisa antes de salvar.'],
+    ['Editar dados','Dentro do perfil, toque em "Editar" no topo para alterar os dados cadastrais.'],
+    ['Inativar','Dentro do perfil → "Inativar". Informe o motivo (Alta, Óbito, Desistência...). O histórico é preservado.'],
+    ['Reativar','Na lista de inativos, toque no paciente → "Reativar".'],
+    ['Badge vermelho','Número ao lado do nome = sessões realizadas sem evolução registrada.'],
   ],'Toque em "+ Evolução" no topo do perfil para registrar rapidamente sem mudar de aba.');
 
-  h+=sec('📝','Evoluções',[
-    ['Aba dedicada','A aba Evoluções lista todos os pacientes com status de registro.'],
-    ['Badge na aba','Número vermelho na aba = total de sessões sem evolução em todos os pacientes.'],
-    ['Adicionar','Toque em "+ Evo" ao lado do paciente ou no + do perfil.'],
-    ['Modelos rápidos','Toque em Modelo 1, 2, 3 ou 4 para preencher automaticamente com textos prontos.'],
-    ['Escalas','Registre dor (0-10) e mobilidade (0-10) para gerar o gráfico de evolução.'],
-    ['Editar','Toque em "Editar" em qualquer evolução registrada.'],
-    ['Compartilhar','Ative em Mais → Compartilhar evoluções. Botão aparece em cada evolução.']
-  ],'Mantenha as evoluções sempre atualizadas! O badge vermelho avisa quando há pendências.');
+  h+=sec('📋','Perfil do paciente — Abas',[
+    ['Resumo','Visão geral em 30 segundos: diagnóstico, próxima sessão, última evolução, pagamentos pendentes e última escala.'],
+    ['Anamnese','Histórico clínico completo: queixa, doenças, medicamentos, exames, sinais vitais, força, amplitude de movimento, coordenação e testes. Ative em Mais → Funcionalidades opcionais.'],
+    ['Sessões','Histórico de todas as sessões. Toque em qualquer sessão para editar.'],
+    ['Evoluções','Registro clínico com texto, dados vitais (PA, saturação, BPM) e gráfico de dor/mobilidade.'],
+    ['Avaliações','Escalas funcionais + Metas e Plano de Tratamento. Toque em "+ Escala" para aplicar uma avaliação.'],
+  ],'Navegue entre as abas pelo menu horizontal no topo do perfil.');
+
+  h+=sec('📝','Evoluções — Registro clínico',[
+    ['Nova evolução','No perfil → aba Evoluções → toque em "+ Evolução". Ou toque em "+ Evo" na lista de pacientes.'],
+    ['Data do atendimento','Ao registrar, escolha a data correta do atendimento — pode ser retroativa até 1 ano atrás.'],
+    ['Dados vitais','Preencha PA (ex: 120 x 80), Saturação (%) e Frequência Cardíaca (bpm). Todos opcionais.'],
+    ['Modelos rápidos','Toque em Modelo 1, 2, 3 ou 4 para preencher com texto pronto. Personalize em Mais → Modelos.'],
+    ['Dor e mobilidade','Registre de 0 a 10 para gerar o gráfico de evolução (ative em Mais → Gráfico de evolução).'],
+    ['Bloqueio 24h','Evoluções podem ser editadas ou excluídas até 24 horas após o registro. Após isso, ficam bloqueadas.'],
+    ['Adendo','Mesmo após 24h, sempre é possível adicionar um adendo com complemento. O adendo fica marcado com data e hora.'],
+    ['Compartilhar','Ative em Mais → Compartilhar evoluções. Aparece botão de compartilhamento em cada evolução.'],
+  ],'O bloqueio de 24h é contado a partir do momento em que a evolução foi digitada no app, não pela data do atendimento.');
+
+  h+=sec('📊','Avaliações — Escalas e metas',[
+    ['Metas e plano','No topo da aba Avaliações, toque em "Editar" para definir o objetivo geral, as metas com prazo e o plano de tratamento.'],
+    ['Adicionar escala','Toque em "+ Escala" para abrir o catálogo com mais de 20 escalas disponíveis.'],
+    ['Categorias disponíveis','Fragilidade, Risco de Quedas, Mobilidade, Qualidade de Vida, Neurológico, Doenças Neuromusculares, Coluna/Lombar e Dor.'],
+    ['Roland Morris','Questionário de 24 itens para avaliar incapacidade por dor lombar. 0-4 = mínima, 17-24 = muito grave.'],
+    ['Índice de Barthel','Avalia independência em 10 atividades. 0-20 = dependência total, 85-100 = independente.'],
+    ['Escala de Berg','Risco de queda. 0-35 = alto risco, 36-44 = médio, 45-56 = baixo risco.'],
+    ['Gráfico de evolução','Se aplicar a mesma escala 2 ou mais vezes, aparece gráfico de barras mostrando a evolução da pontuação.'],
+    ['Histórico','Todos os registros ficam salvos com data e hora.'],
+  ],'Defina metas mensuráveis com prazo para mostrar ao paciente a evolução do tratamento.');
 
   h+=sec('💰','Financeiro',[
     ['Acessar','Em Mais → Acesso rápido → Financeiro.'],
-    ['Total anual','Recebido, a receber e em atraso no ano selecionado.'],
-    ['Filtro de mês','Selecione mês e ano no topo. Clique nas barras do gráfico para filtrar.'],
-    ['Por plano','Valor recebido separado por cada plano (Particular, SUS, Convênio).'],
-    ['Pagamento futuro','Ao agendar, informe a data prevista de recebimento. Ex: "60 dias" ou "Março/2026".'],
-    ['Marcar como pago','Na lista de pendentes, toque em "Pago" para confirmar o recebimento.'],
-    ['Valor automático','Cadastre o valor padrão em cada plano e ele é preenchido automaticamente ao agendar.']
+    ['Visão anual','Recebido, a receber e em atraso no ano selecionado.'],
+    ['Filtro mensal','Selecione mês e ano no topo. Clique nas barras do gráfico para filtrar.'],
+    ['Por plano','Valor recebido separado por cada plano cadastrado.'],
+    ['Marcar como pago','Toque em "Pago" em qualquer sessão pendente. Ou use "Lote" nos relatórios para quitar todos de um plano de uma vez.'],
+    ['Valor automático','Cadastre o valor padrão em cada plano (Mais → Planos) e ele é preenchido automaticamente ao agendar.'],
+    ['Alertas de pagamento','Configure regras de pagamento em cada plano para receber alertas no Dashboard quando o vencimento se aproximar.'],
+    ['Buscar recebimentos','Filtre por período, plano, paciente e status. Exporte o resultado.'],
+    ['Exportar para IR','Em Mais → Acesso rápido → IR: relatório formatado para declaração de Imposto de Renda.'],
   ],'Registre o plano e valor em cada sessão para o controle financeiro funcionar corretamente.');
 
   h+=sec('📊','Relatórios',[
     ['Acessar','Em Mais → Acesso rápido → Relatórios.'],
-    ['Selecionar período','Escolha o mês e ano no topo antes de baixar.'],
+    ['Selecionar período','Escolha o mês e ano no topo antes de gerar.'],
     ['Financeiro','Valores recebidos, pendentes e por plano em planilha Excel.'],
     ['Evoluções','Evoluções clínicas de todos os pacientes no período.'],
-    ['Faltas e Prejuízo','Sessões perdidas com valor estimado de prejuízo.'],
+    ['Faltas','Sessões perdidas com valor estimado de prejuízo.'],
     ['Pacientes','Resumo completo de cada paciente no período.'],
     ['Baixar todos','Toque em "Baixar todos" para gerar os 4 relatórios de uma vez.'],
-    ['Formato','Arquivos .csv que abrem diretamente no Excel ou Google Planilhas.']
-  ],'Os relatórios são gerados para o período selecionado. Ajuste o mês e ano antes de baixar.');
+    ['Enviar por e-mail','Toque em "Enviar por e-mail", informe o destinatário, selecione os relatórios desejados. Os arquivos são baixados e o e-mail é aberto automaticamente para anexar.'],
+    ['Pacotes','Botão "Pacotes" gera relatório com status dos pacotes de sessões de todos os pacientes.'],
+  ],'Os relatórios são gerados para o período selecionado. Ajuste o mês e ano antes de exportar.');
 
-  h+=sec('⚙️','Configurações (Mais)',[
-    ['Planos e convênios','Cadastre seus planos com valor padrão. Ex: SUS = R$50, Particular = R$120.'],
-    ['Tipos de atendimento','Crie e personalize cores para cada tipo. Ex: Clínica (vermelho), Domiciliar (laranja).'],
-    ['Horário da agenda','Defina o horário de início e fim da grade semanal (de 05:00 a 23:00).'],
+  h+=sec('⚙️','Mais — Configurações',[
+    ['Planos e convênios','Cadastre planos com valor padrão e regras de pagamento (quando recebe, dia do mês, dias de antecedência para alertar).'],
+    ['Tipos de atendimento','Crie e personalize cores para cada tipo: Clínica, Domiciliar, Consultório, Particular...'],
+    ['Horário da agenda','Defina início e fim da grade semanal (de 05:00 a 23:00).'],
+    ['Modelos de evolução','Personalize os textos dos modelos rápidos usados nas evoluções.'],
     ['Gráfico de evolução','Ativa o gráfico de dor e mobilidade no perfil do paciente.'],
-    ['Anamnese','Ativa campos extras no cadastro: alergias, medicamentos, cirurgias, etc.'],
-    ['Compartilhar evoluções','Ativa botão de compartilhar em cada evolução registrada.'],
-    ['Notas rápidas','Ativa bloco de notas na tela inicial.'],
+    ['Anamnese completa','Ativa campos extras no cadastro: histórico médico, medicamentos, exames, etc.'],
+    ['Compartilhar evoluções','Ativa botão de compartilhamento em cada evolução registrada.'],
+    ['Notas rápidas','Ativa bloco de notas visível na tela inicial.'],
+    ['Termo de consentimento','Ativa geração e registro de aceite do termo de consentimento no perfil do paciente.'],
     ['Exportar JSON','Salva todos os dados em arquivo para backup manual.'],
-    ['Importar JSON','Restaura dados de um backup JSON salvo anteriormente.'],
-    ['Histórico de versões','Restaura uma das últimas 3 versões salvas automaticamente.']
-  ],'Faça backup manual regularmente em Mais → Exportar JSON para máxima segurança.');
+    ['Importar JSON','Restaura dados de um arquivo JSON salvo anteriormente.'],
+    ['Histórico de versões','Restaura uma das últimas 3 versões salvas automaticamente.'],
+  ],'Faça backup manual regularmente em Mais → Exportar JSON para máxima segurança dos dados.');
 
-  h+=sec('🛡️','Proteção de dados',[
-    ['Nuvem (Firebase)','Todos os dados ficam salvos na nuvem vinculados ao seu e-mail.'],
-    ['Backup local','Cópia automática salva no navegador a cada login.'],
-    ['Histórico de versões','As últimas 3 versões são salvas automaticamente. Restaure em Mais → Histórico.'],
-    ['Alerta ao fechar','Se tentar fechar com dados não salvos, o app avisa.'],
-    ['Backup manual','Exporte JSON regularmente em Mais → Exportar JSON como segurança extra.'],
-    ['Restaurar backup','Importe um arquivo JSON em Mais → Importar JSON para restaurar dados.']
-  ],'Seus dados nunca são perdidos ao atualizar o app — apenas o código muda, os dados ficam na nuvem.');
-
-  
-  // Nova seção: Prontuário
-  h+=sec('🏥','Prontuário eletrônico',[
-    ['CID-10','No cadastro do paciente, campo CID-10 com busca automática. Digite o código ou a descrição para buscar.'],
-    ['Escalas clínicas','No perfil do paciente, botão Escalas. Registre EVA (dor 0-10), Índice de Barthel (independência funcional) e Escala de Berg (equilíbrio).'],
-    ['Histórico de escalas','Cada registro salva a data. Os valores aparecem resumidos na aba Dados do paciente.'],
-    ['Termo de consentimento','Ative em Mais → Funcionalidades opcionais → Termo de consentimento. Aparece botão no perfil do paciente para gerar e registrar o aceite.'],
-  ],'O CID-10 e as escalas ficam salvos no perfil do paciente e podem ser exportados nos relatórios.');
-
-  // Nova seção: Aparência
   h+=sec('🎨','Aparência e personalização',[
-    ['Modo escuro/claro','Em Mais → Aparência → Modo: toque em Claro ou Escuro.'],
+    ['Modo escuro/claro','Em Mais → Aparência → toque em Claro ou Escuro.'],
     ['Cor principal','Escolha entre 6 cores predefinidas ou use o seletor de cor personalizada.'],
-    ['Imagem de fundo','Toque em Escolher imagem para usar uma foto do dispositivo como fundo. Salvo apenas neste dispositivo.'],
-    ['Cores da agenda','Em Mais → Aparência → Cores da agenda: personalize a cor do dia atual, feriados e células.'],
-  ],'A imagem de fundo é salva localmente no dispositivo — não sincroniza com a nuvem.');
+    ['Imagem de fundo','Toque em "Escolher imagem" para usar uma foto como fundo. Salva apenas neste dispositivo.'],
+    ['Cores da agenda','Personalize a cor do dia atual e dos feriados na grade. Em Mais → Aparência → Cores da agenda.'],
+  ],'A imagem de fundo é salva localmente — não sincroniza com a nuvem entre dispositivos.');
 
-  // Nova seção: Financeiro avançado
-  h+=sec('💰','Financeiro avançado',[
-    ['Regras de pagamento','Ao cadastrar ou editar um plano em Mais → Planos e Convênios, configure quando recebe (mesmo mês, mês seguinte ou X dias), o dia do pagamento e quantos dias antes alertar.'],
-    ['Alertas no dashboard','Quando o pagamento estiver chegando ou atrasado, um alerta amarelo aparece na tela Início com botão Pago.'],
-    ['Buscar recebimentos','No Financeiro → Buscar recebimentos: filtre por período, plano, paciente e status. Veja total e percentual por plano.'],
-    ['Gráfico por tipo (IR)','Em Mais → IR: veja a receita separada por plano com gráfico e exporte relatório formatado para declaração de Imposto de Renda.'],
-  ],'Configure as regras de pagamento em cada plano para o sistema calcular automaticamente as previsões.');
-
-  // Nova seção: Pacientes avançado
-  h+=sec('👥','Pacientes — recursos avançados',[
-    ['Tipo de atendimento','No cadastro do paciente, campo Tipo: Domiciliar, Clínica, Consultório ou Misto.'],
-    ['Filtros rápidos','Na lista de pacientes, botões de filtro rápido por tipo de atendimento.'],
-    ['Escalas EVA','Escala Visual Analógica — 0 a 10. 0 = sem dor, 10 = dor máxima.'],
-    ['Índice de Barthel','Avalia independência funcional em 10 atividades. 0-20 = dependência total, 85-100 = independente.'],
-    ['Escala de Berg','Avalia risco de queda. 0-35 = alto risco, 36-44 = médio risco, 45-56 = baixo risco.'],
-  ],'As escalas são registradas com data e ficam no histórico do paciente para acompanhar a evolução.');
+  h+=sec('🛡️','Proteção e backup de dados',[
+    ['Nuvem (Firebase)','Todos os dados ficam salvos na nuvem vinculados ao seu e-mail, com acesso de qualquer dispositivo.'],
+    ['Backup automático','Cópia silenciosa salva no navegador a cada uso, com lembrete semanal para fazer backup manual.'],
+    ['Histórico de versões','As últimas 3 versões são salvas automaticamente. Restaure em Mais → Histórico de versões.'],
+    ['Alerta ao fechar','Se tentar fechar com dados não salvos, o app avisa antes de sair.'],
+    ['Backup manual','Exporte JSON regularmente em Mais → Exportar JSON como segurança extra.'],
+    ['Restaurar backup','Importe um arquivo JSON em Mais → Importar JSON para restaurar dados salvos anteriormente.'],
+  ],'Seus dados nunca são perdidos ao atualizar o app — apenas o código muda, os dados ficam na nuvem.');
 
   el2.innerHTML=h;
 }
+
 // ── INIT ────────────────────────────────────────────────────────
 
 // ── Repetição de agenda no início do mês ─────────────────────────
