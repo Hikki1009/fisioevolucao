@@ -122,15 +122,7 @@ body.tema-escuro{--g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;--sl:#e2e8f
 /* Mais com scroll */
 .mais-conteudo{overflow-y:auto;}
 
-#legenda-adf{
-  position:fixed;bottom:70px;right:12px;
-  background:var(--card);border:1px solid var(--borda);
-  border-radius:10px;padding:8px 12px;
-  font-size:14px;font-weight:700;
-  box-shadow:0 2px 10px rgba(0,0,0,.15);
-  z-index:90;display:none;
-}
-#legenda-adf span{display:block;margin-bottom:3px;}
+
 
 body.tema-escuro .gc{color:#e2e8f0 !important;}
 body.tema-escuro .gh{color:#e2e8f0 !important;background:#1e293b;}
@@ -236,7 +228,7 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
   </div>
   <div id="sino-lista" style="padding:8px"></div>
 </div>
-<div id="legenda-adf"><span style="color:#16a34a">A = Atendido</span><span style="color:#6b7280">D = Desmarcado</span><span style="color:#dc2626">F = Falta Prof.</span></div>
+
 <script>
 var D = {
   pacientes:[],sessoes:[],feriados:[],
@@ -526,20 +518,21 @@ function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
 function renderizar(){
   atualizarBadge();
-  var leg=el('legenda-adf');if(leg)leg.style.display='none';
   var c=el('conteudo');c.innerHTML='';
   var fab=el('fab');fab.style.display='none';fab.onclick=null;
   var bv=el('btn-vol');bv.style.display='none';bv.textContent='';
   // topo usa logo PNG fixo
   BtnVolCb=null;
   var div=document.createElement('div');div.className='fi-an';
-  if(PAC_ID){var leg2=el('legenda-adf');if(leg2)leg2.style.display='none';rPerfil(div);c.appendChild(div);return;}
+  if(PAC_ID){
+rPerfil(div);c.appendChild(div);return;}
   if(ABA==='inicio')rInicio(div);
   else if(ABA==='agenda')rAgenda(div);
   else if(ABA==='pacientes')rPacientes(div);
   else if(ABA==='evolucoes')rEvolucoes(div);
   else if(ABA==='mais')rMais(div);
   else if(ABA==='financeiro')rFinanceiro(div);
+  else if(ABA==='cofre')rCofre(div);
   else if(ABA==='relatorios')rRelatorios(div);
   else if(ABA==='ajuda')rAjuda(div);
   else if(ABA==='grafico-fin')rGraficoFin(div);
@@ -563,7 +556,6 @@ function fecharM(forcar){
 
 // ── INÍCIO ───────────────────────────────────────────────────────
 function rInicio(el2){
-  var leg=el('legenda-adf');if(leg)leg.style.display='block';
   var now=new Date();var hj=hoje();var hora=now.getHours();
   var primeiroNome=FBU&&FBU.displayName?', '+FBU.displayName.split(' ')[0]+'!':'';
   var saud=(hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite')+primeiroNome;
@@ -595,10 +587,8 @@ function rInicio(el2){
   }
   if(sHj.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
-    // Legenda
-    h+='<div class="leg"><div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Atendido</div><div class="leg-item"><div class="leg-dot" style="background:#d97706"></div>Pendente</div><div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Falta</div><div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Remarcado</div></div>';
-    h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px;padding:5px 8px;background:#f8fafc;border-radius:6px"><strong style="color:#16a34a">A</strong>=Atendido &nbsp;<strong style="color:#94a3b8">D</strong>=Desmarcado &nbsp;<strong style="color:#dc2626">F</strong>=Falta Profissional</div>';
-    h+='<div style="display:flex;gap:8px;margin-top:6px;padding:6px 8px;background:var(--bg);border-radius:8px"><span style="font-size:11px;color:var(--sl3)"><strong style="color:#16a34a">A</strong> = Atendido</span><span style="font-size:11px;color:var(--sl3)"><strong style="color:#94a3b8">D</strong> = Desmarcado</span><span style="font-size:11px;color:var(--sl3)"><strong style="color:#dc2626">F</strong> = Falta Profissional</span></div>';
+    // Legenda única e compacta
+    h+='<div class="leg"><div class="leg-item"><div class="leg-dot" style="background:#16a34a"></div>Atendido</div><div class="leg-item"><div class="leg-dot" style="background:#d97706"></div>Pendente</div><div class="leg-item"><div class="leg-dot" style="background:#dc2626"></div>Falta</div><div class="leg-item"><div class="leg-dot" style="background:#7c3aed"></div>Remarcado</div><div class="leg-item" style="margin-left:6px;border-left:1px solid var(--borda);padding-left:6px"><strong style="color:#16a34a">A</strong></div><div class="leg-item"><strong style="color:#94a3b8">D</strong></div><div class="leg-item"><strong style="color:#dc2626">F</strong>=Prof.</div></div>';
     sHj.forEach(function(s){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
@@ -691,7 +681,6 @@ function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toa
 // ── AGENDA ───────────────────────────────────────────────────────
 var _filtroPlano='';var _filtroAgenda='';
 function rAgenda(el2){
-  var leg=el('legenda-adf');if(leg)leg.style.display='none';
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mSessao(null,null,null);};
   var seg=semIni(_semRef);var dias=[];
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
@@ -723,7 +712,7 @@ function rAgenda(el2){
   // Filtro Plano — horizontal, acima da grade
   h+='<div style="display:flex;gap:5px;overflow-x:auto;margin-bottom:8px;padding-bottom:2px;scrollbar-width:none">';
   h+='<button class="btn btn-sm '+(_filtroPlano===''?'btn-p':'btn-s')+'" data-v="" onclick="setFiltroPlano(this)">Todos</button>';
-  D.planos.forEach(function(pl){h+='<button class="btn btn-sm '+(_filtroPlano===pl.id?'btn-p':'btn-s')+'" data-v="'+esc(pl.id)+'" onclick="setFiltroPlano(this)">'+esc(pl.nome)+'</button>';});
+  D.planos.forEach(function(pl){var cor=pl.cor||'var(--g1)';var sel=_filtroPlano===pl.id;h+='<button class="btn btn-sm" data-v="'+esc(pl.id)+'" onclick="setFiltroPlano(this)" style="border:2px solid '+cor+';background:'+(sel?cor:'transparent')+';color:'+(sel?'#fff':cor)+';font-weight:700">'+esc(pl.nome)+'</button>';});
   h+='</div>';
 
   // Filtro Tipo — horizontal no MOBILE (abaixo da grade)
@@ -1872,7 +1861,10 @@ function rFinanceiro(el2){
   var atrAno=sAno.filter(function(s){return s.statusPag==='atrasado';}).reduce(function(a,s){return a+(s.valor||0);},0);
   var recMes=rec(sMes);var pendMes=sMes.filter(function(s){return s.statusPag==='pendente'&&s.status==='realizado';}).reduce(function(a,s){return a+(s.valor||0);},0);
 
-  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Financeiro '+anoSel+'</div>';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  h+='<div style="font-size:16px;font-weight:800">Financeiro '+anoSel+'</div>';
+  h+='<button class="btn btn-p btn-sm" onclick="ir(\'cofre\')">💰 Cofre</button>';
+  h+='</div>';
   // Filtro de mês
   h+='<div class="card" style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Filtro de período</div>';
   h+='<div class="fr"><div class="fg"><label>Mês</label><select class="fi" id="fin-mes" onchange="setFinMes(this)">';
@@ -1910,6 +1902,191 @@ function setFinMes(sel){window._finMes=parseInt(sel.value);rFinanceiro(el('conte
 function setFinAno(sel){window._finAno=parseInt(sel.value);var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
 function clicBarraMes(i){window._finMes=i;var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
 function marcarPago(sid){var s=D.sessoes.find(function(x){return x.id===sid;});if(s){s.statusPag='pago';salvar();renderizar();toast('Pagamento confirmado!');}}
+
+// ── COFRE ────────────────────────────────────────────────────────
+function rCofre(el2){
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('financeiro');};
+  var now=new Date();
+  var mesSel=window._cofreMes!=null?window._cofreMes:now.getMonth();
+  var anoSel=window._cofreAno!=null?window._cofreAno:now.getFullYear();
+  var meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var hj=hoje();
+
+  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">💰 Cofre</div>';
+  h+='<div class="card" style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Período de referência</div>';
+  h+='<div style="display:flex;gap:8px"><select class="fi" id="cofre-mes" onchange="setCofre()">';
+  meses.forEach(function(m,i){h+='<option value="'+i+'"'+(i===mesSel?' selected':'')+'>'+m+'</option>';});
+  h+='</select><select class="fi" id="cofre-ano" onchange="setCofre()">';
+  for(var a=anoSel-2;a<=anoSel+1;a++)h+='<option value="'+a+'"'+(a===anoSel?' selected':'')+'>'+a+'</option>';
+  h+='</select></div></div>';
+
+  // Sessões do período selecionado (realizadas e pendentes)
+  var sessPer=D.sessoes.filter(function(s){
+    var d=new Date(s.data+'T12:00:00');
+    return d.getMonth()===mesSel&&d.getFullYear()===anoSel&&s.status==='realizado';
+  });
+
+  if(!sessPer.length){
+    h+='<div class="card" style="text-align:center;padding:30px;color:var(--sl3)">Nenhuma sessão realizada neste período.</div>';
+    el2.innerHTML=h;return;
+  }
+
+  // Agrupar por plano
+  D.planos.forEach(function(pl){
+    var sessPl=sessPer.filter(function(s){return s.planoId===pl.id;});
+    if(!sessPl.length)return;
+
+    var totalVal=sessPl.reduce(function(a,s){return a+(s.valor||0);},0);
+    var pagoVal=sessPl.filter(function(s){return s.statusPag==='pago';}).reduce(function(a,s){return a+(s.valor||0);},0);
+    var pendVal=totalVal-pagoVal;
+    var parcialData=sessPl.find(function(s){return s.statusPag==='parcial';});
+
+    h+='<div class="card" style="margin-bottom:12px">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    h+='<div><div style="font-size:14px;font-weight:800">'+esc(pl.nome)+'</div>';
+    if(pl.mesmoPagador)h+=' <span class="badge bg-b" style="font-size:10px">Mesmo pagador</span>';
+    h+='</div></div>';
+    var statusCor=pendVal===0?'var(--green)':'var(--amber)';
+    h+='<div style="font-size:13px;font-weight:800;color:'+statusCor+'">'+( pendVal===0?'✅ Quitado':'⏳ Pendente')  +'</div></div>';
+
+    // Resumo do plano
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+    h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--g1)">R$'+totalVal.toFixed(2)+'</div><div style="font-size:10px;color:var(--sl3)">Total</div></div>';
+    h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--green)">R$'+pagoVal.toFixed(2)+'</div><div style="font-size:10px;color:var(--sl3)">Recebido</div></div>';
+    h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--amber)">R$'+pendVal.toFixed(2)+'</div><div style="font-size:10px;color:var(--sl3)">Pendente</div></div>';
+    h+='</div>';
+
+    // Se mesmo pagador: mostrar lista de pacientes agrupada
+    if(pl.mesmoPagador){
+      var pacsPl={};
+      sessPl.forEach(function(s){
+        var pid=s.pacienteId||'_';
+        if(!pacsPl[pid])pacsPl[pid]={nome:nomePac(s.pacienteId)||'Clínica',qtd:0,val:0};
+        pacsPl[pid].qtd++;pacsPl[pid].val+=(s.valor||0);
+      });
+      h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Pacientes incluídos</div>';
+      Object.values(pacsPl).forEach(function(p){
+        h+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--borda);font-size:12px">';
+        h+='<span>'+esc(p.nome)+' ('+p.qtd+' sessões)</span><span style="font-weight:700">R$'+p.val.toFixed(2)+'</span></div>';
+      });
+    }
+
+    // Botões de ação
+    if(pendVal>0){
+      h+='<div style="display:flex;gap:8px;margin-top:12px">';
+      var plIds=sessPl.filter(function(s){return s.statusPag!=='pago';}).map(function(s){return s.id;}).join(',');
+      h+='<button class="btn btn-p btn-sm" style="flex:1" data-plids="'+esc(plIds)+'" data-total="'+pendVal.toFixed(2)+'" onclick="mConfirmarCofre(this)">✅ Confirmar recebimento</button>';
+      h+='</div>';
+    }
+
+    // Parcial pendente
+    if(parcialData&&parcialData.parcialRestante>0){
+      h+='<div style="margin-top:8px;padding:8px;background:var(--amberbg);border-radius:8px;font-size:12px;color:var(--amber);font-weight:600">';
+      h+='⏳ Parcial: R$'+parcialData.parcialRestante.toFixed(2)+' restante previsto para '+esc(parcialData.parcialDataPrev||'data não definida')+'</div>';
+    }
+
+    h+='</div>';
+  });
+
+  el2.innerHTML=h;
+}
+
+window._cofreMes=null;window._cofreAno=null;
+function setCofre(){
+  var m=el('cofre-mes');var a=el('cofre-ano');
+  window._cofreMes=m?parseInt(m.value):null;
+  window._cofreAno=a?parseInt(a.value):null;
+  var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';
+  rCofre(d);c.innerHTML='';c.appendChild(d);
+}
+
+function mConfirmarCofre(btn){
+  var plids=(btn.dataset.plids||'').split(',').filter(Boolean);
+  var total=parseFloat(btn.dataset.total)||0;
+  var h='<div class="mh"><h3>💰 Confirmar recebimento</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="text-align:center;padding:10px 0 16px">';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:4px">Valor total a receber</div>';
+  h+='<div style="font-size:28px;font-weight:800;color:var(--g1)">R$ '+total.toFixed(2)+'</div>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:10px;margin-bottom:16px">';
+  h+='<button class="btn btn-p" style="flex:1;font-size:15px;padding:14px" data-plids="'+esc(plids.join(','))+'" onclick="confirmarCofreTot(this)">✅ Total<br><span style="font-size:11px;font-weight:400">Recebeu tudo</span></button>';
+  h+='<button class="btn btn-a" style="flex:1;font-size:15px;padding:14px" onclick="mostrarParcial()" data-plids="'+esc(plids.join(','))+'" data-total="'+total+'">✂️ Parcial<br><span style="font-size:11px;font-weight:400">Recebeu parte</span></button>';
+  h+='</div>';
+  h+='<div id="cofre-parcial-wrap" style="display:none;border-top:1px solid var(--borda);padding-top:14px">';
+  h+='<div class="fg"><label>Valor recebido agora (R$)</label>';
+  h+='<input class="fi" type="number" id="cofre-val-rec" min="0" step="0.01" max="'+total+'" placeholder="0,00" oninput="calcRestante('+total+')"/></div>';
+  // Preview automático do restante
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  h+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:8px">';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-bottom:2px">Recebido</div>';
+  h+='<div id="cofre-preview-rec" style="font-size:16px;font-weight:800;color:var(--green)">R$ 0,00</div></div>';
+  h+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:8px">';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-bottom:2px">Restante</div>';
+  h+='<div id="cofre-preview-rest" style="font-size:16px;font-weight:800;color:var(--amber)">R$ '+total.toFixed(2)+'</div></div>';
+  h+='</div>';
+  h+='<div class="fg"><label>Data prevista para receber o restante</label>';
+  h+='<input class="fi" type="date" id="cofre-data-rest"/></div>';
+  h+='<button class="btn btn-p btn-bl" data-plids="'+esc(plids.join(','))+'" data-total="'+total+'" onclick="confirmarCofreParcial(this)">Confirmar parcial</button>';
+  h+='</div>';
+  h+='<input type="hidden" id="cofre-plids" value="'+esc(plids.join(','))+'"/>';
+  abrirM(h);
+}
+
+function mostrarParcial(){
+  var w=el('cofre-parcial-wrap');if(w)w.style.display='block';
+  var inp=el('cofre-val-rec');if(inp)inp.focus();
+}
+
+function calcRestante(total){
+  var rec=parseFloat(el('cofre-val-rec')?el('cofre-val-rec').value:0)||0;
+  if(rec>total)rec=total;
+  var rest=Math.max(0,total-rec);
+  var pr=el('cofre-preview-rec');if(pr)pr.textContent='R$ '+rec.toFixed(2);
+  var prr=el('cofre-preview-rest');if(prr)prr.textContent='R$ '+rest.toFixed(2);
+  // Colorir restante
+  if(prr)prr.style.color=rest===0?'var(--green)':'var(--amber)';
+}
+
+function confirmarCofreTot(btn){
+  var plids=(btn.dataset.plids||'').split(',').filter(Boolean);
+  plids.forEach(function(sid){
+    var s=D.sessoes.find(function(x){return x.id===sid;});
+    if(s){s.statusPag='pago';delete s.parcialRestante;delete s.parcialDataPrev;}
+  });
+  salvar();fecharM(true);ir('cofre');toast('Recebimento total confirmado! ✅');
+}
+
+function confirmarCofreParcial(btn){
+  var plids=(btn.dataset.plids||'').split(',').filter(Boolean);
+  var total=parseFloat(btn.dataset.total)||0;
+  var rec=parseFloat(el('cofre-val-rec')?el('cofre-val-rec').value:0)||0;
+  var rest=Math.max(0,total-rec);
+  var dataPrev=el('cofre-data-rest')?el('cofre-data-rest').value:'';
+  if(!rec||rec<=0){toast('Informe o valor recebido');return;}
+  if(!dataPrev){toast('Informe a data prevista para o restante');return;}
+  if(rec>=total){confirmarCofreTot(btn);return;}
+  // Marcar sessões como pagas até cobrir o valor recebido
+  var acumulado=0;var primeiroNaoPago=null;
+  plids.forEach(function(sid){
+    var s=D.sessoes.find(function(x){return x.id===sid;});
+    if(!s||s.statusPag==='pago')return;
+    if(acumulado+( s.valor||0)<=rec+0.01){
+      s.statusPag='pago';
+      acumulado+=(s.valor||0);
+    } else if(!primeiroNaoPago){
+      primeiroNaoPago=s;
+    }
+  });
+  // Registrar restante na primeira sessão não paga
+  if(primeiroNaoPago){
+    primeiroNaoPago.statusPag='parcial';
+    primeiroNaoPago.parcialRestante=rest;
+    primeiroNaoPago.parcialDataPrev=dataPrev;
+  }
+  salvar();fecharM(true);ir('cofre');
+  toast('Parcial registrado! Restante R$ '+rest.toFixed(2)+' previsto para '+fmtD(dataPrev));
+}
+
 
 // ── RELATÓRIOS ───────────────────────────────────────────────────
 
@@ -2081,7 +2258,7 @@ function rMais(el2){
   else h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Proteja seus dados com PIN de 4 dígitos.</p><button class="btn btn-p btn-sm" onclick="mostrarPin(\'criar\')">Ativar PIN</button>';
   h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Planos e Convênios</div>';
-  D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+(!pl.pgMes||pl.pgMes===''?' <span title="Previsao de recebimento nao configurada" style="cursor:pointer;font-size:14px;color:#d97706" onclick="mPlano(\''+pl.id+'\')" >⚠️</span>':'')+''+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
+  D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><div style="width:14px;height:14px;border-radius:50%;background:'+(pl.cor||'var(--g1)')+';flex-shrink:0"></div><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+(!pl.pgMes||pl.pgMes===''?' <span title="Previsao de recebimento nao configurada" style="cursor:pointer;font-size:14px;color:#d97706" onclick="mPlano(\''+pl.id+'\')" >⚠️</span>':'')+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
   h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="mPlano(\'\')">+ Novo plano</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🎨 Aparência</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Modo escuro/claro, cor e imagem de fundo.</p><button class="btn btn-p btn-sm" onclick="mAparencia()">Personalizar</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Modelos de Evolução</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Personalize os textos dos modelos rápidos usados nas evoluções clínicas.</p><button class="btn btn-p btn-sm" onclick="mModelosConfig()">✏️ Gerenciar modelos</button></div>';
@@ -3523,18 +3700,41 @@ function toggleOpc(cb){D.cfg[cb.dataset.k]=cb.checked;salvar();}
 function salvarHorario(){var ini=el('ag-ini'),fim=el('ag-fim');if(!ini||!fim)return;var iv=parseInt(ini.value),fv=parseInt(fim.value);if(iv>=fv){toast('Início deve ser antes do fim!');return;}D.cfg.horaIni=iv;D.cfg.horaFim=fv;salvar();toast('Horário atualizado!');}
 function mPlano(pid){
   var pl=pid?D.planos.find(function(x){return x.id===pid;}):null;
-  pl=pl||{id:'',nome:'',valor:0,pgMes:'mesmo',pgDia:30,pgAlerta:3};
+  pl=pl||{id:'',nome:'',valor:0,pgMes:'mesmo',pgDia:30,pgAlerta:3,cor:'#1e6b3f'};
   var h='<div class="mh"><h3>'+(pl.id?'Editar':'Novo')+' Plano</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="mpl-id" value="'+esc(pl.id)+'"/>';
-  h+='<div class="fg"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
+  // Nome + cor lado a lado
+  h+='<div style="display:flex;gap:10px;align-items:flex-end">';
+  h+='<div class="fg" style="flex:1;margin:0"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
+  h+='<div class="fg" style="margin:0"><label>Cor</label>';
+  var cores=['#1e6b3f','#1d4ed8','#7c3aed','#dc2626','#d97706','#db2777','#0891b2','#059669'];
+  h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">';
+  cores.forEach(function(cor){h+='<div onclick="setCorPlano(\''+cor+'\')" style="width:28px;height:28px;border-radius:50%;background:'+cor+';border:3px solid '+(( pl.cor||'#1e6b3f')===cor?'#fff':'transparent')+';outline:'+(( pl.cor||'#1e6b3f')===cor?'3px solid '+cor:'none')+';cursor:pointer" id="cpl-'+cor.replace('#','')+'"></div>';});
+  h+='<input type="color" id="mpl-cor" value="'+(pl.cor||'#1e6b3f')+'" oninput="setCorPlano(this.value)" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--borda);cursor:pointer;padding:1px" title="Personalizada"/>';
+  h+='</div></div></div>';
   h+='<div class="fg"><label>Valor padrão (R$)</label><input class="fi" type="number" id="mpl-val" min="0" step="0.01" value="'+(pl.valor||'')+'" placeholder="0,00"/></div>';
-  h+='<div class="fsec"><div class="fsec-t">Regras de pagamento</div>';
-  h+='<div class="fg"><label>Quando recebe</label><select class="fi" id="mpl-pgmes" onchange="togglePgDia()">';
-  h+='<option value="mesmo"'+(( pl.pgMes||'mesmo')==='mesmo'?' selected':'')+'>Mesmo mês do atendimento</option>';
+  h+='<div class="fg" style="padding:10px;background:var(--g4);border-radius:8px;margin-bottom:10px">';
+  h+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">';
+  h+='<input type="checkbox" id="mpl-mesmo" '+(pl.mesmoPagador?'checked':'')+' style="width:18px;height:18px"/>';
+  h+='<div><div style="font-size:13px">Mesmo pagador</div>';
+  h+='<div style="font-size:11px;color:var(--sl3);font-weight:400">Ex: SUS, clínica. Soma todos os pacientes em uma notificação só.</div></div></label>';
+  h+='</div>';
+  h+='<div class="fsec"><div class="fsec-t">Período de cobrança</div>';
+  h+='<div class="fg"><label>Tipo de período</label><select class="fi" id="mpl-pgmes" onchange="togglePgDia()">';
+  h+='<option value="mesmo"'+((pl.pgMes||'mesmo')==='mesmo'?' selected':'')+'>Mesmo mês do atendimento</option>';
   h+='<option value="seguinte"'+(pl.pgMes==='seguinte'?' selected':'')+'>Mês seguinte</option>';
+  h+='<option value="mensal"'+(pl.pgMes==='mensal'?' selected':'')+'>Mês completo (dia 1 ao 31)</option>';
+  h+='<option value="personalizado"'+(pl.pgMes==='personalizado'?' selected':'')+'>Personalizado (dia X ao dia Y)</option>';
   h+='<option value="dias"'+(pl.pgMes==='dias'?' selected':'')+'>X dias após o atendimento</option>';
   h+='</select></div>';
-  h+='<div class="fg" id="mpl-dia-wrap"><label id="mpl-dia-lbl">Dia do pagamento</label><input class="fi" type="number" id="mpl-pgdia" min="1" max="31" value="'+(pl.pgDia||30)+'" placeholder="Ex: 25"/></div>';
+  h+='<div id="mpl-dia-wrap">';
+  h+='<div class="fg"><label id="mpl-dia-lbl">Dia do pagamento</label><input class="fi" type="number" id="mpl-pgdia" min="1" max="31" value="'+(pl.pgDia||30)+'" placeholder="Ex: 25"/></div>';
+  h+='</div>';
+  h+='<div id="mpl-per-wrap" style="display:none">';
+  h+='<div class="fr"><div class="fg"><label>Dia início do período</label><input class="fi" type="number" id="mpl-per-ini" min="1" max="31" value="'+(pl.perIni||25)+'" placeholder="Ex: 25"/></div>';
+  h+='<div class="fg"><label>Dia fim do período</label><input class="fi" type="number" id="mpl-per-fim" min="1" max="31" value="'+(pl.perFim||24)+'" placeholder="Ex: 24"/></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Ex: dia 25 ao dia 24 do mês seguinte</div>';
+  h+='</div>';
   h+='<div class="fg"><label>Alertar X dias antes</label><input class="fi" type="number" id="mpl-alerta" min="0" max="30" value="'+(pl.pgAlerta||3)+'" placeholder="3"/></div>';
   h+='<div style="padding:8px;background:#fef3c7;border-radius:8px;font-size:12px;color:#92400e;margin-top:4px">';
   h+='💡 O app vai gerar um alerta quando o pagamento estiver chegando e cobrar confirmação após a data passar.</div>';
@@ -3543,24 +3743,51 @@ function mPlano(pid){
   abrirM(h);
   togglePgDia();
 }
-function togglePgDia(){
-  var sel=el('mpl-pgmes');var wrap=el('mpl-dia-wrap');var lbl=el('mpl-dia-lbl');
-  if(!sel||!wrap)return;
-  if(sel.value==='dias'){lbl.textContent='Quantidade de dias';wrap.style.display='block';}
-  else if(sel.value==='mesmo'||sel.value==='seguinte'){lbl.textContent='Dia do mês';wrap.style.display='block';}
+
+function setCorPlano(cor){
+  var inp=el('mpl-cor');if(inp)inp.value=cor;
+  // Atualizar visual dos botões
+  ['1e6b3f','1d4ed8','7c3aed','dc2626','d97706','db2777','0891b2','059669'].forEach(function(c){
+    var b=el('cpl-'+c);
+    if(b){b.style.border='3px solid '+(cor==='#'+c?'#fff':'transparent');b.style.outline=cor==='#'+c?'3px solid #'+c:'none';}
+  });
 }
+
+function togglePgDia(){
+  var sel=el('mpl-pgmes');var wrap=el('mpl-dia-wrap');var lbl=el('mpl-dia-lbl');var perWrap=el('mpl-per-wrap');
+  if(!sel||!wrap)return;
+  if(sel.value==='personalizado'){
+    wrap.style.display='none';
+    if(perWrap)perWrap.style.display='block';
+  } else if(sel.value==='mensal'){
+    wrap.style.display='none';
+    if(perWrap)perWrap.style.display='none';
+  } else {
+    if(perWrap)perWrap.style.display='none';
+    wrap.style.display='block';
+    if(sel.value==='dias')lbl.textContent='Quantidade de dias';
+    else lbl.textContent='Dia do mês';
+  }
+}
+
 function salvarPlano(){
   var pid=el('mpl-id').value;var nome=el('mpl-nome').value.trim();
   var valor=parseFloat(el('mpl-val').value)||0;
-  if(!nome){toast('Nome obrigatorio');return;}
+  if(!nome){toast('Nome obrigatório');return;}
   var pgMes=el('mpl-pgmes')?el('mpl-pgmes').value:'mesmo';
   var pgDia=parseInt(el('mpl-pgdia')?el('mpl-pgdia').value:30)||30;
   var pgAlerta=parseInt(el('mpl-alerta')?el('mpl-alerta').value:3)||3;
+  var cor=el('mpl-cor')?el('mpl-cor').value:'#1e6b3f';
+  var mp=el('mpl-mesmo')&&el('mpl-mesmo').checked;
+  var perIni=parseInt(el('mpl-per-ini')?el('mpl-per-ini').value:25)||25;
+  var perFim=parseInt(el('mpl-per-fim')?el('mpl-per-fim').value:24)||24;
+  var obj={nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta,cor:cor,mesmoPagador:mp,perIni:perIni,perFim:perFim};
   if(pid){
     var pl=D.planos.find(function(x){return x.id===pid;});
-    if(pl){pl.nome=nome;pl.valor=valor;pl.pgMes=pgMes;pl.pgDia=pgDia;pl.pgAlerta=pgAlerta;}
+    if(pl)Object.assign(pl,obj);
   } else {
-    D.planos.push({id:uid(),nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta});
+    obj.id=uid();
+    D.planos.push(obj);
   }
   salvar();fecharM();ir('mais');toast('Plano salvo!');
 }
@@ -3904,22 +4131,45 @@ function gerarNotificacoes(){
     }
   });
 
-  // 2. Pagamentos em atraso (avisar a cada 2 dias)
+  // 2. Pagamentos — notificar apenas no dia configurado do plano
   var chaveUlt='fe_notif_pag_ult';
   var ultPag=parseInt(localStorage.getItem(chaveUlt)||'0');
   var diasDesdeUlt=Math.floor((agora-ultPag)/(24*60*60*1000));
   if(diasDesdeUlt>=2||ultPag===0){
     localStorage.setItem(chaveUlt,String(agora));
+    // Agrupar sessões pendentes por plano e mês
+    var gruposPag={};
     D.sessoes.filter(function(s){
-      return s.statusPag==='pendente'&&s.status==='realizado'&&(s.valor||0)>0&&s.data<hj;
+      return(s.statusPag==='pendente'||s.statusPag==='parcial')&&s.status==='realizado'&&(s.valor||0)>0;
     }).forEach(function(s){
       var pl=D.planos.find(function(x){return x.id===s.planoId;});
-      var dtPrev=s.dataPrevista||s.data;
-      if(dtPrev<hj){
-        addNotif('pag_'+s.id,'pag',
-          'Pagamento em atraso — '+esc(nomePac(s.pacienteId)),
-          'R$ '+(s.valor||0).toFixed(2)+' · Venceu em '+fmtD(dtPrev)+(pl?' ('+pl.nome+')':'')+'. Marque como recebido quando pagar.');
-      }
+      if(!pl)return;
+      var dSess=new Date(s.data+'T12:00:00');
+      var mesRef=dSess.getFullYear()+'-'+(dSess.getMonth()<9?'0':'')+(dSess.getMonth()+1);
+      var chave=pl.id+'|'+mesRef;
+      if(!gruposPag[chave])gruposPag[chave]={pl:pl,mesRef:mesRef,sessoes:[],total:0};
+      gruposPag[chave].sessoes.push(s);
+      gruposPag[chave].total+=(s.valor||0);
+    });
+    // Verificar se chegou o dia de notificar cada grupo
+    Object.values(gruposPag).forEach(function(g){
+      var pl=g.pl;
+      var mesAno=g.mesRef.split('-');
+      var anoRef=parseInt(mesAno[0]);var mesIdx=parseInt(mesAno[1])-1;
+      // Calcular data prevista de pagamento
+      var dtBase=new Date(anoRef,mesIdx,pl.pgDia||30);
+      if(pl.pgMes==='seguinte'){dtBase=new Date(anoRef,mesIdx+1,pl.pgDia||30);}
+      else if(pl.pgMes==='dias'){dtBase=new Date(anoRef,mesIdx,1);dtBase.setDate(dtBase.getDate()+(pl.pgDia||30));}
+      var dtPrevStr=dtBase.getFullYear()+'-'+(dtBase.getMonth()<9?'0':'')+(dtBase.getMonth()+1)+'-'+(dtBase.getDate()<10?'0':''+dtBase.getDate());
+      var alerta=pl.pgAlerta||3;
+      var diasAteVenc=Math.ceil((dtBase-new Date(hj+'T12:00:00'))/(864e5));
+      // Só notifica se chegou no dia ou está dentro do período de alerta ou já venceu
+      if(diasAteVenc>alerta)return;
+      var nPacs=pl.mesmoPagador?'Todos os pacientes':g.sessoes.length+' sessão(ões)';
+      var status=diasAteVenc<0?'Vencido há '+(Math.abs(diasAteVenc))+' dia(s)':diasAteVenc===0?'Vence hoje':'Vence em '+diasAteVenc+' dia(s)';
+      var msg=pl.nome+' — '+g.mesRef.split('-').reverse().join('/')+': R$'+g.total.toFixed(2);
+      var extra=status+' · '+nPacs+(pl.mesmoPagador?' (mesmo pagador)':'');
+      addNotif('pag_'+pl.id+'_'+g.mesRef,'pag',msg,extra);
     });
   }
 
