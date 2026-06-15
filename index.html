@@ -161,6 +161,10 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 @media(max-width:767px){
   #agenda-sidebar{display:none !important;}
 }
+
+#sino-btn{position:relative;background:none;border:none;cursor:pointer;color:#fff;padding:4px 8px;font-size:20px;display:flex;align-items:center;}
+#sino-badge{position:absolute;top:-2px;right:0;background:#ef4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:800;min-width:16px;text-align:center;display:none;}
+#sino-painel{position:fixed;top:60px;right:8px;width:320px;max-width:calc(100vw - 16px);background:var(--card);border:1px solid var(--borda);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:200;display:none;max-height:70vh;overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -168,6 +172,7 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
   <div id="topo">
     <div id="topo-logo"><img src="data:image/png;base64,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" style="height:44px;width:auto;object-fit:contain" alt="FisioEvolucao"/></div>
     <button id="btn-vol" onclick="btnVolAcao()"></button>
+    <button id="sino-btn" onclick="toggleSino()" title="Notificações">🔔<span id="sino-badge"></span></button>
   </div>
   <div id="conteudo"></div>
   <nav id="nav">
@@ -218,12 +223,19 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 </div>
 </div>
 </div>
-<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center" onclick="fecharM()">
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center" onclick="fecharM();fecharSino()">
   <div class="modal" onclick="event.stopPropagation()">
     <div id="mbody"></div>
   </div>
 </div>
 <div id="toast"></div>
+<div id="sino-painel">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--borda)">
+    <div style="font-size:14px;font-weight:800">🔔 Notificações</div>
+    <button class="btn btn-s btn-sm" onclick="limparTodasNotif()">Limpar todas</button>
+  </div>
+  <div id="sino-lista" style="padding:8px"></div>
+</div>
 <div id="legenda-adf"><span style="color:#16a34a">A = Atendido</span><span style="color:#6b7280">D = Desmarcado</span><span style="color:#dc2626">F = Falta Prof.</span></div>
 <script>
 var D = {
@@ -448,10 +460,12 @@ function toast(m,d){var t=el('toast');t.textContent=m;t.classList.add('on');clea
 function dowN(ds){var d=new Date(ds+'T12:00:00');return['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];}
 function getHoras(){var h=[];for(var i=(D.cfg.horaIni||7);i<=(D.cfg.horaFim||20);i++)h.push((i<10?'0':'')+i+':00');return h;}
 function mData(e2){
-  var v=e2.value.replace(/[^0-9]/g,'').slice(0,8);
-  var f=v;
-  if(v.length>4)f=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
-  else if(v.length>2)f=v.slice(0,2)+'/'+v.slice(2);
+  var pos=e2.selectionStart;
+  var raw=e2.value.replace(/[^0-9]/g,'');
+  if(raw.length>8)raw=raw.slice(0,8);
+  var f=raw;
+  if(raw.length>4)f=raw.slice(0,2)+'/'+raw.slice(2,4)+'/'+raw.slice(4);
+  else if(raw.length>2)f=raw.slice(0,2)+'/'+raw.slice(2);
   e2.value=f;
 }
 function mascaraPA(inp){
@@ -466,10 +480,14 @@ function mascaraPA(inp){
   inp.value=sys+' x '+dia;
 }
 function mTel(e2){
-  var v=e2.value.replace(/\\D/g,'');
-  if(v.length<=10)v=v.replace(/(\\d{2})(\\d{4})(\\d{0,4})/,'($1) $2-$3');
-  else v=v.replace(/(\\d{2})(\\d{5})(\\d{0,4})/,'($1) $2-$3');
-  e2.value=v.trim().replace(/-$/,'').slice(0,15);
+  var v=e2.value.replace(/[^0-9]/g,'').slice(0,11);
+  var f=v;
+  if(v.length===0){e2.value='';return;}
+  if(v.length<=2)f='('+v;
+  else if(v.length<=6)f='('+v.slice(0,2)+') '+v.slice(2);
+  else if(v.length<=10)f='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
+  else f='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
+  e2.value=f;
 }
 function atualizarBadge(){
   var bdg=el('bdg-evo');if(!bdg)return;
@@ -498,6 +516,7 @@ function boot(){
   iniciarFeriadosNacionais();
   localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
   atualizarBadge();
+  setTimeout(gerarNotificacoes,2000);
   if(!D.cfg.termosAceitos){mostrarTermos();return;}
   verificarInicioMes();
   if(D.cfg.pinAtivo&&getPin())mostrarPin('ver');else ir('inicio');
@@ -528,7 +547,19 @@ function renderizar(){
   c.appendChild(div);
 }
 function abrirM(html){el('mbody').innerHTML=html;el('ov').style.display='flex';}
-function fecharM(){el('ov').style.display='none';el('mbody').innerHTML='';}
+function fecharM(forcar){
+  if(!forcar){
+    var temEvo=el('me-txt')&&el('me-txt').value.trim();
+    var temAn=el('an-queixa')&&el('an-queixa').value.trim();
+    if(temEvo||temAn){
+      if(!confirm('Deseja salvar as alterações antes de sair?\n\nClique em OK para voltar e salvar, ou Cancelar para sair sem salvar.')){
+        el('ov').style.display='none';el('mbody').innerHTML='';
+      }
+      return;
+    }
+  }
+  el('ov').style.display='none';el('mbody').innerHTML='';
+}
 
 // ── INÍCIO ───────────────────────────────────────────────────────
 function rInicio(el2){
@@ -1164,6 +1195,7 @@ function mPaciente(pac){
   h+='<div class="fg"><label>Celular</label><input class="fi" type="tel" id="mp-cel" value="'+esc(p.celular||'')+'" placeholder="(00) 00000-0000" maxlength="15" oninput="mTel(this)"/></div></div>';
   h+='</div>';
   h+='<div class="fsec"><div class="fsec-t">Endereço (opcional)</div>';
+  h+='<div class="fg"><label>Rua</label><input class="fi" type="text" id="mp-rua" value="'+esc(p.rua||'')+'" placeholder="Ex: Rua das Flores"/></div>';
   h+='<div class="fr3"><div class="fg"><label>Cidade</label><input class="fi" type="text" id="mp-cidade" value="'+esc(p.cidade||'')+'"/></div>';
   h+='<div class="fg"><label>Bairro</label><input class="fi" type="text" id="mp-bairro" value="'+esc(p.bairro||'')+'"/></div>';
   h+='<div class="fg"><label>Número</label><input class="fi" type="text" id="mp-numero" value="'+esc(p.numero||'')+'"/></div></div></div>';
@@ -1193,7 +1225,7 @@ function salvarPaciente(){
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
   var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
   var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
-  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,foto:el('mp-foto').value,cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
+  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,foto:el('mp-foto').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
@@ -1669,11 +1701,15 @@ function salvarEvo(){
   salvar();atualizarBadge();
   var hpop='<div style="text-align:center;padding:24px">';
   hpop+='<div style="font-size:48px;margin-bottom:10px">✅</div>';
-  hpop+='<div style="font-size:18px;font-weight:800;margin-bottom:6px">Evolucao salva!</div>';
-  hpop+='<div style="font-size:13px;color:var(--sl3);margin-bottom:20px">O que deseja fazer?</div>';
+  hpop+='<div style="font-size:18px;font-weight:800;margin-bottom:6px">Evolução salva!</div>';
+  hpop+='<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:16px;text-align:left">';
+  hpop+='<div style="font-size:13px;font-weight:800;color:#92400e;margin-bottom:4px">⚠️ Atenção!</div>';
+  hpop+='<div style="font-size:12px;color:#92400e;line-height:1.6">Após concluir a evolução, você terá no máximo <strong>24 horas</strong> para editá-la novamente, caso necessário.</div>';
+  hpop+='</div>';
+  hpop+='<div style="font-size:13px;color:var(--sl3);margin-bottom:16px">O que deseja fazer?</div>';
   hpop+='<div style="display:flex;gap:10px;justify-content:center">';
-  hpop+='<button class="btn btn-s btn-sm" onclick="fecharM();voltarPac()">Sair</button>';
-  hpop+='<button class="btn btn-p btn-sm" onclick="fecharM();renderizar()">Voltar ao perfil</button>';
+  hpop+='<button class="btn btn-s btn-sm" onclick="fecharM(true);voltarPac()">Sair</button>';
+  hpop+='<button class="btn btn-p btn-sm" onclick="fecharM(true);renderizar()">Voltar ao perfil</button>';
   hpop+='</div></div>';
   el('mbody').innerHTML=hpop;
 }
@@ -1714,6 +1750,8 @@ function rEvolucoes(el2){
   var hj=hoje();
   var semIni=new Date();semIni.setDate(semIni.getDate()-semIni.getDay());
   var sem0=semIni.getFullYear()+'-'+(semIni.getMonth()<9?'0':'')+(semIni.getMonth()+1)+'-'+(semIni.getDate()<10?'0':'')+semIni.getDate();
+  var anoAtras=new Date();anoAtras.setFullYear(anoAtras.getFullYear()-1);
+  var anoAtrasStr=anoAtras.getFullYear()+'-'+(anoAtras.getMonth()<9?'0':'')+(anoAtras.getMonth()+1)+'-01';
   var mes0=hj.slice(0,7)+'-01';
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:12px">Evoluções Clínicas</div>';
   h+='<input class="fi" style="margin-bottom:8px" placeholder="Buscar paciente..." id="busca-evo" oninput="filtrarEvo()"/>';
@@ -1725,7 +1763,7 @@ function rEvolucoes(el2){
   h+='<button class="btn btn-sm btn-s" id="evo-ft-per" onclick="setFiltroEvo(\'per\')">Personalizado</button>';
   h+='</div>';
   h+='<div id="evo-per-wrap" style="display:none;margin-bottom:10px"><div class="fr">';
-  h+='<div class="fg"><label>De</label><input class="fi" type="date" id="evo-dt-ini" value="'+mes0+'"/></div>';
+  h+='<div class="fg"><label>De</label><input class="fi" type="date" id="evo-dt-ini" value="'+mes0+'" min="'+anoAtrasStr+'"/></div>';
   h+='<div class="fg"><label>Até</label><input class="fi" type="date" id="evo-dt-fim" value="'+hj+'"/></div>';
   h+='</div><button class="btn btn-p btn-sm" onclick="filtrarEvo()">Filtrar</button></div>';
   h+='<input type="hidden" id="evo-ft-ativo" value="hj"/>';
@@ -1765,7 +1803,7 @@ function filtrarEvo(){
   D.pacientes.forEach(function(p){
     if(q&&!(p.nome||'').toLowerCase().includes(q))return;
     (p.evolucoes||[]).forEach(function(e){
-      var dt=new Date(e.ts||0).toISOString().slice(0,10);
+      var dt=e.dataEvo||new Date(e.ts||0).toISOString().slice(0,10);
       if(dt>=dtIni&&dt<=dtFim)evos.push({pac:p,evo:e,dt:dt});
     });
   });
@@ -2915,10 +2953,21 @@ function editarAnamnese(pid){
   var forca=an.forca||[{mov:'',dir:'',esq:''}];
   var adm=an.adm||[{art:'',dir:'',esq:''}];
 
+  var dataAval=an.dataAvaliacao||hoje();
   var h='<div class="mh"><h3>Anamnese — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>Data da avaliação</label><input class="fi" type="date" id="an-data" value="'+esc(dataAval)+'"/></div>';
 
   // Bloco 1 — Identificação
   h+='<div class="fsec"><div class="fsec-t">Identificação</div>';
+  var consciente=an.consciente!==false;
+  h+='<div class="fg"><label>Paciente consciente?</label><div style="display:flex;gap:10px;margin-top:4px">';
+  h+='<button type="button" id="an-cons-sim" class="btn btn-sm '+( consciente?'btn-p':'btn-s')+'" onclick="toggleConsciente(true)">✅ Sim</button>';
+  h+='<button type="button" id="an-cons-nao" class="btn btn-sm '+(!consciente?'btn-p':'btn-s')+'" onclick="toggleConsciente(false)">❌ Não</button>';
+  h+='</div></div>';
+  h+='<div id="an-resp-wrap" style="display:'+(!consciente?'block':'none')+'">';
+  h+='<div class="fr"><div class="fg"><label>Nome do responsável</label><input class="fi" type="text" id="an-resp-nome" value="'+esc(an.respNome||'')+'" placeholder="Nome completo"/></div>';
+  h+='<div class="fg"><label>Grau de parentesco</label><input class="fi" type="text" id="an-resp-par" value="'+esc(an.respParentesco||'')+'" placeholder="Ex: Filha, Esposo..."/></div></div>';
+  h+='</div>';
   h+='<div class="fg"><label>Diagnóstico Clínico / Médico Responsável</label><textarea class="fi" id="an-diagmedico" rows="2">'+esc(an.diagMedico||'')+'</textarea></div>';
   h+='</div>';
 
@@ -2968,8 +3017,8 @@ function editarAnamnese(pid){
   h+='</div>';
   h+='<div class="fg"><label>Atividade Física</label><input class="fi" id="an-atfis" value="'+esc(an.atividadeFisica||'')+'" placeholder="Descreva a atividade física habitual..."/></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">';
-  [{id:'an-fc',lbl:'FC (bpm)',v:an.fc},{id:'an-sat',lbl:'SatO2 (%)',v:an.sat},{id:'an-pa',lbl:'PA (mmHg)',v:an.pa},{id:'an-fr',lbl:'FR (rpm)',v:an.fr}].forEach(function(sv){
-    h+='<div class="fg" style="margin:0"><label style="font-size:11px">'+sv.lbl+'</label><input class="fi" style="padding:6px" id="'+sv.id+'" value="'+esc(sv.v||'')+'" placeholder="—"/></div>';
+  [{id:'an-fc',lbl:'FC (bpm)',v:an.fc},{id:'an-sat',lbl:'SatO2 (%)',v:an.sat},{id:'an-pa',lbl:'PA (mmHg)',v:an.pa,mask:true},{id:'an-fr',lbl:'FR (rpm)',v:an.fr}].forEach(function(sv){
+    h+='<div class="fg" style="margin:0"><label style="font-size:11px">'+sv.lbl+'</label><input class="fi" style="padding:6px" id="'+sv.id+'" value="'+esc(sv.v||'')+'" placeholder="—"'+(sv.mask?' oninput="mascaraPA(this)" maxlength="9"':'')+'/></div>';
   });
   h+='</div>';
   h+='<div class="fg"><label>Inspeção e Palpação</label><textarea class="fi" id="an-insp" rows="2">'+esc(an.inspecao||'')+'</textarea></div>';
@@ -3004,7 +3053,7 @@ function editarAnamnese(pid){
 
   // Coordenação
   h+='<div class="fsec"><div class="fsec-t">Coordenação Motora</div>';
-  var coordOps=['Preservada','Lenta','Ausente'];
+  var coordOps=['','Preservada','Lenta','Ausente','Não se aplica'];
   h+='<div class="fg"><label>Índex Dedo-Nariz</label><select class="fi" id="an-cdn">';
   coordOps.forEach(function(o){h+='<option value="'+o+'"'+(an.coordDN===o?' selected':'')+'>'+o+'</option>';});
   h+='</select></div>';
@@ -3015,12 +3064,13 @@ function editarAnamnese(pid){
   // Bloco 5 — Testes
   h+='<div class="fsec"><div class="fsec-t">Testes Específicos</div>';
   h+='<div class="fg"><label>Teste de Romberg</label><select class="fi" id="an-romberg">';
-  ['','Dinâmico — Normal','Estático — Normal','Dinâmico — Alterado','Estático — Alterado','Ambos Alterados'].forEach(function(o){
+  ['','Dinâmico — Normal','Estático — Normal','Dinâmico — Alterado','Estático — Alterado','Ambos Alterados','Não se aplica'].forEach(function(o){
     h+='<option value="'+o+'"'+(an.romberg===o?' selected':'')+'>'+o+'</option>';
   });
   h+='</select></div>';
   h+='<div class="fg"><label>Sentar e Levantar (repetições)</label>';
-  h+='<input class="fi" type="number" id="an-sl" min="0" max="50" value="'+(an.sentarLevantar||'')+'" placeholder="Nº de repetições"/>';
+  h+='<div style="display:flex;gap:8px"><input class="fi" type="number" id="an-sl" min="0" max="50" value="'+(an.sentarLevantar||'')+'" placeholder="Nº de repetições" style="flex:1"/>';
+  h+='<button type="button" class="btn btn-s btn-sm" style="white-space:nowrap" onclick="var i=el(\'an-sl\');if(i){i.value=\'\';i.placeholder=\'Não se aplica\';}">N/A</button></div>';
   h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">Ref: 60-64a ♀12-17 ♂14-19 | 65-69a ♀11-16 ♂12-18 | 70-74a ♀10-15 ♂12-17 | 75-79a ♀10-15 ♂11-17 | 80-84a ♀9-14 ♂10-15</div>';
   h+='</div></div>';
 
@@ -3029,6 +3079,13 @@ function editarAnamnese(pid){
   abrirM(h);
 }
 
+
+function toggleConsciente(sim){
+  var btnSim=el('an-cons-sim');var btnNao=el('an-cons-nao');var wrap=el('an-resp-wrap');
+  if(btnSim)btnSim.className='btn btn-sm '+(sim?'btn-p':'btn-s');
+  if(btnNao)btnNao.className='btn btn-sm '+(sim?'btn-s':'btn-p');
+  if(wrap)wrap.style.display=sim?'none':'block';
+}
 function addAnMed(){
   var wrap=el('an-meds-wrap');if(!wrap)return;
   var i=wrap.children.length;
@@ -3095,6 +3152,9 @@ function salvarAnamnese(){
     i++;
   }
   p.anamnese={
+    consciente:el('an-cons-sim')?el('an-cons-sim').classList.contains('btn-p'):true,
+    respNome:el('an-resp-nome')?el('an-resp-nome').value:'',
+    respParentesco:el('an-resp-par')?el('an-resp-par').value:'',
     diagMedico:el('an-diagmedico')?el('an-diagmedico').value:'',
     queixa:el('an-queixa')?el('an-queixa').value:'',
     hma:el('an-hma')?el('an-hma').value:'',
@@ -3115,7 +3175,8 @@ function salvarAnamnese(){
     coordCJ:el('an-ccj')?el('an-ccj').value:'',
     romberg:el('an-romberg')?el('an-romberg').value:'',
     sentarLevantar:el('an-sl')?parseInt(el('an-sl').value)||0:0,
-    dt:new Date().toISOString()
+    dt:new Date().toISOString(),
+    dataAvaliacao:el('an-data')?el('an-data').value:hoje()
   };
   // Registrar no histórico de alterações
   registrarHistoricoAlteracao('Anamnese atualizada — '+p.nome);
@@ -3238,7 +3299,8 @@ function salvarPlanoTrat(){
     objetivo:el('pt-obj')?el('pt-obj').value.trim():'',
     metas:el('pt-metas')?el('pt-metas').value.trim():'',
     plano:el('pt-plano')?el('pt-plano').value.trim():'',
-    dt:new Date().toISOString()
+    dt:new Date().toISOString(),
+    dataAvaliacao:el('an-data')?el('an-data').value:hoje()
   };
   salvar();fecharM();PAC_ABA='avaliacoes';renderizar();toast('Plano de tratamento salvo!');
 }
@@ -3734,6 +3796,146 @@ function confirmarAgendaMes(){
   });
   salvar();fecharM();renderizar();
   toast(criadas?criadas+' sessões agendadas para este mês!':'Nenhuma sessão agendada.');
+}
+
+
+// ── Sistema de Notificações (Sino) ───────────────────────────────
+var _sinoAberto=false;
+
+function toggleSino(){
+  _sinoAberto=!_sinoAberto;
+  var p=el('sino-painel');
+  if(p)p.style.display=_sinoAberto?'block':'none';
+  if(_sinoAberto)renderSino();
+}
+
+function fecharSino(){
+  _sinoAberto=false;
+  var p=el('sino-painel');if(p)p.style.display='none';
+}
+
+function getNotifs(){
+  try{return JSON.parse(localStorage.getItem('fe_notifs')||'[]');}catch(e){return[];}
+}
+
+function saveNotifs(notifs){
+  try{localStorage.setItem('fe_notifs',JSON.stringify(notifs));}catch(e){}
+}
+
+function addNotif(id,tipo,msg,extra){
+  var notifs=getNotifs();
+  // Evitar duplicata por ID
+  if(notifs.find(function(n){return n.id===id;}))return;
+  notifs.unshift({id:id,tipo:tipo,msg:msg,extra:extra||'',ts:Date.now(),lida:false});
+  if(notifs.length>50)notifs=notifs.slice(0,50);
+  saveNotifs(notifs);
+  atualizarBadgeSino();
+}
+
+function delNotif(id){
+  var notifs=getNotifs().filter(function(n){return n.id!==id;});
+  saveNotifs(notifs);
+  renderSino();atualizarBadgeSino();
+}
+
+function limparTodasNotif(){
+  saveNotifs([]);renderSino();atualizarBadgeSino();
+}
+
+function atualizarBadgeSino(){
+  var badge=el('sino-badge');if(!badge)return;
+  var n=getNotifs().filter(function(n){return!n.lida;}).length;
+  badge.style.display=n>0?'flex':'none';
+  badge.textContent=n>9?'9+':String(n);
+}
+
+function renderSino(){
+  var lista=el('sino-lista');if(!lista)return;
+  var notifs=getNotifs();
+  // Limpar notifs com mais de 7 dias (exceto pagamentos)
+  var agora=Date.now();
+  notifs=notifs.filter(function(n){
+    if(n.tipo==='pag')return true; // pagamentos só somem quando marcado
+    return(agora-n.ts)<7*24*60*60*1000;
+  });
+  saveNotifs(notifs);
+  if(!notifs.length){lista.innerHTML='<div style="text-align:center;padding:30px;color:var(--sl3);font-size:13px">Nenhuma notificação</div>';return;}
+  var h='';
+  var icons={evo:'📝',pag:'💰',agenda:'📅'};
+  notifs.forEach(function(n){
+    h+='<div style="display:flex;gap:10px;padding:10px;border-bottom:1px solid var(--borda);align-items:flex-start;background:'+(n.lida?'transparent':'var(--g4)')+';border-radius:8px;margin-bottom:4px">';
+    h+='<div style="font-size:20px;flex-shrink:0">'+(icons[n.tipo]||'🔔')+'</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(n.msg)+'</div>';
+    if(n.extra)h+='<div style="font-size:11px;color:var(--sl3);margin-top:2px">'+esc(n.extra)+'</div>';
+    h+='<div style="font-size:10px;color:var(--sl3);margin-top:3px">'+new Date(n.ts).toLocaleDateString('pt-BR')+' '+new Date(n.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+    if(n.tipo==='pag'){
+      h+='<button class="btn btn-p btn-sm" style="flex-shrink:0;font-size:11px" data-nid="'+n.id+'" onclick="marcarPagoNotif(this.dataset.nid)">Pago</button>';
+    }
+    h+='<button style="background:none;border:none;color:var(--sl3);cursor:pointer;font-size:16px;flex-shrink:0;padding:0 4px" data-nid="'+n.id+'" onclick="delNotif(this.dataset.nid)">✕</button>';
+    h+='</div>';
+  });
+  lista.innerHTML=h;
+  // Marcar todas como lidas ao abrir
+  notifs.forEach(function(n){n.lida=true;});
+  saveNotifs(notifs);
+  atualizarBadgeSino();
+}
+
+function marcarPagoNotif(nid){
+  delNotif(nid);toast('Marcado como recebido!');
+}
+
+function gerarNotificacoes(){
+  var hj=hoje();
+  var agora=Date.now();
+
+  // 1. Evoluções pendentes
+  D.pacientes.forEach(function(p){
+    var sessRealizadas=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;});
+    var evos=(p.evolucoes||[]).length;
+    var pendentes=sessRealizadas.length-evos;
+    if(pendentes>0){
+      // Pegar datas dos atendimentos sem evolução
+      var datas=sessRealizadas.slice(evos).map(function(s){return fmtD(s.data);});
+      var dtLabel=datas.length===1?datas[0]:datas.slice(0,2).join(', ')+(datas.length>2?' e mais '+(datas.length-2):'');
+      addNotif('evo_'+p.id+'_'+sessRealizadas.length,'evo',
+        'Evolução pendente — '+esc(p.nome),
+        'Atendimento de '+dtLabel+' sem evolução registrada. Faça a evolução para se manter em dia.');
+    }
+  });
+
+  // 2. Pagamentos em atraso (avisar a cada 2 dias)
+  var chaveUlt='fe_notif_pag_ult';
+  var ultPag=parseInt(localStorage.getItem(chaveUlt)||'0');
+  var diasDesdeUlt=Math.floor((agora-ultPag)/(24*60*60*1000));
+  if(diasDesdeUlt>=2||ultPag===0){
+    localStorage.setItem(chaveUlt,String(agora));
+    D.sessoes.filter(function(s){
+      return s.statusPag==='pendente'&&s.status==='realizado'&&(s.valor||0)>0&&s.data<hj;
+    }).forEach(function(s){
+      var pl=D.planos.find(function(x){return x.id===s.planoId;});
+      var dtPrev=s.dataPrevista||s.data;
+      if(dtPrev<hj){
+        addNotif('pag_'+s.id,'pag',
+          'Pagamento em atraso — '+esc(nomePac(s.pacienteId)),
+          'R$ '+(s.valor||0).toFixed(2)+' · Venceu em '+fmtD(dtPrev)+(pl?' ('+pl.nome+')':'')+'. Marque como recebido quando pagar.');
+      }
+    });
+  }
+
+  // 3. Início do mês - atualização de agenda
+  var diaAtual=new Date(hj+'T12:00:00').getDate();
+  if(diaAtual<=5){
+    var chaveAgenda='fe_notif_agenda_'+hj.slice(0,7);
+    if(!localStorage.getItem(chaveAgenda)){
+      localStorage.setItem(chaveAgenda,'1');
+      addNotif('agenda_'+hj.slice(0,7),'agenda',
+        'Atualização de agenda recomendada!',
+        'Deseja repetir a agenda do mês anterior? Acesse o app e confirme.');
+    }
+  }
+
+  atualizarBadgeSino();
 }
 
 
