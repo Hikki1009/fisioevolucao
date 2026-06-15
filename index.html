@@ -241,7 +241,7 @@ var D = {
 // ── Persistência ──────────────────────────────────────────────────
 function salvar(){
   ['pacientes','sessoes','feriados','planos','tipos','cfg','notas'].forEach(function(k){try{localStorage.setItem('fe_'+k,JSON.stringify(D[k]));}catch(e){}});
-  salvarHistorico();
+  salvarHistórico();
   _dadosSujos = false;
   if(FBU&&FBD) fbSync();
 }
@@ -510,6 +510,7 @@ function boot(){
   atualizarBadge();
   setTimeout(gerarNotificacoes,2000);
   if(!D.cfg.termosAceitos){mostrarTermos();return;}
+  if(!D.cfg.crefito){setTimeout(function(){mCrefito();},1500);}
   verificarInicioMes();
   if(D.cfg.pinAtivo&&getPin())mostrarPin('ver');else ir('inicio');
 }
@@ -846,7 +847,7 @@ function sessClick(btn){
 function statusRapido(sid,status){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
   s.status=status;
-  registrarHistoricoAlteracao('Status: '+nomePac(s.pacienteId)+' -> '+status);
+  registrarHistóricoAlteracao('Status: '+nomePac(s.pacienteId)+' -> '+status);
   salvar();fecharM();renderizar();toast('Status: '+status+'!');
 }
 
@@ -863,7 +864,7 @@ function mSessao(s,ds,hr){
   var h='<div class="mh"><h3>'+(nova?'Nova':'Editar')+' Sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="ms-id" value="'+esc(s.id)+'"/>';
   h+='<div class="fg"><label>Tipo de atendimento</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
-  D.tipos.forEach(function(t){var sel=t.id===s.tipoId;h+='<button data-tid="'+esc(t.id)+'" onclick="selTipo(this)" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid '+(sel?t.cor:'transparent')+';background:'+t.cor+'18;color:'+t.cor+'" id="tbtn-'+esc(t.id)+'">'+esc(t.nome)+'</button>';});
+  D.tipos.forEach(function(t){var sel=t.id===s.tipoId;h+='<button data-tid="'+esc(t.id)+'" onclick="selTipo(this,event)" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid '+(sel?t.cor:'transparent')+';background:'+t.cor+(sel?'40':'18')+';color:'+t.cor+'" id="tbtn-'+esc(t.id)+'">'+esc(t.nome)+'</button>';});
   h+='<input type="hidden" id="ms-tipo" value="'+esc(s.tipoId)+'"/></div></div>';
   h+='<div id="ms-pac-norm" style="display:'+(isC?'none':'block')+'"><div class="fg"><label>Paciente</label><select class="fi" id="ms-pac">'+opsPac+'</select></div></div>';
   var qtdC=(s.pacientesClinica&&s.pacientesClinica.length>0)?s.pacientesClinica.length:2;
@@ -887,7 +888,7 @@ function mSessao(s,ds,hr){
   h+='<div class="fr"><div class="fg"><label>Data</label><input class="fi" type="date" id="ms-data" value="'+esc(s.data||hoje())+'"/></div>';
   h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
   h+='<div class="fr"><div class="fg"><label>Plano</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
-  h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00" oninput="calcMulti()"/></div></div>';
+  h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00" oninput="calcMulti()" onchange="calcMulti()"/></div></div>';
   
   h+='<div class="fg"><label>Data prevista de recebimento</label><input class="fi" type="date" id="ms-dtpag" value="'+(s.dataPrevista||'')+'"/></div>';
   h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:6px">Opcional — deixe vazio para usar a regra do plano.</div>';
@@ -908,9 +909,13 @@ function mSessao(s,ds,hr){
   abrirM(h);
 }
 
-function selTipo(btn){
+function selTipo(btn,ev){
+  if(ev)ev.stopPropagation();
   var tid=btn.dataset.tid;el('ms-tipo').value=tid;
-  D.tipos.forEach(function(t){var b=el('tbtn-'+t.id);if(b)b.style.border='2px solid '+(t.id===tid?t.cor:'transparent');});
+  D.tipos.forEach(function(t){
+    var b=el('tbtn-'+t.id);
+    if(b){b.style.border='2px solid '+(t.id===tid?t.cor:'transparent');b.style.background=t.id===tid?t.cor+'40':t.cor+'18';}
+  });
   var t2=D.tipos.find(function(x){return x.id===tid;});
   var isC=!!(t2&&(t2.nome.toLowerCase().includes('clínica')||t2.nome.toLowerCase().includes('clinica')));
   var n=el('ms-pac-norm'),c2=el('ms-pac-clin');
@@ -921,16 +926,21 @@ function toggleMulti(cb){
   var w=el('ms-multi-wrap');
   if(w)w.style.display=cb.checked?'block':'none';
   if(!cb.checked){var pv=el('ms-multi-preview');if(pv)pv.style.display='none';}
-  else calcMulti();
+  else{calcMulti();}
 }
 function calcMulti(){
   var multiCb=el('ms-multi');
   if(!multiCb||!multiCb.checked)return;
   var qtdEl=el('ms-qtd-clin');var valEl=el('ms-valor');var prev=el('ms-multi-preview');
-  if(!qtdEl||!valEl||!prev)return;
+  if(!qtdEl||!prev)return;
+  // Buscar valor tanto dentro quanto fora do wrap
+  if(!valEl)valEl=el('ms-valor');
+  if(!valEl||!valEl.value){prev.style.display='none';return;}
   var qtd=parseInt(qtdEl.value)||1;var val=parseFloat(valEl.value)||0;
-  if(val>0&&qtd>1){prev.style.display='block';prev.textContent='R$ '+val.toFixed(2)+' × '+qtd+' pacientes = R$ '+(val*qtd).toFixed(2);}
-  else prev.style.display='none';
+  if(val>0&&qtd>=1){
+    prev.style.display='block';
+    prev.textContent='R$ '+val.toFixed(2)+' × '+qtd+' paciente'+(qtd>1?'s':'')+' = R$ '+(val*qtd).toFixed(2);
+  } else {prev.style.display='none';}
 }
 function atualizarClin(){
   var qtdEl=el('ms-qtd-clin');var cont=el('ms-clin-pacs');if(!qtdEl||!cont)return;
@@ -1081,13 +1091,13 @@ function rPerfil(el2){
   BtnVolCb=function(){voltarPac();};
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
   var abas=['resumo','anamnese','evo','sessoes','avaliacoes','dados'];
-  if(D.cfg.usarGrafico)abas.splice(3,0,'grafico');
+
   var abaL={resumo:'Resumo',anamnese:'Anamnese',evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',avaliacoes:'Avaliações',dados:'Dados'};
   var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
   h+='<button class="btn btn-s btn-sm" onclick="voltarPac()">← Voltar</button><div style="flex:1"></div>';
   h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Evolução</button>';
   h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
-  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistoricoEscalas(this.dataset.pid)">Historico ('+((p.escalasDin||[]).length)+')</button>';
+  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">Histórico ('+((p.escalasDin||[]).length)+')</button>';
   if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
   if(!p.inativo)h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" onclick="inativarPaciente(this.dataset.pid)">Inativar</button>';
   else h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="reativarPaciente(this.dataset.pid)">Reativar</button>';
@@ -1122,7 +1132,7 @@ function rAbaEvo(p){
     h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
     h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="mEvo(this.dataset.pid,this.dataset.eid)">Editar</button>';
     h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="delEvo(this.dataset.pid,this.dataset.eid)">Excluir</button>';
-    if(D.cfg.usarCompartilhar)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="compEvo(this.dataset.pid,this.dataset.eid)">Compartilhar</button>';
+    
     h+='</div></div>';
   });
   return h;
@@ -1172,7 +1182,7 @@ function mPaciente(pac){
   h+='<div class="fsec"><div class="fsec-t">Dados básicos</div>';
   h+='<div class="fg"><label>Nome *</label><input class="fi" type="text" id="mp-nome" value="'+esc(p.nome)+'" placeholder="Nome completo"/></div>';
   h+='<div class="fg"><label>Tipo de atendimento</label><select class="fi" id="mp-tipo">';
-  h+='<option value=""'+(!(p.tipoAtend)?' selected':'')+'>Nao definido</option>';
+  h+='<option value=""'+(!(p.tipoAtend)?' selected':'')+'>Não definido</option>';
   h+='<option value="domiciliar"'+(p.tipoAtend==='domiciliar'?' selected':'')+'>Domiciliar</option>';
   h+='<option value="clinica"'+(p.tipoAtend==='clinica'?' selected':'')+'>Clinica</option>';
   h+='<option value="consultorio"'+(p.tipoAtend==='consultorio'?' selected':'')+'>Consultorio</option>';
@@ -1192,14 +1202,14 @@ function mPaciente(pac){
   h+='<div class="fsec"><div class="fsec-t">Pacote de sessoes</div>';
   h+='<div class="fg"><label>Pacote vendido?</label><div style="display:flex;gap:8px">';
   h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-p':'btn-s')+'" id="pac-sim" onclick="togglePacote(true)">Sim</button>';
-  h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-s':'btn-p')+'" id="pac-nao" onclick="togglePacote(false)">Nao</button>';
+  h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-s':'btn-p')+'" id="pac-nao" onclick="togglePacote(false)">Não</button>';
   h+='</div></div>';
   h+='<div id="pac-wrap" style="display:'+(p.pacote?'block':'none')+'">';
   h+='<div class="fg"><label>Total de sessoes vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
   h+='<div class="fg"><label>Data de inicio</label><input class="fi" type="date" id="mp-pacote-ini" value="'+(p.pacoteIni||'')+'"/></div>';
   h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessoes realizadas sao contadas automaticamente pela agenda.</div>';
   h+='</div></div>';
-  h+='<div class="fg"><label>URL da foto</label><input class="fi" type="text" id="mp-foto" value="'+esc(p.foto||'')+'" placeholder="https://..."/></div>';
+
   if(D.cfg.usarAnamnese){h+='<div class="fsec"><div class="fsec-t">Anamnese</div>';['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){h+='<div class="fg"><label>'+{alergias:'Alergias',medicamentos:'Medicamentos',cirurgias:'Cirurgias',comorbidades:'Comorbidades',pressao:'Pressão arterial'}[k]+'</label><input class="fi" type="text" id="mp-'+k+'" value="'+esc(p[k]||'')+'"/></div>';});h+='</div>';}
   h+='<div style="display:flex;gap:8px"><button class="btn btn-p btn-bl" onclick="salvarPaciente()">Salvar</button>';
   if(p.id)h+='<button class="btn btn-d" data-pid="'+esc(p.id)+'" onclick="delPaciente(this.dataset.pid)">Excluir</button>';
@@ -1214,7 +1224,7 @@ function salvarPaciente(){
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
   var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
   var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
-  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,foto:el('mp-foto').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
+  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,celularDono:el('mp-cel-dono')?el('mp-cel-dono').value:'',celular2:el('mp-cel2')?el('mp-cel2').value:'',celular2Dono:el('mp-cel2-dono')?el('mp-cel2-dono').value:'',diagnostico:el('mp-diag').value,obs:el('mp-obs').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
@@ -1225,7 +1235,7 @@ function salvarPaciente(){
     if(!confirm('Confirmar alteração dos dados do paciente?'))return;
   }
   if(pid){if(!confirm('Confirmar alteracao dos dados?'))return;}
-  if(pid)registrarHistoricoAlteracao('Paciente editado — '+nome);
+  if(pid)registrarHistóricoAlteracao('Paciente editado — '+nome);
   salvar();fecharM();if(PAC_ID)renderizar();else renderPacs('');toast(pid?'Paciente atualizado!':'Paciente cadastrado!');
 }
 function delPaciente(pid){
@@ -1302,11 +1312,11 @@ var ESCALAS_DB={
       descricao:'Apenas 5 perguntas. Cada resposta "Sim" vale 1 ponto (0-5).',
       aplicacao:'Faca as 5 perguntas ao paciente. Cada resposta positiva soma 1 ponto.',
       campos:[
-        {tipo:'check',id:'f_fadiga',label:'Fadiga: voce se sentiu cansado na maioria dos dias?'},
+        {tipo:'check',id:'f_fadiga',label:'Fadiga: você se sentiu cansado na maioria dos dias?'},
         {tipo:'check',id:'f_resiste',label:'Resistencia: tem dificuldade em subir um lance de escadas?'},
-        {tipo:'check',id:'f_aerobio',label:'Deambulacao: tem dificuldade em caminhar um quarteirao?'},
-        {tipo:'check',id:'f_doencas',label:'Doencas: tem 5 ou mais das seguintes doencas? (HAS, DM, cancer, doenca pulmonar, IAM, IC, AVC, artrite, doenca renal)'},
-        {tipo:'check',id:'f_perda',label:'Perda de peso: perdeu mais de 5% do peso no ultimo ano?'},
+        {tipo:'check',id:'f_aerobio',label:'Deambulacao: tem dificuldade em caminhar um quarteirão?'},
+        {tipo:'check',id:'f_doencas',label:'Doenças: tem 5 ou mais das seguintes doencas? (HAS, DM, cancer, doença pulmonar, IAM, IC, AVC, artrite, doenca renal)'},
+        {tipo:'check',id:'f_perda',label:'Perda de peso: perdeu mais de 5% do peso no último ano?'},
       ],
       refs:[
         {faixa:'0',interp:'Robusto — sem fragilidade'},
@@ -1319,11 +1329,11 @@ var ESCALAS_DB={
       descricao:'Triagem de sarcopenia. Muito simples e otima para idosos. Pontuacao 0-10.',
       aplicacao:'Faca as 5 perguntas ao paciente. Cada item pontua de 0 a 2.',
       campos:[
-        {tipo:'radio3',id:'sf_forca',label:'Forca: dificuldade em levantar ou carregar 4-5 kg?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
-        {tipo:'radio3',id:'sf_assist',label:'Auxilio para caminhar: dificuldade em atravessar um comodo?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita, usa apoio ou incapaz'}]},
+        {tipo:'radio3',id:'sf_forca',label:'Força: dificuldade em levantar ou carregar 4-5 kg?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
+        {tipo:'radio3',id:'sf_assist',label:'Auxílio para caminhar: dificuldade em atravessar um comodo?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita, usa apoio ou incapaz'}]},
         {tipo:'radio3',id:'sf_levantar',label:'Levantar de cadeira: dificuldade em transferir cama/cadeira?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz sem ajuda'}]},
         {tipo:'radio3',id:'sf_escadas',label:'Escadas: dificuldade em subir 10 degraus?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
-        {tipo:'radio3',id:'sf_quedas',label:'Quedas: quantas vezes caiu no ultimo ano?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'1 a 3 quedas'},{v:2,l:'4 ou mais quedas'}]},
+        {tipo:'radio3',id:'sf_quedas',label:'Quedas: quantas vezes caiu no último ano?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'1 a 3 quedas'},{v:2,l:'4 ou mais quedas'}]},
       ],
       refs:[
         {faixa:'0-3',interp:'Sem sarcopenia'},
@@ -1337,11 +1347,11 @@ var ESCALAS_DB={
       descricao:'Bastante utilizada em hospitais. Avalia 6 fatores de risco.',
       aplicacao:'Avalie cada item e some os pontos. Aplicar na admissao e sempre que houver mudanca clinica.',
       campos:[
-        {tipo:'radio',id:'ms_hist',label:'Historico de quedas nos ultimos 3 meses',ops:[{v:0,l:'0 — Nao'},{v:25,l:'25 — Sim'}]},
-        {tipo:'radio',id:'ms_diag',label:'Diagnostico secundario',ops:[{v:0,l:'0 — Nao'},{v:15,l:'15 — Sim'}]},
-        {tipo:'radio',id:'ms_ambu',label:'Auxilio para deambulacao',ops:[{v:0,l:'0 — Nenhum/acamado/cadeira de rodas'},{v:15,l:'15 — Muletas/bengala/andador'},{v:30,l:'30 — Apoia em mobiliario'}]},
-        {tipo:'radio',id:'ms_iv',label:'Terapia intravenosa/heparina',ops:[{v:0,l:'0 — Nao'},{v:20,l:'20 — Sim'}]},
-        {tipo:'radio',id:'ms_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal/acamado/imobil'},{v:10,l:'10 — Debil'},{v:20,l:'20 — Prejudicada'}]},
+        {tipo:'radio',id:'ms_hist',label:'Histórico de quedas nos últimos 3 meses',ops:[{v:0,l:'0 — Não'},{v:25,l:'25 — Sim'}]},
+        {tipo:'radio',id:'ms_diag',label:'Diagnóstico secundário',ops:[{v:0,l:'0 — Não'},{v:15,l:'15 — Sim'}]},
+        {tipo:'radio',id:'ms_ambu',label:'Auxílio para deambulação',ops:[{v:0,l:'0 — Nenhum/acamado/cadeira de rodas'},{v:15,l:'15 — Muletas/bengala/andador'},{v:30,l:'30 — Apoia em mobiliário'}]},
+        {tipo:'radio',id:'ms_iv',label:'Terapia intravenosa/heparina',ops:[{v:0,l:'0 — Não'},{v:20,l:'20 — Sim'}]},
+        {tipo:'radio',id:'ms_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal/acamado/imobil'},{v:10,l:'10 — Débil'},{v:20,l:'20 — Prejudicada'}]},
         {tipo:'radio',id:'ms_mental',label:'Estado mental',ops:[{v:0,l:'0 — Orientado'},{v:15,l:'15 — Superestima capacidade'}]},
       ],
       refs:[
@@ -1355,9 +1365,9 @@ var ESCALAS_DB={
       descricao:'Facil aplicacao. Avalia quedas previas, medicamentos, deficits e marcha.',
       aplicacao:'Pontue cada item (0 ou 1). Pontuacao maxima = 11.',
       campos:[
-        {tipo:'check',id:'dt_queda',label:'Quedas previas'},
+        {tipo:'check',id:'dt_queda',label:'Quedas prévias'},
         {tipo:'check',id:'dt_trans',label:'Uso de tranquilizantes/sedativos'},
-        {tipo:'check',id:'dt_diur',label:'Uso de diureticos'},
+        {tipo:'check',id:'dt_diur',label:'Uso de diuréticos'},
         {tipo:'check',id:'dt_anti',label:'Uso de anti-hipertensivos'},
         {tipo:'check',id:'dt_anal',label:'Uso de analgesicos'},
         {tipo:'check',id:'dt_vision',label:'Deficit visual'},
@@ -1524,17 +1534,17 @@ var ESCALAS_DB={
       campos:[
         {tipo:'radio',id:'ef_cog',label:'Cognicao: desenhe um relogio marcando 11h10',ops:[{v:0,l:'0 — Correto'},{v:1,l:'1 — Erros minimos'},{v:2,l:'2 — Dificuldade significativa'}]},
         {tipo:'radio',id:'ef_saude',label:'Estado de saude geral',ops:[{v:0,l:'0 — Excelente/muito bom'},{v:1,l:'1 — Bom'},{v:2,l:'2 — Regular/ruim'}]},
-        {tipo:'radio',id:'ef_hosp',label:'Hospitalizacoes nos ultimos 12 meses',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_hosp',label:'Hospitalizacoes nos ultimos 12 meses',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
         {tipo:'radio',id:'ef_func',label:'Dependencia funcional (atividades instrumentais)',ops:[{v:0,l:'0 — Independente'},{v:1,l:'1 — Precisa de ajuda'}]},
         {tipo:'radio',id:'ef_social',label:'Suporte social: alguem que o ajuda quando precisa?',ops:[{v:0,l:'0 — Sempre'},{v:1,l:'1 — As vezes'},{v:2,l:'2 — Nunca'}]},
-        {tipo:'radio',id:'ef_meds',label:'Uso de 5 ou mais medicamentos diferentes',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_nutri',label:'Perdeu peso recentemente sem querer?',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_humor',label:'Humor: se sente triste ou deprimido(a) com frequencia?',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_cont',label:'Incontinencia urinaria',ops:[{v:0,l:'0 — Nao'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_meds',label:'Uso de 5 ou mais medicamentos diferentes',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_nutri',label:'Perdeu peso recentemente sem querer?',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_humor',label:'Humor: se sente triste ou deprimido(a) com frequencia?',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_cont',label:'Incontinencia urinaria',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
         {tipo:'radio',id:'ef_tug',label:'Desempenho (TUG): levantar, andar 3m, voltar e sentar',ops:[{v:0,l:'0 — Menos de 10 segundos'},{v:1,l:'1 — 10 a 20 segundos'},{v:2,l:'2 — Mais de 20 segundos'}]},
       ],
       refs:[
-        {faixa:'0-4',interp:'Nao fragil'},
+        {faixa:'0-4',interp:'Não fragil'},
         {faixa:'5-6',interp:'Vulneravel'},
         {faixa:'7-8',interp:'Fragil leve'},
         {faixa:'9-10',interp:'Fragil moderado'},
@@ -1572,10 +1582,10 @@ var ESCALAS_DB={
       campos:[{tipo:'radio',id:'bk',label:'Funcao de membros superiores',ops:[
         {v:1,l:'1 — Abduz os bracos em angulo reto, cotovel estendido'},
         {v:2,l:'2 — Pode abduzir acima da linha dos ombros, cotovel fletido'},
-        {v:3,l:'3 — Nao consegue abduzir acima do ombro, mas levanta um copo'},
+        {v:3,l:'3 — Não consegue abduzir acima do ombro, mas levanta um copo'},
         {v:4,l:'4 — Pode levar a mao a boca, mas nao levanta um copo'},
-        {v:5,l:'5 — Nao pode levar a mao a boca, mas usa as maos'},
-        {v:6,l:'6 — Nao usa as maos'},
+        {v:5,l:'5 — Não pode levar a mao a boca, mas usa as maos'},
+        {v:6,l:'6 — Não usa as maos'},
       ]}],
       refs:[
         {faixa:'1-2',interp:'Funcao preservada'},
@@ -1656,6 +1666,14 @@ function mEvo(pid,eid){
   var dataEvo=e.dataEvo||hoje();
   var h='<div class="mh"><h3>'+(e.id?'Editar':'Nova')+' Evolução — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="me-pid" value="'+esc(pid)+'"/><input type="hidden" id="me-eid" value="'+esc(e.id)+'"/>';
+  if(!e.id){
+    h+='<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start">';
+    h+='<div style="font-size:18px">⚠️</div>';
+    h+='<div style="flex:1"><div style="font-size:12px;font-weight:700;color:#92400e">Atenção ao registrar a evolução</div>';
+    h+='<div style="font-size:12px;color:#92400e;margin-top:2px">Após salvar, você terá <strong>24 horas</strong> para editar. Após esse prazo, a evolução fica bloqueada permanentemente.</div></div>';
+    h+='<span style="cursor:pointer;font-size:16px" onclick="mLeiInfo(\'Imutabilidade do Prontuário\',\'Res. COFFITO nº 424/2013\',\'A Resolução COFFITO nº 424/2013 estabelece que registros clínicos no prontuário eletrônico não podem ser alterados após sua consolidação, garantindo a integridade e confiabilidade do prontuário fisioterapêutico.\',\'https://coffito.gov.br\')">❓</span>';
+    h+='</div>';
+  }
   // Data do atendimento (pode ser retroativa até 1 ano)
   var maxDt=hoje();
   var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
@@ -1730,7 +1748,38 @@ function salvarAdendo(){
 }
 
 
-function delEvo(pid,eid){registrarHistoricoAlteracao('Evolucao excluida');if(!confirm('Excluir evolução?'))return;var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;p.evolucoes=(p.evolucoes||[]).filter(function(x){return x.id!==eid;});salvar();renderizar();atualizarBadge();toast('Evolução excluída');}
+function copiarEvo(pid,eid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;
+  // Abre modal de nova evolução com texto copiado, dados vitais em branco
+  var eFake={dataEvo:hoje(),texto:e.texto,dor:null,mob:null,pa:'',sat:'',bpm:''};
+  mEvoComDados(pid,eFake);
+}
+
+function mEvoComDados(pid,eDados){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var e=eDados||{};
+  var dataEvo=e.dataEvo||hoje();
+  var h='<div class="mh"><h3>Nova Evolução — '+esc(p.nome)+' <span style="font-size:12px;color:var(--amber)">(copiada)</span></h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<input type="hidden" id="me-pid" value="'+esc(pid)+'"/><input type="hidden" id="me-eid" value=""/>';
+  var maxDt=hoje();
+  var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
+  var minDtStr=minDt.getFullYear()+'-'+(minDt.getMonth()<9?'0':'')+(minDt.getMonth()+1)+'-'+(minDt.getDate()<10?'0':''+minDt.getDate());
+  h+='<div class="fg"><label>Data do atendimento</label><input class="fi" type="date" id="me-data-evo" value="'+esc(dataEvo)+'" min="'+minDtStr+'" max="'+maxDt+'"/>';
+  h+='<div style="font-size:11px;color:var(--amber);margin-top:3px">📋 Texto copiado da evolução anterior. Dados vitais em branco para novo preenchimento.</div></div>';
+  h+=rEvoVitais(e);
+  h+='<div class="fg"><label>Modelos rápidos</label><div style="display:flex;gap:6px;flex-wrap:wrap">';
+  (D.cfg.modelos||[]).forEach(function(m,i){if(m.texto)h+='<button class="btn btn-s btn-sm" onclick="usarModelo('+i+')">'+(m.nome||'Modelo '+(i+1))+'</button>';});
+  h+='</div></div>';
+  h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="6" placeholder="Descreva a sessão...">'+esc(e.texto||'')+'</textarea></div>';
+  h+='<div class="fg" style="display:flex;gap:10px"><div style="flex:1"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" placeholder="—"/></div>';
+  h+='<div style="flex:1"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" placeholder="—"/></div></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';
+  abrirM(h);
+}
+
+
+function delEvo(pid,eid){registrarHistóricoAlteracao('Evolucao excluida');if(!confirm('Excluir evolução?'))return;var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;p.evolucoes=(p.evolucoes||[]).filter(function(x){return x.id!==eid;});salvar();renderizar();atualizarBadge();toast('Evolução excluída');}
 function compEvo(pid,eid){var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;var e=(p.evolucoes||[]).find(function(x){return x.id===eid;});if(!e)return;var txt='Evolução - '+p.nome+'\n'+fmtDH(e.ts)+'\n\n'+e.texto+(e.dor!=null?'\nDor: '+e.dor+'/10 | Mobilidade: '+e.mob+'/10':'');if(navigator.share)navigator.share({title:'Evolução',text:txt});else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Copiado!');});}
 
 // ── EVOLUÇÕES (aba) ──────────────────────────────────────────────
@@ -1893,8 +1942,48 @@ function rFinanceiro(el2){
   h+='</div><div style="display:flex;gap:3px">';
   dadosMes.forEach(function(d,i){h+='<div style="flex:1;text-align:center;font-size:8px;color:'+(i===mesSel?'var(--g1)':'var(--sl3)')+';font-weight:'+(i===mesSel?700:400)+'">'+d.nome+'</div>';});
   h+='</div></div>';
-  var pend2=D.sessoes.filter(function(s){return s.statusPag==='pendente'&&s.status==='realizado'&&(s.valor||0)>0;});
-  if(pend2.length){h+='<div class="card"><div style="font-size:13px;font-weight:800;color:var(--amber);margin-bottom:10px">Aguardando pagamento ('+pend2.length+')</div>';pend2.slice(0,10).forEach(function(s){h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--borda)"><div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(nomePac(s.pacienteId))+'</div><div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+(s.planoId?' · '+esc(plNome(s.planoId)):'')+' '+(s.dataPrevista?'· Prev: '+esc(s.dataPrevista):'')+'</div></div><span style="font-weight:700;color:var(--amber)">R$'+(s.valor||0).toFixed(2)+'</span><button class="btn btn-p btn-sm" data-sid="'+esc(s.id)+'" onclick="marcarPago(this.dataset.sid)">Pago</button></div>';});h+='</div>';}
+  // Sessões pendentes agrupadas por plano
+  var statusValidos=['realizado'];
+  var pend2=D.sessoes.filter(function(s){
+    var pl=D.planos.find(function(x){return x.id===s.planoId;});
+    var descontar=pl&&pl.descontarFaltas;
+    if(descontar&&(s.status==='falta'||s.status==='desmarcado'||s.status==='cancelado'))return false;
+    return s.statusPag==='pendente'&&(s.valor||0)>0&&(s.status==='realizado'||(!descontar&&(s.status==='falta'||s.status==='desmarcado'||s.status==='cancelado')));
+  }).filter(function(s){return s.status==='realizado';});
+  if(pend2.length){
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
+    h+='<div style="font-size:13px;font-weight:800;color:var(--amber)">Aguardando pagamento ('+pend2.length+')</div>';
+    var totalPend=pend2.reduce(function(a,s){return a+(s.valor||0);},0);
+    h+='<div style="font-size:13px;font-weight:800;color:var(--amber)">R$ '+totalPend.toFixed(2)+'</div></div>';
+    // Agrupar por plano
+    var gruposFinanc={};
+    pend2.forEach(function(s){
+      var pid=s.planoId||'sem_plano';
+      if(!gruposFinanc[pid])gruposFinanc[pid]={nome:plNome(s.planoId)||'Sem plano',cor:(D.planos.find(function(x){return x.id===s.planoId;})||{}).cor||'var(--amber)',sessoes:[],total:0,mesmoPag:false};
+      var pl2=D.planos.find(function(x){return x.id===s.planoId;});
+      if(pl2)gruposFinanc[pid].mesmoPag=pl2.mesmoPagador;
+      gruposFinanc[pid].sessoes.push(s);
+      gruposFinanc[pid].total+=(s.valor||0);
+    });
+    Object.values(gruposFinanc).forEach(function(g){
+      // Cabeçalho do grupo
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;background:var(--g4);border-radius:8px;padding:8px 10px;margin-bottom:6px">';
+      h+='<div style="width:12px;height:12px;border-radius:50%;background:'+g.cor+';flex-shrink:0"></div>';
+      h+='<div style="flex:1;font-size:13px;font-weight:800">'+esc(g.nome)+' ';
+      if(g.mesmoPag)h+='<span class="badge bg-b" style="font-size:10px">Mesmo pagador</span>';
+      h+='</div><div style="font-size:13px;font-weight:800;color:var(--amber)">R$ '+g.total.toFixed(2)+'</div></div>';
+      // Sessões do grupo em ordem alfabética
+      g.sessoes.sort(function(a,b){return(nomePac(a.pacienteId)||"").localeCompare(nomePac(b.pacienteId)||"","pt-BR");});
+      g.sessoes.forEach(function(s){
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0 7px 20px;border-bottom:1px solid var(--borda)">';
+        h+='<div style="flex:1"><div style="font-size:13px;font-weight:600">'+esc(nomePac(s.pacienteId))+'</div>';
+        h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+'</div></div>';
+        h+='<span style="font-weight:700;color:var(--amber)">R$ '+(s.valor||0).toFixed(2)+'</span>';
+        h+='<button class="btn btn-p btn-sm" data-sid="'+esc(s.id)+'" onclick="marcarPago(this.dataset.sid)">Pago</button></div>';
+      });
+    });
+    h+='</div>';
+  }
   el2.innerHTML=h;
 }
 window._finMes=null;window._finAno=null;
@@ -2066,25 +2155,69 @@ function confirmarCofreParcial(btn){
   if(!dataPrev){toast('Informe a data prevista para o restante');return;}
   if(rec>=total){confirmarCofreTot(btn);return;}
   // Marcar sessões como pagas até cobrir o valor recebido
-  var acumulado=0;var primeiroNaoPago=null;
+  var acumulado=0;var primeiroNãoPago=null;
   plids.forEach(function(sid){
     var s=D.sessoes.find(function(x){return x.id===sid;});
     if(!s||s.statusPag==='pago')return;
     if(acumulado+( s.valor||0)<=rec+0.01){
       s.statusPag='pago';
       acumulado+=(s.valor||0);
-    } else if(!primeiroNaoPago){
-      primeiroNaoPago=s;
+    } else if(!primeiroNãoPago){
+      primeiroNãoPago=s;
     }
   });
   // Registrar restante na primeira sessão não paga
-  if(primeiroNaoPago){
-    primeiroNaoPago.statusPag='parcial';
-    primeiroNaoPago.parcialRestante=rest;
-    primeiroNaoPago.parcialDataPrev=dataPrev;
+  if(primeiroNãoPago){
+    primeiroNãoPago.statusPag='parcial';
+    primeiroNãoPago.parcialRestante=rest;
+    primeiroNãoPago.parcialDataPrev=dataPrev;
   }
   salvar();fecharM(true);ir('cofre');
   toast('Parcial registrado! Restante R$ '+rest.toFixed(2)+' previsto para '+fmtD(dataPrev));
+}
+
+
+function mLeiInfo(elOuTitulo,lei,descricao,link){
+  var titulo,l,d,lk;
+  if(typeof elOuTitulo==='object'&&elOuTitulo.dataset){
+    titulo=elOuTitulo.dataset.titulo;l=elOuTitulo.dataset.lei;d=elOuTitulo.dataset.desc;lk=elOuTitulo.dataset.link;
+  } else {
+    titulo=elOuTitulo;l=lei;d=descricao;lk=link;
+  }
+  var h='<div class="mh"><h3>'+esc(titulo||'')+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="background:var(--g4);border-radius:10px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">📋 Base legal</div>';
+  h+='<div style="font-size:13px;font-weight:700;color:var(--sl);margin-bottom:8px">'+esc(l||'')+'</div>';
+  h+='<div style="font-size:13px;color:var(--sl2);line-height:1.6">'+esc(d||'')+'</div>';
+  h+='</div>';
+  if(lk){h+='<a href="'+esc(lk)+'" target="_blank" class="btn btn-p btn-bl" style="display:block;text-align:center;text-decoration:none">🔗 Acessar legislação completa</a>';}
+  h+='<button class="btn btn-s btn-bl" style="margin-top:8px" onclick="fecharM()">Fechar</button>';
+  abrirM(h);
+}
+
+function mCrefito(){
+  var h='<div class="mh"><h3>🔴 CREFITO obrigatório</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;margin-bottom:14px">';
+  h+='<div style="font-size:13px;font-weight:700;color:#dc2626;margin-bottom:6px">⚠️ Informação obrigatória</div>';
+  h+='<div style="font-size:13px;color:#7f1d1d;line-height:1.6">Para continuar usando o FisioEvolução, complete seu perfil profissional com o número do CREFITO.</div>';
+  h+='</div>';
+  h+='<div style="background:var(--g4);border-radius:10px;padding:12px;margin-bottom:14px">';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);margin-bottom:4px">📋 Por que é obrigatório?</div>';
+  h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6">A Lei Federal nº 6.316/1975 exige que todo fisioterapeuta seja inscrito no COFFITO/CREFITO para exercer a profissão. O número de inscrição identifica o profissional responsável pelo prontuário.</div>';
+  h+='</div>';
+  h+='<div class="fg"><label>Número do CREFITO *</label><input class="fi" type="text" id="crefito-inp" value="'+(D.cfg.crefito||'')+'" placeholder="Ex: CREFITO-4/12345-F"/></div>';
+  h+='<div class="fg"><label>UF do CREFITO</label><input class="fi" type="text" id="crefito-uf" value="'+(D.cfg.crefitoUF||'')+'" placeholder="Ex: MG, SP, RJ..."/></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarCrefito()">Salvar e continuar</button>';
+  h+='<a href="https://coffito.gov.br" target="_blank" style="display:block;text-align:center;font-size:12px;color:var(--g1);margin-top:10px">🔗 Site oficial do COFFITO</a>';
+  abrirM(h);
+}
+
+function salvarCrefito(){
+  var v=el('crefito-inp')?el('crefito-inp').value.trim():'';
+  var uf=el('crefito-uf')?el('crefito-uf').value.trim():'';
+  if(!v){toast('Informe o número do CREFITO');return;}
+  D.cfg.crefito=v;D.cfg.crefitoUF=uf;
+  salvar();fecharM(true);ir('mais');toast('CREFITO salvo! ✅');
 }
 
 
@@ -2252,7 +2385,28 @@ function confirmarRelEmail(){
 // ── MAIS ─────────────────────────────────────────────────────────
 function rMais(el2){
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Configurações</div>';
-  if(FBU){h+='<div class="card" style="display:flex;align-items:center;gap:12px"><div class="av" style="width:46px;height:46px;font-size:17px">'+(FBU.displayName?FBU.displayName.charAt(0).toUpperCase():'U')+'</div><div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(FBU.displayName||'Usuário')+'</div><div style="font-size:12px;color:var(--sl3)">'+esc(FBU.email)+'</div></div><div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="editarNome()">Editar</button><button class="btn btn-d btn-sm" onclick="sairConta()">Sair</button></div></div>';}
+  if(FBU){
+    var temCrefito=!!(D.cfg.crefito&&D.cfg.crefito.trim());
+    h+='<div class="card">';
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:'+(temCrefito?'0':'12px')+'">';
+    h+='<div class="av" style="width:46px;height:46px;font-size:17px">'+( FBU.displayName?FBU.displayName.charAt(0).toUpperCase():'U')+'</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-weight:700">'+esc(FBU.displayName||'Usuário')+'</div>';
+    h+='<div style="font-size:12px;color:var(--sl3)">'+esc(FBU.email)+'</div>';
+    if(temCrefito)h+='<div style="font-size:12px;color:var(--g1);font-weight:600;margin-top:2px">CREFITO: '+esc(D.cfg.crefito)+(D.cfg.crefitoUF?' — '+esc(D.cfg.crefitoUF):'')+'</div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="editarNome()">Editar</button><button class="btn btn-d btn-sm" onclick="sairConta()">Sair</button></div></div>';
+    if(!temCrefito){
+      h+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px">';
+      h+='<div style="font-size:20px">🔴</div>';
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#dc2626">CREFITO não preenchido</div>';
+      h+='<div style="font-size:11px;color:#7f1d1d">Obrigatório pela Lei nº 6.316/1975</div></div>';
+      h+='<button class="btn btn-d btn-sm" onclick="mCrefito()">Preencher</button>';
+      h+='</div>';
+    } else {
+      h+='<button class="btn btn-s btn-sm" style="margin-top:8px" onclick="mCrefito()">✏️ Editar CREFITO</button>';
+    }
+    h+='</div>';
+  }
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Segurança (PIN)</div>';
   if(D.cfg.pinAtivo){h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">PIN ativo.</p><div style="display:flex;gap:8px"><button class="btn btn-s btn-sm" onclick="mostrarPin(\'alt1\')">Alterar</button><button class="btn btn-d btn-sm" onclick="removerPin()">Remover</button></div>';}
   else h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Proteja seus dados com PIN de 4 dígitos.</p><button class="btn btn-p btn-sm" onclick="mostrarPin(\'criar\')">Ativar PIN</button>';
@@ -2272,12 +2426,25 @@ function rMais(el2){
   for(var hf=17;hf<=23;hf++)h+='<option value="'+hf+'"'+((D.cfg.horaFim||20)===hf?' selected':'')+'>'+('0'+hf).slice(-2)+':00</option>';
   h+='</select></div></div><p style="font-size:11px;color:var(--sl3)">Define os horários na grade da agenda.</p></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div>';
-  [{k:'usarGrafico',l:'Gráfico de evolução',d:'Dor e mobilidade'},{k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico'},{k:'usarCompartilhar',l:'Compartilhar evoluções',d:'Botão compartilhar'},{k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início'}].forEach(function(o){h+='<div class="trow"><div class="trow-l"><h4>'+o.l+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';});
-
-  h+='<div class="opc-item"><label><input type="checkbox" id="opc-termo" onchange="toggleOpc(\'usarTermo\',this.checked)"'+(D.cfg.usarTermo?' checked':'')+'/> Termo de consentimento</label></div>';  h+='</div>';
+  var opcsLei=[
+    {k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico',icon:'❓',
+     lei:'Res. COFFITO nº 424/2013',
+     ldesc:'A anamnese é parte do prontuário fisioterapêutico. A Resolução COFFITO nº 424/2013 orienta o registro completo das informações clínicas do paciente, incluindo histórico médico, queixas e antecedentes.',
+     llink:'https://coffito.gov.br'},
+    {k:'usarNotas',l:'Notas rápidas',d:'Bloco de notas no início',icon:'❓',
+     lei:'Funcionalidade opcional',
+     ldesc:'Bloco de anotações livre para uso pessoal do fisioterapeuta. Não faz parte do prontuário oficial do paciente.',
+     llink:''},
+  ];
+  opcsLei.forEach(function(o){
+    var btnLei='<span style="cursor:pointer;font-size:14px" onclick="mLeiInfo(this)" data-titulo="'+esc(o.l)+'" data-lei="'+esc(o.lei)+'" data-desc="'+esc(o.ldesc)+'" data-link="'+esc(o.llink)+'" title="Ver base legal">'+o.icon+'</span>';
+    h+='<div class="trow"><div class="trow-l"><h4>'+o.l+' '+btnLei+'</h4><p>'+o.d+'</p></div><label class="tog"><input type="checkbox" '+(D.cfg[o.k]?'checked':'')+' data-k="'+o.k+'" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';
+  });
+  h+='<div class="trow"><div class="trow-l"><h4>Termo de consentimento <span style="cursor:pointer;font-size:14px" onclick="mLeiInfo(this)" data-titulo="Termo de Consentimento" data-lei="Res. COFFITO nº 424/2013 + LGPD Lei nº 13.709/2018" data-desc="O Termo de Consentimento Livre e Esclarecido (TCLE) protege o fisioterapeuta e o paciente legalmente. Embora opcional no app, é altamente recomendado para todos os atendimentos, especialmente para uso de dados e imagens." data-link="https://coffito.gov.br" title="Ver base legal">❓</span></h4><p>TCLE e autorização de imagem</p></div><label class="tog"><input type="checkbox" '+(D.cfg.usarTermo?'checked':'')+' data-k="usarTermo" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';
+  h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistorico()">🕐 Histórico de versões</button></div></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistórico()">🕐 Histórico de versões</button></div></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Acesso rápido</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="ir(\'financeiro\')">Financeiro</button><button class="btn btn-s btn-sm" onclick="ir(\'relatorios\')">Relatórios</button><button class="btn btn-s btn-sm" onclick="ir(\'ajuda\')">Manual</button><button class="btn btn-a btn-sm" onclick="ir(\'grafico-fin\')">IR</button></div></div>';
   // Feedback
   h+='<div class="card" style="margin-bottom:10px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Feedback</div>';
@@ -2698,54 +2865,93 @@ function salvarEscalas(){
 
 function mTermoConsentimento(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  var hoje2=new Date().toLocaleDateString('pt-BR');
-  var h='<div class="mh"><h3>Termo de Consentimento</h3><button class="mc" onclick="fecharM()">X</button></div>';
-  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Gere o termo para imprimir ou salvar. O registro de aceite fica salvo no perfil do paciente.</p>';
-  h+='<div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:#fff;font-size:12px;line-height:1.8;margin-bottom:14px">';
-  h+='<div style="text-align:center;font-weight:800;font-size:14px;margin-bottom:12px">TERMO DE CONSENTIMENTO LIVRE E ESCLARECIDO</div>';
-  h+='<p>Eu, <strong>'+esc(p.nome)+'</strong>, '+(p.dataNasc?'nascido(a) em '+p.dataNasc+', ':'')+' declaro que fui devidamente informado(a) e esclarecido(a) pelo(a) fisioterapeuta sobre os procedimentos que serão realizados, seus objetivos, riscos e benefícios.</p>';
-  h+='<p>Concordo em participar voluntariamente do tratamento fisioterapêutico proposto, podendo retirar meu consentimento a qualquer momento sem prejuízo ao meu atendimento.</p>';
-  h+='<p>Declaro ainda que autorizo o registro e armazenamento das informações relativas ao meu tratamento, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).</p>';
-  if(p.diagnostico)h+='<p><strong>Diagnóstico/condição:</strong> '+esc(p.diagnostico)+(p.cid?' (CID-10: '+esc(p.cid)+')':'')+'</p>';
-  h+='<div style="margin-top:20px;display:flex;justify-content:space-between">';
-  h+='<div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do paciente</div></div>';
-  h+='<div style="width:40px"></div>';
-  h+='<div style="text-align:center;flex:1"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do fisioterapeuta</div></div>';
-  h+='</div>';
-  h+='<div style="text-align:center;margin-top:12px;font-size:11px;color:#94a3b8">Data: '+hoje2+'</div>';
-  h+='</div>';
+  var h='<div class="mh"><h3>📄 Termos de Consentimento</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Escolha um modelo pronto ou escreva um termo personalizado.</p>';
+  // Status do aceite
   if(p.termoAceito){
     h+='<div style="background:#dcfce7;border-radius:8px;padding:10px;font-size:12px;color:#166534;margin-bottom:12px">';
-    h+='✅ Termo registrado em: '+new Date(p.termoAceito).toLocaleDateString('pt-BR')+'</div>';
+    h+='✅ Termo registrado em: '+new Date(p.termoAceito).toLocaleDateString('pt-BR')+' às '+new Date(p.termoAceito).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div>';
   }
+  // Opções de modelo
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+  h+='<button class="btn btn-s" style="text-align:left;padding:12px" onclick="verTermoModelo(\'fisio\',\''+esc(pid)+'\')">📋 Termo de Ciência e Consentimento Fisioterapêutico<br><span style="font-size:11px;font-weight:400;color:var(--sl3)">Inclui cláusulas, responsabilidades e assinaturas</span></button>';
+  h+='<button class="btn btn-s" style="text-align:left;padding:12px" onclick="verTermoModelo(\'imagem\',\''+esc(pid)+'\')">📸 Termo de Consentimento de Imagem e Voz<br><span style="font-size:11px;font-weight:400;color:var(--sl3)">Autorização para uso de imagens e gravações — LGPD</span></button>';
+  h+='<button class="btn btn-s" style="text-align:left;padding:12px" onclick="verTermoModelo(\'livre\',\''+esc(pid)+'\')">✏️ Termo personalizado<br><span style="font-size:11px;font-weight:400;color:var(--sl3)">Escreva seu próprio texto livremente</span></button>';
+  h+='</div>';
+  h+='<input type="hidden" id="termo-pid" value="'+esc(pid)+'"/>';
+  abrirM(h);
+}
+
+function verTermoModelo(tipo,pid){
+  var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
+  var hoje2=new Date().toLocaleDateString('pt-BR');
+  var h='<div class="mh"><h3>📄 Termo de Consentimento</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="border:1px solid var(--borda);border-radius:8px;padding:14px;background:#fff;font-size:12px;line-height:1.8;margin-bottom:14px;max-height:50vh;overflow-y:auto">';
+
+  if(tipo==='fisio'){
+    h+='<div style="text-align:center;font-weight:800;font-size:13px;margin-bottom:10px">TERMO DE CIÊNCIA, CONSENTIMENTO E RESPONSABILIDADE NO TRATAMENTO FISIOTERAPÊUTICO</div>';
+    h+='<p><strong>Paciente:</strong> '+esc(p.nome)+'</p>';
+    if(p.cid||p.diagnostico)h+='<p><strong>Diagnóstico:</strong> '+esc(p.diagnostico||'')+(p.cid?' (CID: '+esc(p.cid)+')':'')+'</p>';
+    if(D.cfg.crefito)h+='<p><strong>Fisioterapeuta:</strong> '+esc(FBU&&FBU.displayName||'')+'  <strong>CREFITO:</strong> '+esc(D.cfg.crefito)+(D.cfg.crefitoUF?' — '+esc(D.cfg.crefitoUF):'')+'</p>';
+    h+='<p>Declaro que fui devidamente informado(a) sobre minha condição de saúde, os objetivos do tratamento fisioterapêutico proposto, os procedimentos que poderão ser realizados, seus benefícios, limitações e possíveis riscos.</p>';
+    h+='<p><strong>Cláusulas:</strong></p>';
+    h+='<p>1. A fisioterapia é uma ciência da saúde voltada à prevenção, avaliação, tratamento e reabilitação funcional, não sendo possível garantir resultados específicos ou tempo exato de recuperação.</p>';
+    h+='<p>2. Os resultados dependem de: gravidade da condição clínica, frequência nas sessões, cumprimento das orientações e hábitos de vida.</p>';
+    h+='<p>3. Comprometo-me a fornecer informações verdadeiras sobre meu estado de saúde e comunicar qualquer sintoma incomum ao fisioterapeuta.</p>';
+    h+='<p>4. Estou ciente de que faltas frequentes ou abandono do tratamento podem acarretar atraso na recuperação e perda dos ganhos obtidos.</p>';
+    h+='<p>5. Autorizo a realização dos procedimentos fisioterapêuticos dentro dos limites éticos e legais da profissão.</p>';
+    h+='<p style="font-size:10px;color:#94a3b8">Conforme Resolução COFFITO nº 424/2013 e Lei nº 8.856/1994.</p>';
+  } else if(tipo==='imagem'){
+    h+='<div style="text-align:center;font-weight:800;font-size:13px;margin-bottom:10px">TERMO DE CONSENTIMENTO PARA USO DE IMAGEM E VOZ</div>';
+    h+='<p><strong>Paciente:</strong> '+esc(p.nome)+(p.dataNasc?'  <strong>Nascimento:</strong> '+esc(p.dataNasc):'')+'</p>';
+    h+='<p>Eu, identificado(a) acima, autorizo de forma livre e voluntária o uso de minha imagem, voz e gravações audiovisuais realizadas durante atendimentos e atividades relacionadas aos serviços prestados.</p>';
+    h+='<p><strong>Finalidades autorizadas:</strong></p>';
+    var fins=['Prontuário interno / uso clínico exclusivo','Material educativo e científico','Redes sociais','Site profissional','Palestras, cursos e apresentações','Não autorizo qualquer divulgação pública'];
+    fins.forEach(function(f){h+='<p>☐ '+f+'</p>';});
+    h+='<p>Esta autorização é concedida gratuitamente, não gerando direito a remuneração. Pode ser revogada a qualquer momento mediante solicitação escrita.</p>';
+    h+='<p style="font-size:10px;color:#94a3b8">Conforme LGPD (Lei nº 13.709/2018) e Marco Civil da Internet.</p>';
+  } else {
+    h+='<div style="text-align:center;font-weight:800;font-size:13px;margin-bottom:10px">TERMO DE CONSENTIMENTO</div>';
+    h+='<p><strong>Paciente:</strong> '+esc(p.nome)+'</p>';
+    h+='<div class="fg"><label>Texto do termo</label><textarea class="fi" id="termo-livre-txt" rows="8" placeholder="Escreva o texto do termo aqui..."></textarea></div>';
+  }
+
+  if(tipo!=='livre'){
+    h+='<div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px">';
+    h+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do paciente</div></div>';
+    h+='<div style="text-align:center"><div style="border-top:1px solid #333;padding-top:4px;font-size:11px">Assinatura do fisioterapeuta</div></div>';
+    h+='</div>';
+    h+='<div style="text-align:center;margin-top:10px;font-size:11px;color:#94a3b8">Local e Data: _____________________, '+hoje2+'</div>';
+  }
+  h+='</div>';
   h+='<div style="display:flex;gap:8px">';
-  h+='<button class="btn btn-p btn-sm" onclick="registrarTermoAceito(\''+esc(pid)+'\')">Registrar aceite</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="imprimirTermo()">Imprimir</button>';
+  h+='<button class="btn btn-p btn-sm" data-pid="'+esc(pid)+'" onclick="registrarTermoAceito(this.dataset.pid)">✅ Registrar aceite</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="window.print()">🖨️ Imprimir</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="mTermoConsentimento(\''+esc(pid)+'\')">← Voltar</button>';
   h+='</div>';
   abrirM(h);
 }
+
 function registrarTermoAceito(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   p.termoAceito=new Date().toISOString();
-  salvar();fecharM();toast('Aceite do termo registrado!');renderizar();
+  salvar();fecharM(true);toast('✅ Aceite do termo registrado!');renderizar();
 }
-function imprimirTermo(){
-  window.print();
-}
+function imprimirTermo(){window.print();}
 
 
 function togglePacote(sim){
   var wrap=el('pac-wrap');
-  var btnSim=el('pac-sim');var btnNao=el('pac-nao');
+  var btnSim=el('pac-sim');var btnNão=el('pac-nao');
   if(!wrap)return;
   if(sim){
     wrap.style.display='block';
     if(btnSim){btnSim.className='btn btn-sm btn-p';}
-    if(btnNao){btnNao.className='btn btn-sm btn-s';}
+    if(btnNão){btnNão.className='btn btn-sm btn-s';}
   } else {
     wrap.style.display='none';
     if(btnSim){btnSim.className='btn btn-sm btn-s';}
-    if(btnNao){btnNao.className='btn btn-sm btn-p';}
+    if(btnNão){btnNão.className='btn btn-sm btn-p';}
   }
 }
 
@@ -2828,13 +3034,13 @@ function aplicarEscala(pid,escId){
   });
   // Valores de referencia
   h+='<div style="background:#eff6ff;border-radius:8px;padding:10px;margin-bottom:14px">';
-  h+='<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px">Valores de referencia:</div>';
+  h+='<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:6px">Valores de referência:</div>';
   esc.refs.forEach(function(r){
     h+='<div style="font-size:12px;color:#1e40af;margin-bottom:2px"><strong>'+r.faixa+'</strong> — '+r.interp+'</div>';
   });
   h+='</div>';
-  h+='<div class="fg"><label>Observacoes</label><textarea class="fi" id="esc-obs" rows="2" placeholder="Observacoes adicionais..."></textarea></div>';
-  h+='<button class="btn btn-p btn-bl" onclick="salvarEscalaDinamica()">Salvar avaliacao</button>';
+  h+='<div class="fg"><label>Observações</label><textarea class="fi" id="esc-obs" rows="2" placeholder="Observações adicionais..."></textarea></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarEscalaDinamica()">Salvar avaliação</button>';
   abrirM(h);
 }
 
@@ -2865,14 +3071,14 @@ function salvarEscalaDinamica(){
     dt:new Date().toISOString()
   });
   salvar();fecharM();
-  toast('Escala salva!');
+  toast('Avaliação salva!');
   renderizar();
 }
 
-function verHistoricoEscalas(pid){
+function verHistóricoEscalas(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var hist=p.escalasDin||[];
-  var h='<div class="mh"><h3>Historico de Escalas</h3><button class="mc" onclick="fecharM()">X</button></div>';
+  var h='<div class="mh"><h3>Histórico de Escalas</h3><button class="mc" onclick="fecharM()">X</button></div>';
   if(!hist.length){h+='<p style="text-align:center;padding:30px;color:var(--sl3)">Nenhuma escala aplicada ainda.</p>';abrirM(h);return;}
   // Agrupar por escala
   var grupos={};
@@ -3258,9 +3464,9 @@ function editarAnamnese(pid){
 
 
 function toggleConsciente(sim){
-  var btnSim=el('an-cons-sim');var btnNao=el('an-cons-nao');var wrap=el('an-resp-wrap');
+  var btnSim=el('an-cons-sim');var btnNão=el('an-cons-nao');var wrap=el('an-resp-wrap');
   if(btnSim)btnSim.className='btn btn-sm '+(sim?'btn-p':'btn-s');
-  if(btnNao)btnNao.className='btn btn-sm '+(sim?'btn-s':'btn-p');
+  if(btnNão)btnNão.className='btn btn-sm '+(sim?'btn-s':'btn-p');
   if(wrap)wrap.style.display=sim?'none':'block';
 }
 function addAnMed(){
@@ -3356,12 +3562,12 @@ function salvarAnamnese(){
     dataAvaliacao:el('an-data')?el('an-data').value:hoje()
   };
   // Registrar no histórico de alterações
-  registrarHistoricoAlteracao('Anamnese atualizada — '+p.nome);
+  registrarHistóricoAlteracao('Anamnese atualizada — '+p.nome);
   salvar();fecharM();PAC_ABA='anamnese';renderizar();toast('Anamnese salva!');
 }
 
 
-function registrarHistoricoAlteracao(descricao){
+function registrarHistóricoAlteracao(descricao){
   try{
     var hist=JSON.parse(localStorage.getItem('fe_historico_alt')||'[]');
     var nome=FBU&&FBU.displayName?FBU.displayName:'Usuário';
@@ -3370,7 +3576,7 @@ function registrarHistoricoAlteracao(descricao){
     localStorage.setItem('fe_historico_alt',JSON.stringify(hist));
   }catch(e){}
 }
-function verHistoricoAlteracoes(){
+function verHistóricoAlteracoes(){
   var hist=[];
   try{hist=JSON.parse(localStorage.getItem('fe_historico_alt')||'[]');}catch(e){}
   var h='<div class="mh"><h3>Histórico de Alterações</h3><button class="mc" onclick="fecharM()">✕</button></div>';
@@ -3490,7 +3696,7 @@ function renovarPacote(pid){
   if(pk)h+='<div style="padding:8px;background:var(--g4);border-radius:8px;font-size:12px;margin-bottom:12px">Pacote atual: <strong>'+pk.realizadas+'/'+pk.total+'</strong> sessoes utilizadas.</div>';
   h+='<div class="fg"><label>Novo total de sessoes</label><input class="fi" type="number" id="ren-qtd" min="1" max="500" placeholder="Ex: 10"/></div>';
   h+='<div class="fg"><label>Valor do pacote (R$)</label><input class="fi" type="number" id="ren-val" min="0" step="0.01" placeholder="0,00"/></div>';
-  h+='<div class="fg"><label>Observacoes</label><input class="fi" type="text" id="ren-obs" placeholder="Ex: Renovacao junho/2026"/></div>';
+  h+='<div class="fg"><label>Observações</label><input class="fi" type="text" id="ren-obs" placeholder="Ex: Renovacao junho/2026"/></div>';
   h+='<button class="btn btn-p btn-bl" onclick="confirmarRenovacao(\''+pid+'\')">Confirmar renovacao</button>';
   abrirM(h);
 }
@@ -3514,11 +3720,11 @@ function confirmarRenovacao(pid){
   // Novo pacote
   p.pacote=qtd;p.pacoteValor=val;p.pacoteIni=new Date().toISOString().slice(0,10);
   if(obs)p.pacoteObs=obs;
-  registrarHistoricoAlteracao('Pacote renovado — '+p.nome+' ('+qtd+' sessoes)');
+  registrarHistóricoAlteracao('Pacote renovado — '+p.nome+' ('+qtd+' sessoes)');
   salvar();fecharM();renderizar();toast('Pacote renovado!');
 }
 
-function verHistoricoPacotes(pid){
+function verHistóricoPacotes(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var hist=p.historicoPacotes||[];
   var h='<div class="mh"><h3>Histórico de Pacotes</h3><button class="mc" onclick="fecharM()">✕</button></div>';
@@ -3571,7 +3777,7 @@ function inativarPaciente(pid){
   h+='<div class="fg"><label>Motivo</label><select class="fi" id="mot-inat">';
   motivos.forEach(function(m){h+='<option value="'+m+'">'+m+'</option>';});
   h+='</select></div>';
-  h+='<div class="fg"><label>Observacoes (opcional)</label><textarea class="fi" id="obs-inat" rows="2" placeholder="Detalhes sobre a inativacao..."></textarea></div>';
+  h+='<div class="fg"><label>Observações (opcional)</label><textarea class="fi" id="obs-inat" rows="2" placeholder="Detalhes sobre a inativacao..."></textarea></div>';
   h+='<input type="hidden" id="inat-pid" value="'+esc(pid)+'"/>';
   h+='<button class="btn btn-d btn-bl" onclick="confirmarInativacao()">Inativar paciente</button>';
   abrirM(h);
@@ -3582,14 +3788,14 @@ function confirmarInativacao(){
   var obs=el('obs-inat')?el('obs-inat').value:'';
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   p.inativo=true;p.motivoInativo=mot;p.obsInativo=obs;p.dtInativo=new Date().toISOString();
-  registrarHistoricoAlteracao('Paciente inativado: '+p.nome+' — '+mot);
+  registrarHistóricoAlteracao('Paciente inativado: '+p.nome+' — '+mot);
   salvar();fecharM();renderPacs('');toast('Paciente inativado!');
 }
 function reativarPaciente(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   if(!confirm('Reativar '+p.nome+'?'))return;
   p.inativo=false;p.motivoInativo='';p.dtInativo='';
-  registrarHistoricoAlteracao('Paciente reativado: '+p.nome);
+  registrarHistóricoAlteracao('Paciente reativado: '+p.nome);
   salvar();renderPacs('');toast('Paciente reativado!');
 }
 var _verInativos=false;
@@ -3609,7 +3815,7 @@ function registrarStatusRapido(pid,status){
 
 function editarDiagnostico(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  var h='<div class="mh"><h3>Editar Diagnostico</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  var h='<div class="mh"><h3>Editar Diagnóstico</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div class="fg"><label>Diagnostico</label><input class="fi" type="text" id="ed-diag" value="'+esc(p.diagnostico||'')+'"/></div>';
   h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="ed-cid" value="'+esc(p.cid||'')+'" placeholder="Ex: M54.5" oninput="buscarCid(this.value)"/>';
   h+='<div id="cid-sugest" style="display:none"></div>';
@@ -3624,8 +3830,8 @@ function salvarDiagnostico(){
   p.diagnostico=el('ed-diag')?el('ed-diag').value:'';
   p.cid=el('ed-cid')?el('ed-cid').value:'';
   p.cidNome=el('cid-nome')?el('cid-nome').textContent:'';
-  registrarHistoricoAlteracao('Diagnostico editado — '+p.nome);
-  salvar();fecharM();PAC_ABA='resumo';renderizar();toast('Diagnostico atualizado!');
+  registrarHistóricoAlteracao('Diagnostico editado — '+p.nome);
+  salvar();fecharM();PAC_ABA='resumo';renderizar();toast('Diagnóstico atualizado!');
 }
 
 
@@ -3659,7 +3865,7 @@ function confirmarLote(){
   if(!sessoes.length){toast('Nenhuma sessao pendente no periodo.');return;}
   sessoes.forEach(function(s){s.statusPag='pago';s.dtPagamento=hoje();});
   var pl=D.planos.find(function(x){return x.id===planoId;});
-  registrarHistoricoAlteracao('Pagamento em lote: '+(pl?pl.nome:planoId)+' '+mes+'/'+ano+' ('+sessoes.length+' sessoes)');
+  registrarHistóricoAlteracao('Pagamento em lote: '+(pl?pl.nome:planoId)+' '+mes+'/'+ano+' ('+sessoes.length+' sessoes)');
   salvar();fecharM();renderizar();toast(sessoes.length+' sessao(oes) quitada(s)!');
 }
 
@@ -3703,21 +3909,27 @@ function mPlano(pid){
   pl=pl||{id:'',nome:'',valor:0,pgMes:'mesmo',pgDia:30,pgAlerta:3,cor:'#1e6b3f'};
   var h='<div class="mh"><h3>'+(pl.id?'Editar':'Novo')+' Plano</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="mpl-id" value="'+esc(pl.id)+'"/>';
-  // Nome + cor lado a lado
-  h+='<div style="display:flex;gap:10px;align-items:flex-end">';
-  h+='<div class="fg" style="flex:1;margin:0"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
-  h+='<div class="fg" style="margin:0"><label>Cor</label>';
+  h+='<div class="fg"><label>Nome do plano</label><input class="fi" type="text" id="mpl-nome" value="'+esc(pl.nome)+'" placeholder="Ex: Particular, SUS..."/></div>';
+  h+='<div class="fg"><label>Cor</label>';
   var cores=['#1e6b3f','#1d4ed8','#7c3aed','#dc2626','#d97706','#db2777','#0891b2','#059669'];
   h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">';
   cores.forEach(function(cor){h+='<div onclick="setCorPlano(\''+cor+'\')" style="width:28px;height:28px;border-radius:50%;background:'+cor+';border:3px solid '+(( pl.cor||'#1e6b3f')===cor?'#fff':'transparent')+';outline:'+(( pl.cor||'#1e6b3f')===cor?'3px solid '+cor:'none')+';cursor:pointer" id="cpl-'+cor.replace('#','')+'"></div>';});
   h+='<input type="color" id="mpl-cor" value="'+(pl.cor||'#1e6b3f')+'" oninput="setCorPlano(this.value)" style="width:28px;height:28px;border-radius:50%;border:2px solid var(--borda);cursor:pointer;padding:1px" title="Personalizada"/>';
-  h+='</div></div></div>';
+  h+='</div></div>';
   h+='<div class="fg"><label>Valor padrão (R$)</label><input class="fi" type="number" id="mpl-val" min="0" step="0.01" value="'+(pl.valor||'')+'" placeholder="0,00"/></div>';
-  h+='<div class="fg" style="padding:10px;background:var(--g4);border-radius:8px;margin-bottom:10px">';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">';
+  h+='<div style="padding:10px;background:var(--g4);border-radius:8px">';
   h+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">';
   h+='<input type="checkbox" id="mpl-mesmo" '+(pl.mesmoPagador?'checked':'')+' style="width:18px;height:18px"/>';
   h+='<div><div style="font-size:13px">Mesmo pagador</div>';
   h+='<div style="font-size:11px;color:var(--sl3);font-weight:400">Ex: SUS, clínica. Soma todos os pacientes em uma notificação só.</div></div></label>';
+  h+='</div>';
+  h+='<div style="padding:10px;background:var(--g4);border-radius:8px">';
+  h+='<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600">';
+  h+='<input type="checkbox" id="mpl-desfalt" '+(pl.descontarFaltas?'checked':'')+' style="width:18px;height:18px"/>';
+  h+='<div><div style="font-size:13px">Descontar faltas e cancelamentos</div>';
+  h+='<div style="font-size:11px;color:var(--sl3);font-weight:400">Sessões com falta ou cancelamento não entram no valor total a receber.</div></div></label>';
+  h+='</div>';
   h+='</div>';
   h+='<div class="fsec"><div class="fsec-t">Período de cobrança</div>';
   h+='<div class="fg"><label>Tipo de período</label><select class="fi" id="mpl-pgmes" onchange="togglePgDia()">';
@@ -3781,7 +3993,8 @@ function salvarPlano(){
   var mp=el('mpl-mesmo')&&el('mpl-mesmo').checked;
   var perIni=parseInt(el('mpl-per-ini')?el('mpl-per-ini').value:25)||25;
   var perFim=parseInt(el('mpl-per-fim')?el('mpl-per-fim').value:24)||24;
-  var obj={nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta,cor:cor,mesmoPagador:mp,perIni:perIni,perFim:perFim};
+  var desFalt=el('mpl-desfalt')&&el('mpl-desfalt').checked;
+  var obj={nome:nome,valor:valor,pgMes:pgMes,pgDia:pgDia,pgAlerta:pgAlerta,cor:cor,mesmoPagador:mp,perIni:perIni,perFim:perFim,descontarFaltas:desFalt};
   if(pid){
     var pl=D.planos.find(function(x){return x.id===pid;});
     if(pl)Object.assign(pl,obj);
@@ -4125,9 +4338,9 @@ function gerarNotificacoes(){
       // Pegar datas dos atendimentos sem evolução
       var datas=sessRealizadas.slice(evos).map(function(s){return fmtD(s.data);});
       var dtLabel=datas.length===1?datas[0]:datas.slice(0,2).join(', ')+(datas.length>2?' e mais '+(datas.length-2):'');
-      addNotif('evo_'+p.id+'_'+sessRealizadas.length,'evo',
+      addNotif('evo_'+p.id,'evo',
         'Evolução pendente — '+esc(p.nome),
-        'Atendimento de '+dtLabel+' sem evolução registrada. Faça a evolução para se manter em dia.');
+        ''+pendentes+' sessão(ões) sem evolução: '+dtLabel+'. Faça a evolução para se manter em dia.');
     }
   });
 
@@ -4192,7 +4405,7 @@ function gerarNotificacoes(){
 // ── Proteção de dados ────────────────────────────────────────────
 var _dadosSujos = false;
 
-function salvarHistorico(){
+function salvarHistórico(){
   try{
     var hist = JSON.parse(localStorage.getItem('fe_historico')||'[]');
     var snapshot = {
@@ -4205,7 +4418,7 @@ function salvarHistorico(){
   }catch(e){}
 }
 
-function restaurarHistorico(){
+function restaurarHistórico(){
   try{
     var hist = JSON.parse(localStorage.getItem('fe_historico')||'[]');
     if(!hist.length){ toast('Nenhum histórico disponível'); return; }
