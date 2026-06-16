@@ -609,7 +609,7 @@ function rInicio(el2){
   var recMes=sMes.filter(function(s){return s.statusPag==='pago';}).reduce(function(a,s){return a+(s.valor||0);},0);
   var faltas=sMes.filter(function(s){return s.status==='falta';}).length;
   var previsto=D.sessoes.filter(function(s){return s.statusPag==='pendente'&&(s.valor||0)>0;}).reduce(function(a,s){return a+(s.valor||0);},0);
-  var aberto=D.sessoes.filter(function(s){return s.data<hj&&(s.status==='agendado'||s.status==='confirmado');});
+  var aberto=D.sessoes.filter(function(s){return s.data<hj&&(s.status==='agendado'||s.status==='confirmado'||s.status==='remarcado');});
   var ferProx=D.feriados.filter(function(f){var dt=Math.ceil((new Date(f.data+'T12:00:00')-new Date(hj+'T12:00:00'))/(864e5));return dt>=0&&dt<=15;}).sort(function(a,b){return a.data.localeCompare(b.data);});
 
   var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+' 👋</div>';
@@ -632,7 +632,19 @@ function rInicio(el2){
   if(sHj.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
     // Legenda única e compacta
-    h+='<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px;overflow-x:auto"><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>Atend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block"></span>Pend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block"></span>Falta</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span>Remasc.</span><span style="color:var(--borda)">|</span><strong style="color:#16a34a">A</strong>=At. <strong style="color:#94a3b8">D</strong>=Desm. <strong style="color:#dc2626">F</strong>=Prof. <strong style="color:#7c3aed">R</strong>=Remasc.</div>';
+    h+='<div style="padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px">';
+h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:4px">';
+h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>Atend.</span>';
+h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block"></span>Pend.</span>';
+h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block"></span>Falta</span>';
+h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span>Remasc.</span>';
+h+='</div>';
+h+='<div style="display:flex;gap:10px;color:var(--sl3)">';
+h+='<span><strong style="color:#16a34a">A</strong>=Atendido</span>';
+h+='<span><strong style="color:#94a3b8">D</strong>=Desmarcado</span>';
+h+='<span><strong style="color:#dc2626">F</strong>=Prof.</span>';
+h+='<span><strong style="color:#7c3aed">R</strong>=Remarcado</span>';
+h+='</div></div>';
     sHj.forEach(function(s){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
@@ -648,6 +660,7 @@ function rInicio(el2){
       h+='<button class="btn btn-sm" style="background:#16a34a;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'realizado\')" title="Atendido">A</button>';
       h+='<button class="btn btn-sm" style="background:#94a3b8;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'desmarcado\')" title="Desmarcado">D</button>';
       h+='<button class="btn btn-sm" style="background:#dc2626;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'falta_prof\')" title="Falta Profissional">F</button>';
+      h+='<button class="btn btn-sm" style="background:#7c3aed;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'remarcado\')" title="Remarcado">R</button>';
       h+='</div></div>';
     });
     h+='</div>';
@@ -667,6 +680,8 @@ function rInicio(el2){
       h+='<button class="btn btn-sm" style="background:#16a34a;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'realizado\')" title="Atendido">A</button>';
       h+='<button class="btn btn-sm" style="background:#94a3b8;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'desmarcado\')" title="Desmarcado">D</button>';
       h+='<button class="btn btn-sm" style="background:#dc2626;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'falta_prof\')" title="Falta Profissional">F</button>';
+      h+='<button class="btn btn-sm" style="background:#7c3aed;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'remarcado\')" title="Remarcado">R</button>';
+      h+='<button class="btn btn-sm" style="background:#7c3aed;color:#fff;padding:3px 7px;font-size:11px" data-sid="'+esc(s.id)+'" onclick="marcarStatus(this,\'remarcado\')" title="Remarcado">R</button>';
       h+='</div></div>';
     });
     h+='</div>';
@@ -876,7 +891,7 @@ function sessClick(btn){
   h+='<button class="btn btn-p btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'realizado\')">✅ Atendido</button>';
   h+='<button class="btn btn-d btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'falta\')">❌ Falta</button>';
   h+='<button class="btn btn-a btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'desmarcado\')">⬜ Desmarcado</button>';
-  h+='<button class="btn btn-s btn-sm" data-sid=""+esc(s.id)+"" onclick="statusRapido(this.dataset.sid,\'remarcado\')">🔄 Remarcar</button>';
+  h+='<button class="btn btn-s btn-sm" data-sid="'+esc(s.id)+'" onclick="moverSessao(\''+esc(s.id)+'\')" >🔄 Remarcar</button>';
   h+='</div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
   var pidMenu=s.pacienteId;
@@ -888,6 +903,27 @@ function sessClick(btn){
   if(f30>0)h+='<div style="margin-top:10px;padding:8px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;font-weight:600">⚠️ '+f30+' falta(s) nos últimos 30 dias</div>';
   abrirM(h);
 }
+function excluirSessaoModal(sid){
+  var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
+  var nm=nomePac(s.pacienteId);
+  var h='<div class="mh"><h3 style="color:var(--red)">🗑️ Excluir atendimento</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="background:var(--redbg);border-radius:10px;padding:14px;margin-bottom:16px">';
+  h+='<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px">Tem certeza?</div>';
+  h+='<div style="font-size:12px;color:var(--red)">'+esc(nm)+' — '+fmtD(s.data)+' '+esc(s.hora)+'</div>';
+  h+='<div style="font-size:12px;color:var(--red);margin-top:4px">Esta ação não pode ser desfeita.</div></div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  h+='<button class="btn btn-d btn-bl" data-sid="'+esc(sid)+'" onclick="confirmarExcluirSessao(this.dataset.sid)">🗑️ Sim, excluir</button>';
+  h+='<button class="btn btn-s btn-bl" onclick="fecharM()">Cancelar</button>';
+  h+='</div>';
+  abrirM(h);
+}
+
+function confirmarExcluirSessao(sid){
+  D.sessoes=D.sessoes.filter(function(x){return x.id!==sid;});
+  salvar();fecharM(true);renderizar();toast('Atendimento excluído!');
+}
+
+
 function moverSessao(sid){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
   var h='<div class="mh"><h3>📅 Mover sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
@@ -916,28 +952,9 @@ function confirmarMoverSessao(){
 function statusRapido(sid,status){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
   s.status=status;
-  salvar();
-  // Atualizar status no card sem fechar modal
-  var sc={realizado:'#16a34a',falta:'#dc2626',remarcado:'#d97706',desmarcado:'#6b7280',agendado:'#1e6b3f',confirmado:'#1e6b3f',falta_prof:'#dc2626'};
+  salvar();renderizar();
   var snm={agendado:'Agendado',confirmado:'Confirmado',realizado:'Realizado',falta:'Falta',desmarcado:'Desmarcado',remarcado:'Remarcado',falta_prof:'Falta Prof.'};
-  var stEl=document.querySelector('.sess-status-label');
-  if(stEl){stEl.textContent=snm[status]||status;stEl.style.color=sc[status]||'#1e6b3f';}
   toast((snm[status]||status)+' registrado!');
-  // Se remarcar, abrir modal de nova sessão
-  if(status==='remarcado'||status==='desmarcado'||status==='falta'){
-    if(status==='remarcado'){
-      setTimeout(function(){
-        fecharM(true);
-        var proxData=new Date(s.data+'T12:00:00');
-        proxData.setDate(proxData.getDate()+7);
-        var proxStr=proxData.getFullYear()+'-'+(proxData.getMonth()<9?'0':'')+(proxData.getMonth()+1)+'-'+(proxData.getDate()<10?'0':''+proxData.getDate());
-        mSessao(null,proxStr,s.hora);
-        var pac=el('ms-pac');if(pac)pac.value=s.pacienteId;
-        var pl=el('ms-plano');if(pl)pl.value=s.planoId;
-      },300);
-    }
-  }
-  renderizar();
 }
 
 // ── Modal Sessão ─────────────────────────────────────────────────
