@@ -58,7 +58,7 @@ textarea.fi{resize:vertical;min-height:76px}
 .tog input:checked~.tog-s{background:var(--g1)}
 .tog input:checked~.tog-s:before{transform:translateX(18px)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
-.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 30px;width:calc(100% - 32px);max-width:640px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch;scrollbar-width:auto;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
+.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 30px;width:calc(100% - 32px);max-width:640px;max-height:88vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
 .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .mh h3{font-size:16px;font-weight:800}
 .mc{background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl2);display:flex;align-items:center;justify-content:center}
@@ -118,7 +118,7 @@ body.tema-escuro{--g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;--sl:#e2e8f
 /* Lista de pacientes */
 .lista-pacs{overflow-y:auto;max-height:calc(100vh - 220px);}
 /* Modal com scroll */
-.modal{overflow-y:auto;max-height:85vh;}
+
 /* Mais com scroll */
 .mais-conteudo{overflow-y:auto;}
 
@@ -475,15 +475,25 @@ function mData(e2){
   e2.value=f;
 }
 function mascaraPA(inp){
-  var pos=inp.selectionStart;
   var raw=inp.value.replace(/[^0-9]/g,'');
   if(!raw){inp.value='';return;}
-  if(raw.length<=3){inp.value=raw;return;}
-  // Sistólica: primeiros 2-3 dígitos, Diastólica: restante
-  var sys=raw.slice(0,raw.length<=5?2:3);
-  var dia=raw.slice(sys.length,sys.length+2);
-  var res=sys+(dia?' x '+dia:'');
-  inp.value=res;
+  // Sistólica: 2 ou 3 dígitos (ex: 120 ou 80)
+  // Diastólica: 2 dígitos
+  if(raw.length<=2){inp.value=raw;return;}
+  if(raw.length===3){inp.value=raw;return;}
+  if(raw.length===4){
+    // Ex: 1208 → 120 x 80 OU 8080 → 80 x 80
+    // Tentar 3+2 primeiro se primeiro dígito indica 3 dígitos
+    var sys3=raw.slice(0,3);var dia3=raw.slice(3,5);
+    var sys2=raw.slice(0,2);var dia2=raw.slice(2,4);
+    // Se sistólica começa com 1 (100-199), usar 3 dígitos
+    if(raw[0]==='1'||raw[0]==='2'){inp.value=sys3+(dia3?' x '+dia3:'');return;}
+    inp.value=sys2+' x '+dia2;return;
+  }
+  if(raw.length>=5){
+    var s=raw.slice(0,3);var d=raw.slice(3,5);
+    inp.value=s+' x '+d;return;
+  }
 }
 function mTel(e2){
   var v=e2.value.replace(/[^0-9]/g,'').slice(0,11);
@@ -523,6 +533,7 @@ function boot(){
   localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
   atualizarBadge();
   setTimeout(gerarNotificacoes,2000);
+  setTimeout(verificarExclusaoAgendada,3000);
   if(!D.cfg.termosAceitos){mostrarTermos();return;}
   if(!D.cfg.crefito){setTimeout(function(){editarNome();},1500);}
   verificarInicioMes();
@@ -621,7 +632,7 @@ function rInicio(el2){
   if(sHj.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
     // Legenda única e compacta
-    h+='<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px;overflow-x:auto"><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>Atend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block"></span>Pend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block"></span>Falta</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span>Remasc.</span><span style="color:var(--borda)">|</span><strong style="color:#16a34a">A</strong>=Atendido <strong style="color:#94a3b8">D</strong>=Desmarcado <strong style="color:#dc2626">F</strong>=Prof.</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:nowrap;align-items:center;padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px;overflow-x:auto"><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>Atend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block"></span>Pend.</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block"></span>Falta</span><span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span>Remasc.</span><span style="color:var(--borda)">|</span><strong style="color:#16a34a">A</strong>=At. <strong style="color:#94a3b8">D</strong>=Desm. <strong style="color:#dc2626">F</strong>=Prof. <strong style="color:#7c3aed">R</strong>=Remasc.</div>';
     sHj.forEach(function(s){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
@@ -871,11 +882,37 @@ function sessClick(btn){
   var pidMenu=s.pacienteId;
   h+='<button class="btn btn-p btn-bl" onclick="fecharM();irPerfilEvo(\''+pidMenu+'\')">📝 Evoluir</button>';
   h+='<button class="btn btn-s btn-bl" data-sid="'+esc(s.id)+'" onclick="var ss=D.sessoes.find(function(x){return x.id===\''+esc(s.id)+'\';});fecharM();mSessao(ss,null,null)">✏️ Editar</button>';
+  h+='<button class="btn btn-a btn-bl" data-sid="'+esc(s.id)+'" onclick="moverSessao(\''+esc(s.id)+'\')">📅 Mover</button>';
   h+='</div>';
   var f30=D.sessoes.filter(function(x){if(x.pacienteId!==s.pacienteId||x.status!=='falta')return false;var d=new Date(x.data+'T12:00:00');return(new Date()-d)/(864e5)<=30;}).length;
   if(f30>0)h+='<div style="margin-top:10px;padding:8px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;font-weight:600">⚠️ '+f30+' falta(s) nos últimos 30 dias</div>';
   abrirM(h);
 }
+function moverSessao(sid){
+  var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
+  var h='<div class="mh"><h3>📅 Mover sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:12px">'+esc(nomePac(s.pacienteId))+' — '+esc(s.hora)+'</div>';
+  h+='<div class="fg"><label>Nova data</label><input class="fi" type="date" id="mv-data" value="'+esc(s.data)+'"/></div>';
+  h+='<div class="fg"><label>Novo horário</label><select class="fi" id="mv-hora">';
+  getHoras().forEach(function(h2){h+='<option value="'+h2+'"'+(h2===s.hora?' selected':'')+'>'+h2+'</option>';});
+  h+='</select></div>';
+  h+='<input type="hidden" id="mv-sid" value="'+esc(sid)+'"/>';
+  h+='<button class="btn btn-p btn-bl" onclick="confirmarMoverSessao()">Confirmar</button>';
+  abrirM(h);
+}
+
+function confirmarMoverSessao(){
+  var sid=el('mv-sid')?el('mv-sid').value:'';
+  var data=el('mv-data')?el('mv-data').value:'';
+  var hora=el('mv-hora')?el('mv-hora').value:'';
+  if(!data||!hora){toast('Preencha data e horário');return;}
+  var s=D.sessoes.find(function(x){return x.id===sid;});
+  if(!s){toast('Sessão não encontrada');return;}
+  s.data=data;s.hora=hora;
+  salvar();fecharM(true);renderizar();toast('Sessão movida! ✅');
+}
+
+
 function statusRapido(sid,status){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
   s.status=status;
@@ -1731,7 +1768,7 @@ function mEvo(pid,eid){
   var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
   var minDtStr=minDt.getFullYear()+'-'+(minDt.getMonth()<9?'0':'')+(minDt.getMonth()+1)+'-'+(minDt.getDate()<10?'0':'')+minDt.getDate();
   h+='<div class="fg"><label>Data do atendimento</label><input class="fi" type="date" id="me-data-evo" value="'+esc(dataEvo)+'" min="'+minDtStr+'" max="'+maxDt+'"/>';
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de até 1 ano atrás.</div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
   h+='<div class="fsec" style="margin-bottom:10px"><div class="fsec-t">Dados vitais (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   h+='<div class="fg" style="margin:0"><label>PA (mmHg)</label><input class="fi" type="text" id="me-pa" value="'+esc(e.pa||'')+'" placeholder="120 x 80" oninput="mascaraPA(this)" maxlength="9"/></div>';
   h+='<div class="fg" style="margin:0"><label>Saturação (%)</label><div style="position:relative"><input class="fi" type="number" id="me-sat" min="0" max="100" value="'+(e.sat!=null?e.sat:'')+'" placeholder="98" style="padding-right:28px"/><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--sl3);font-size:13px;pointer-events:none">%</span></div></div>';
@@ -2385,6 +2422,21 @@ function mCrefito(){
   abrirM(h);
 }
 
+function mTempoInatividade(){
+  var inativAtual=D.cfg.inatividade||0;
+  var opts=[{v:0,l:'Sem tempo (nunca pede login)'},{v:1,l:'1 minuto'},{v:5,l:'5 minutos'},{v:10,l:'10 minutos'},{v:30,l:'30 minutos'},{v:60,l:'1 hora'},{v:360,l:'6 horas'},{v:720,l:'12 horas'},{v:1440,l:'24 horas'}];
+  var h='<div class="mh"><h3>⏱️ Tempo de inatividade</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Após esse tempo sem usar o app, será necessário fazer login novamente.</p>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  opts.forEach(function(o){
+    var sel=inativAtual===o.v;
+    h+='<button class="btn '+(sel?'btn-p':'btn-s')+'" style="text-align:left;padding:12px 14px" data-val="'+o.v+'" onclick="salvarInatividadeVal(this.dataset.val)">'+(sel?'✅ ':'')+o.l+'</button>';
+  });
+  h+='</div>';
+  abrirM(h);
+}
+
+
 function salvarInatividadeVal(val){D.cfg.inatividade=parseInt(val)||0;salvar();ir('mais');toast('Configuração salva!');if(D.cfg.inatividade>0)localStorage.setItem('fe_last_active',Date.now().toString());}
 function salvarInatividade(){
   var sel=el('seg-inativ');
@@ -2594,7 +2646,7 @@ function rMais(el2){
     h+='<div style="font-size:12px;color:var(--sl3)">'+esc(FBU.email)+'</div>';
     if(temCrefito)h+='<div style="font-size:12px;color:var(--g1);font-weight:600;margin-top:2px">CREFITO: '+esc(D.cfg.crefito)+(D.cfg.crefitoUF?' — '+esc(D.cfg.crefitoUF):'')+'</div>';
     h+='</div>';
-    h+='<div style="display:flex;gap:6px"><button class="btn btn-s btn-sm" onclick="editarNome()">Editar</button><button class="btn btn-d btn-sm" onclick="sairConta()">Sair</button></div></div>';
+    h+='<div style="display:flex;gap:6px"><button class="btn btn-d btn-sm" onclick="sairConta()">Sair</button></div></div>';
     if(!temCrefito){
       h+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;display:flex;align-items:center;gap:10px">';
       h+='<div style="font-size:20px">🔴</div>';
@@ -2609,15 +2661,8 @@ function rMais(el2){
   }
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🔒 Segurança</div>';
   var inativAtual=D.cfg.inatividade||0;
-  var optsInativ2=[{v:0,l:'Sem tempo'},{v:1,l:'1 minuto'},{v:5,l:'5 minutos'},{v:10,l:'10 minutos'},{v:30,l:'30 minutos'},{v:60,l:'1 hora'},{v:360,l:'6 horas'},{v:720,l:'12 horas'},{v:1440,l:'24 horas'}];
-  h+='<div class="fg"><label>Tempo de inatividade</label>';
-  h+='<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px">';
-  optsInativ2.forEach(function(o){
-    var sel=inativAtual===o.v;
-    h+='<button class="btn '+( sel?'btn-p':'btn-s')+'" style="text-align:left;padding:10px 14px;font-weight:'+(sel?'700':'400')+'" data-val="'+o.v+'" onclick="salvarInatividadeVal(this.dataset.val)">'+( sel?'✅ ':'')+o.l+'</button>';
-  });
-  h+='</div>';
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:8px">Após o tempo sem usar o app, será necessário fazer login novamente.</div></div>';
+  var optsInativLabel={0:'Sem tempo',1:'1 minuto',5:'5 minutos',10:'10 minutos',30:'30 minutos',60:'1 hora',360:'6 horas',720:'12 horas',1440:'24 horas'};
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0"><div><div style="font-size:13px;font-weight:600">Tempo de inatividade</div><div style="font-size:12px;color:var(--sl3)">'+(optsInativLabel[inativAtual]||'Sem tempo')+'</div></div><button class="btn btn-s btn-sm" onclick="mTempoInatividade()">Alterar</button></div>';
   h+='</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Planos e Convênios</div>';
   D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><div style="width:14px;height:14px;border-radius:50%;background:'+(pl.cor||'var(--g1)')+';flex-shrink:0"></div><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+(!pl.pgMes||pl.pgMes===''?' <span title="Previsao de recebimento não configurada" style="cursor:pointer;font-size:14px;color:#d97706" onclick="mPlano(\''+pl.id+'\')" >⚠️</span>':'')+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?'R$'+parseFloat(pl.valor).toFixed(2):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
@@ -2664,7 +2709,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px">💚</div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.006 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.009 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -2730,19 +2775,123 @@ function salvarModelos(){
 
 
 function mExcluirConta(){
+  // Verificar se já tem exclusão agendada
+  var agendada=localStorage.getItem('fe_excluir_em');
+  if(agendada){
+    var diasRestantes=Math.ceil((parseInt(agendada)-Date.now())/(864e5));
+    if(diasRestantes>0){
+      var h='<div class="mh"><h3 style="color:var(--red)">⚠️ Exclusão agendada</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+      h+='<div style="background:var(--redbg);border-radius:10px;padding:14px;margin-bottom:16px">';
+      h+='<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">Sua conta será excluída em '+diasRestantes+' dia(s)</div>';
+      h+='<div style="font-size:12px;color:var(--red);line-height:1.6">Se não fizer nada, sua conta e todos os dados serão excluídos permanentemente.</div></div>';
+      h+='<button class="btn btn-p btn-bl" onclick="cancelarExclusaoConta()">✅ Cancelar exclusão</button>';
+      h+='<button class="btn btn-d btn-bl" style="margin-top:8px" onclick="confirmarExclusaoImediata()">Excluir agora mesmo</button>';
+      abrirM(h);
+      return;
+    }
+  }
+  // Passo 1 — Confirmação
   var h='<div class="mh"><h3 style="color:var(--red)">⚠️ Excluir conta</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div style="background:var(--redbg);border-radius:10px;padding:14px;margin-bottom:16px">';
-  h+='<div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">Esta ação é IRREVERSÍVEL</div>';
-  h+='<div style="font-size:12px;color:var(--red);line-height:1.6">Todos os seus dados serão permanentemente excluídos. Não será possível recuperar.</div></div>';
-  h+='<div class="fg"><label>Digite EXCLUIR para confirmar</label><input class="fi" type="text" id="exc-confirm" placeholder="EXCLUIR"/></div>';
-  h+='<div class="fg"><label>Sua senha</label><input class="fi" type="password" id="exc-senha" placeholder="Senha da conta"/></div>';
-  h+='<button class="btn btn-d btn-bl" onclick="confirmarExclusao()">Excluir minha conta permanentemente</button>';
+  h+='<div style="text-align:center;padding:10px 0">';
+  h+='<div style="font-size:40px;margin-bottom:10px">🗑️</div>';
+  h+='<div style="font-size:15px;font-weight:800;color:var(--red);margin-bottom:8px">Tem certeza que deseja excluir sua conta?</div>';
+  h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:16px;line-height:1.6">Sua conta ficará ativa por <strong>7 dias</strong>. Se não fizer login nesse período, a conta e todos os dados serão excluídos permanentemente.</div>';
+  h+='</div>';
+  h+='<div style="background:var(--redbg);border-radius:8px;padding:10px;margin-bottom:16px;font-size:12px;color:var(--red)">⚠️ Esta ação é irreversível após os 7 dias. Recomendamos exportar seus dados antes.</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px">';
+  h+='<button class="btn btn-p btn-bl" onclick="fecharM()">↩ Cancelar</button>';
+  h+='<button class="btn btn-s btn-bl" onclick="mExcluirContaPasso2()">Continuar →</button>';
+  h+='</div>';
   abrirM(h);
 }
+
+function mExcluirContaPasso2(){
+  var h='<div class="mh"><h3>📥 Exportar seus dados</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="font-size:13px;color:var(--sl2);margin-bottom:16px;line-height:1.6">Antes de excluir, recomendamos salvar uma cópia dos seus dados.</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">';
+  h+='<button class="btn btn-p btn-bl" onclick="exportarBkp();toast(\'Dados exportados!\')">📥 Baixar JSON</button>';
+  h+='<button class="btn btn-s btn-bl" onclick="mExcluirContaEmail()">✉️ Enviar por e-mail</button>';
+  h+='</div>';
+  h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
+  h+='<button class="btn btn-d btn-bl" onclick="agendarExclusaoConta()">Pular e agendar exclusão</button>';
+  h+='</div>';
+  abrirM(h);
+}
+
+function mExcluirContaEmail(){
+  var h='<div class="mh"><h3>✉️ Enviar dados por e-mail</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>E-mail de destino</label><input class="fi" type="email" id="exc-email" value="'+(FBU?FBU.email||'':'')+'" placeholder="seu@email.com"/></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="enviarDadosExclusao()">Enviar e continuar</button>';
+  h+='<button class="btn btn-s btn-bl" style="margin-top:8px" onclick="agendarExclusaoConta()">Pular e agendar exclusão</button>';
+  abrirM(h);
+}
+
+function enviarDadosExclusao(){
+  var email=el('exc-email')?el('exc-email').value.trim():'';
+  if(!email){toast('Informe o e-mail');return;}
+  exportarBkp();
+  var assunto='FisioEvolução — Backup dos seus dados';
+  var corpo='Olá,\n\nSegue o backup completo dos seus dados do FisioEvolução.\n\nO arquivo JSON foi baixado no seu dispositivo. Anexe-o a este e-mail.\n\nAtenção: sua conta foi agendada para exclusão em 7 dias.\n\n— FisioEvolução';
+  setTimeout(function(){
+    window.open('mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo));
+    agendarExclusaoConta();
+  },800);
+}
+
+function agendarExclusaoConta(){
+  var dtExclusao=Date.now()+(7*24*60*60*1000);
+  localStorage.setItem('fe_excluir_em',dtExclusao.toString());
+  D.cfg.exclusaoAgendada=dtExclusao;
+  salvar();
+  fecharM();
+  // Notificação no sino
+  addNotif('conta_exclusao','crefito',
+    '🗑️ Conta agendada para exclusão em 7 dias',
+    'Faça login antes de '+new Date(dtExclusao).toLocaleDateString('pt-BR')+' para cancelar. Caso contrário, todos os dados serão apagados.');
+  atualizarBadgeSino();
+  toast('Exclusão agendada. Faça login nos próximos 7 dias para cancelar.');
+}
+
+function cancelarExclusaoConta(){
+  localStorage.removeItem('fe_excluir_em');
+  delete D.cfg.exclusaoAgendada;
+  delNotif('conta_exclusao');
+  salvar();
+  fecharM();
+  toast('✅ Exclusão cancelada! Sua conta está segura.');
+}
+
+function verificarExclusaoAgendada(){
+  var agendada=localStorage.getItem('fe_excluir_em');
+  if(!agendada)return;
+  var dtExclusao=parseInt(agendada);
+  if(Date.now()>=dtExclusao){
+    // 7 dias passaram — excluir conta
+    FBD.ref('u/'+FBU.uid).remove().then(function(){
+      return FBU.delete();
+    }).then(function(){
+      Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_'))localStorage.removeItem(k);});
+      location.reload();
+    });
+  } else {
+    // Mostrar banner de cancelamento
+    var diasRestantes=Math.ceil((dtExclusao-Date.now())/(864e5));
+    addNotif('conta_exclusao','crefito',
+      '🗑️ Conta será excluída em '+diasRestantes+' dia(s)',
+      'Acesse Mais → Solicitar exclusão para cancelar.');
+    atualizarBadgeSino();
+  }
+}
+
+function confirmarExclusaoImediata(){
+  var h='<div class="mh"><h3 style="color:var(--red)">Excluir agora</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div class="fg"><label>Digite sua senha para confirmar</label><input class="fi" type="password" id="exc-senha" placeholder="Senha da conta"/></div>';
+  h+='<button class="btn btn-d btn-bl" onclick="confirmarExclusao()">Excluir permanentemente</button>';
+  abrirM(h);
+}
+
 function confirmarExclusao(){
-  var conf=el('exc-confirm').value;
-  var senha=el('exc-senha').value;
-  if(conf!=='EXCLUIR'){toast('Digite EXCLUIR corretamente');return;}
+  var senha=el('exc-senha')?el('exc-senha').value:'';
   if(!senha){toast('Digite sua senha');return;}
   var cred=firebase.auth.EmailAuthProvider.credential(FBU.email,senha);
   FBU.reauthenticateWithCredential(cred).then(function(){
@@ -2751,7 +2900,7 @@ function confirmarExclusao(){
     return FBU.delete();
   }).then(function(){
     Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_'))localStorage.removeItem(k);});
-    fecharM();toast('Conta excluída com sucesso.');
+    fecharM();toast('Conta excluída.');
     setTimeout(function(){location.reload();},2000);
   }).catch(function(e){toast('Erro: verifique sua senha e tente novamente.');});
 }
