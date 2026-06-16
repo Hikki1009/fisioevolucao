@@ -58,7 +58,7 @@ textarea.fi{resize:vertical;min-height:76px}
 .tog input:checked~.tog-s{background:var(--g1)}
 .tog input:checked~.tog-s:before{transform:translateX(18px)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
-.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 30px;width:calc(100% - 32px);max-width:640px;max-height:88vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
+.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 0;width:calc(100% - 32px);max-width:640px;max-height:88vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
 .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .mh h3{font-size:16px;font-weight:800}
 .mc{background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl2);display:flex;align-items:center;justify-content:center}
@@ -575,7 +575,7 @@ function rInicio(el2){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
       var _cpacs=s.isClinica&&(s.pacientesClinica||[]).filter(function(x){return x;});
-var nm=s.isClinica?(_cpacs&&_cpacs.length?_cpacs.map(function(id){return nomePac(id);}).join(', '):' Clínica'):nomePac(s.pacienteId);
+      var nm=s.isClinica?(_cpacs&&_cpacs.length?_cpacs.map(function(id){return nomePac(id);}).join(', '):' Clínica'):nomePac(s.pacienteId);
       var temPac=!s.isClinica&&s.pacienteId;
       h+='<div style="display:flex;align-items:center;gap:7px;padding:8px 0;border-bottom:1px solid var(--borda)">';
       h+='<div style="width:10px;height:10px;border-radius:50%;background:'+statusCor+';flex-shrink:0"></div>';
@@ -601,8 +601,9 @@ var nm=s.isClinica?(_cpacs&&_cpacs.length?_cpacs.map(function(id){return nomePac
     h+='<input class="fi" style="margin:6px 0 8px;font-size:13px" placeholder="Buscar..." id="busca-emaberto" oninput="filtrarEmAberto(this.value)"/>';
     h+='<div id="emaberto-lista">';
     aberto.forEach(function(s){
-      h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--borda);flex-wrap:wrap" data-nome="'+esc(nomePac(s.pacienteId)).toLowerCase()+'">';
-      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--g1);cursor:pointer;text-decoration:underline" data-pid="'+esc(s.pacienteId)+'" onclick="irPerfilEvo(this.dataset.pid)">'+esc(nomePac(s.pacienteId))+'</div>';
+      var _nmAb=nomePac(s.pacienteId);
+      h+='<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--borda);flex-wrap:wrap" data-nome="'+esc(_nmAb).toLowerCase()+'">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:var(--g1);cursor:pointer;text-decoration:underline" data-pid="'+esc(s.pacienteId)+'" onclick="irPerfilEvo(this.dataset.pid)">'+esc(_nmAb)+'</div>';
       h+='<div style="font-size:11px;color:var(--sl3)">'+fmtD(s.data)+' '+esc(s.hora)+'</div></div>';
       h+=stB(s.status);
       h+='<div style="display:flex;gap:3px">';
@@ -732,12 +733,12 @@ function rAgenda(el2){
         var corStatus={realizado:'#16a34a',falta:'#dc2626',remarcado:'#d97706',desmarcado:'#6b7280'};
         var cor=corStatus[s.status]||tpCor(s.tipoId);
         var pacEvo=D.pacientes.find(function(x){return x.id===s.pacienteId;});
-        var hj2=hoje();
-        var nReal=D.sessoes.filter(function(x){return x.pacienteId===s.pacienteId&&x.status==='realizado'&&x.data<=hj2;}).length;
+        var nReal=D.sessoes.filter(function(x){return x.pacienteId===s.pacienteId&&x.status==='realizado'&&x.data<=hj;}).length;
         var nEvo=(pacEvo&&pacEvo.evolucoes||[]).length;
         var temEvo=nEvo>=nReal;
         var ponto=s.status==='realizado'&&!temEvo?'<span style="position:absolute;top:1px;right:1px;width:6px;height:6px;background:#ef4444;border-radius:50%" title="Evolucao pendente"></span>':'';
-        var nm=s.isClinica?(s.pacientesClinica&&s.pacientesClinica.filter(function(x){return x;}).length?s.pacientesClinica.filter(function(x){return x;}).map(function(id){return nomePac(id);}).join(', '):' Clínica'):nomePac(s.pacienteId)||'Sem paciente';
+        var _cp=s.isClinica&&(s.pacientesClinica||[]).filter(function(x){return x;});
+        var nm=s.isClinica?(_cp&&_cp.length?_cp.map(function(id){return nomePac(id);}).join(', '):' Clínica'):nomePac(s.pacienteId)||'Sem paciente';
         h+='<div class="gev" style="position:relative;background:'+esc(cor)+'18;color:'+esc(cor)+';border-left-color:'+esc(cor)+'" data-sid="'+esc(s.id)+'" onclick="event.stopPropagation();sessClick(this)">'+ponto+esc(nm)+'</div>';
       });
       h+='</div>';
@@ -888,9 +889,10 @@ function confirmarMoverSessao(){
 
 function statusRapido(sid,status){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
-  s.status=status;
-  salvar();renderizar();
   var snm={agendado:'Agendado',confirmado:'Confirmado',realizado:'Realizado',falta:'Falta',desmarcado:'Desmarcado',remarcado:'Remarcado',falta_prof:'Falta Prof.'};
+  if(s.status===status){toast((snm[status]||status)+' já registrado!');fecharM();return;}
+  s.status=status;
+  salvar();fecharM();renderizar();
   toast((snm[status]||status)+' registrado!');
 }
 
@@ -945,7 +947,7 @@ function mSessao(s,ds,hr){
     h+='<div class="fr"><div class="fg"><label>Tipo</label><select class="fi" id="ms-rec-tipo" onchange="toggleRec()"><option value="">Não repetir</option><option value="sem">Por semanas</option><option value="qtd">Pacote (nº de sessões)</option></select></div>';
     h+='<div class="fg" id="ms-rec-val-w" style="display:none"><label id="ms-rec-lbl">Quantas semanas?</label><input class="fi" type="number" id="ms-rec-val" min="1" max="100" value="4"/></div></div></div>';
   }
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;position:sticky;bottom:0;background:var(--card);padding:10px 0 2px;border-top:1px solid var(--borda)">';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;position:sticky;bottom:0;background:var(--card);padding:10px 0 16px;border-top:1px solid var(--borda)">';
   h+='<button class="btn btn-p btn-bl" onclick="salvarSessao()">Salvar sessão</button>';
   if(!nova&&(s.status==='adiado'||s.status==='desmarcado'||s.status==='falta_prof'))h+='<button class="btn btn-a" onclick="remarcar(\''+esc(s.id)+'\')">📅 Remarcar</button>';
   if(!nova)h+='<button class="btn btn-d" data-sid="'+esc(s.id)+'" onclick="excluirSessao(this.dataset.sid)">Excluir</button>';
@@ -2449,8 +2451,8 @@ function relFin(){
 }
 function relEvo(){
   var p2=getPer(),per=nomePer();
-  var linhas=[['Relatório de Evoluções - '+per],[''],['Paciente','Diagnóstico','Data','Texto','Dor (0-10)','Mobilidade (0-10)']];
-  D.pacientes.forEach(function(pac){var evos=(pac.evolucoes||[]).filter(function(e){var d=new Date(e.ts);return d.getMonth()===p2.mes&&d.getFullYear()===p2.ano;});evos.forEach(function(e){linhas.push([pac.nome,pac.diagnostico||'',fmtDH(e.ts),e.texto,e.dor!=null?e.dor:'',e.mob!=null?e.mob:'']);});});
+  var linhas=[['Relatório de Evoluções - '+per],[''],['Data','Paciente','Diagnóstico','PA','Sat','FC','Dor (0-10)','Mobilidade (0-10)','Texto']];
+  D.pacientes.forEach(function(pac){var evos=(pac.evolucoes||[]).filter(function(e){var dtE=e.dataEvo||new Date(e.ts||0).toISOString().slice(0,10);var d=new Date(dtE+'T12:00:00');return d.getMonth()===p2.mes&&d.getFullYear()===p2.ano;});evos.forEach(function(e){var dtE=e.dataEvo||new Date(e.ts||0).toISOString().slice(0,10);linhas.push([fmtD(dtE),pac.nome,pac.diagnostico||'',e.pa||'',e.sat||'',e.bpm||'',e.dor!=null?e.dor:'',e.mob!=null?e.mob:'',(e.texto||'').slice(0,100)]);});});
   baixarXLS('evolucoes-'+per,linhas);toast('Relatório de evoluções exportado!');
 }
 function relFalt(){
