@@ -57,8 +57,7 @@ textarea.fi{resize:vertical;min-height:76px}
 .tog-s:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .tog input:checked~.tog-s{background:var(--g1)}
 .tog input:checked~.tog-s:before{transform:translateX(18px)}
-.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
-.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 0;width:calc(100% - 32px);max-width:640px;max-height:88vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--g1) var(--g3)}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
+.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 0;width:calc(100% - 32px);max-width:640px;overflow-x:hidden;-webkit-overflow-scrolling:touch}.modal::-webkit-scrollbar{width:8px}.modal::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.modal::-webkit-scrollbar-track{background:var(--g3)}
 .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .mh h3{font-size:16px;font-weight:800}
 .mc{background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl2);display:flex;align-items:center;justify-content:center}
@@ -100,35 +99,20 @@ body.tema-escuro{
 ::-webkit-scrollbar-track{background:var(--g4);border-radius:3px;}
 ::-webkit-scrollbar-thumb{background:var(--g2);border-radius:3px;}
 ::-webkit-scrollbar-thumb:hover{background:var(--g1);}
-/* Conteúdo das abas com scroll */
-
-/* Lista de pacientes */
-
-/* Modal com scroll */
-
-/* Mais com scroll */
 
 
 
-
-body.tema-escuro .gc{color:#e2e8f0 !important;}
-body.tema-escuro .gh{color:#e2e8f0 !important;background:#1e293b;}
 body.tema-escuro .gh.on,body.tema-escuro .gh[style*='background']{color:#4ade80 !important;}
-body.tema-escuro 
-body.tema-escuro .gcel:hover{background:#334155;}
-body.tema-escuro 
 body.tema-escuro .av{color:#fff !important;}
 body.tema-escuro a[style*="color:var(--g1)"]{color:#fff !important;}
 body.tema-escuro [style*="color:var(--g1)"]{color:#e2e8f0 !important;}
-body.tema-escuro 
 body.tema-escuro .ghora{background:#1e293b !important;color:#e2e8f0 !important;border-color:#334155 !important;}
 body.tema-escuro .grade{background:#0f172a !important;}
 body.tema-escuro .gw{border-color:#334155 !important;}
-body.tema-escuro .gc{background:#0f172a !important;border-color:#334155 !important;}
+body.tema-escuro .gc{color:#e2e8f0 !important;background:#0f172a !important;border-color:#334155 !important;}
 body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 @keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
-.leg{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;padding:8px;background:var(--bg);border-radius:8px}
 
 
 @media(min-width:768px){
@@ -201,7 +185,7 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
   </div>
 </div>
 
-<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center" onclick="fecharM();fecharSino()">
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:16px 0;overflow-y:auto" onclick="fecharM();fecharSino()">
   <div class="modal" onclick="event.stopPropagation()">
     <div id="mbody"></div>
   </div>
@@ -220,7 +204,7 @@ var D = {
   pacientes:[],sessoes:[],feriados:[],
   planos:[{id:'p1',nome:'Particular',valor:0},{id:'p2',nome:'SUS',valor:0}],
   tipos:[{id:'t1',nome:'Particular',cor:'#2563eb'},{id:'t2',nome:'Clínica',cor:'#dc2626'},{id:'t3',nome:'Domiciliar',cor:'#d97706'},{id:'t4',nome:'Avaliação',cor:'#7c3aed'}],
-  cfg:{usarGrafico:true,usarAnamnese:false,usarCompartilhar:false,usarNotas:false,usarTermo:false,horaIni:7,horaFim:20},
+  cfg:{usarGrafico:true,usarAnamnese:false,usarNotas:false,usarTermo:false,horaIni:7,horaFim:20},
   notas:''
 };
 
@@ -385,8 +369,8 @@ function nomePac(id){var p=D.pacientes.find(function(x){return x.id===id;});retu
 function plNome(id){var p=D.planos.find(function(x){return x.id===id;});return p?p.nome:'';}
 function tpNome(id){var t=D.tipos.find(function(x){return x.id===id;});return t?t.nome:'';}
 function tpCor(id){var t=D.tipos.find(function(x){return x.id===id;});return t?t.cor:'#64748b';}
-function stL(st){return{agendado:'Agendado',confirmado:'Confirmado',realizado:'Realizado',falta:'Falta',adiado:'Adiado',cancelado:'Cancelado',falta_prof:'Falta Profissional',desmarcado:'Desmarcado'}[st]||st;}
-function stCls(st){return{agendado:'bg-b',confirmado:'bg-g',realizado:'bg-s',falta:'bg-a',adiado:'bg-p',cancelado:'bg-r',falta_prof:'bg-r',desmarcado:'bg-s'}[st]||'bg-s';}
+function stL(st){return{agendado:'Agendado',confirmado:'Confirmado',realizado:'Realizado',falta:'Falta',adiado:'Adiado',cancelado:'Cancelado',falta_prof:'Falta Profissional',desmarcado:'Desmarcado',remarcado:'Remarcado'}[st]||st;}
+function stCls(st){return{agendado:'bg-b',confirmado:'bg-g',realizado:'bg-s',falta:'bg-a',adiado:'bg-p',cancelado:'bg-r',falta_prof:'bg-r',desmarcado:'bg-s',remarcado:'bg-p'}[st]||'bg-s';}
 function stB(st){return'<span class="badge '+stCls(st)+'">'+stL(st)+'</span>';}
 function toast(m,d){var t=el('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('on');},d||2400);}
 function dowN(ds){var d=new Date(ds+'T12:00:00');return['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];}
@@ -473,10 +457,10 @@ function renderizar(){
   var c=el('conteudo');c.innerHTML='';
   var fab=el('fab');fab.style.display='none';fab.onclick=null;
   var bv=el('btn-vol');bv.style.display='none';bv.textContent='';
-    BtnVolCb=null;
+  BtnVolCb=null;
   var div=document.createElement('div');div.className='fi-an';
   if(PAC_ID){
-rPerfil(div);c.appendChild(div);return;}
+    rPerfil(div);c.appendChild(div);return;}
   if(ABA==='inicio')rInicio(div);
   else if(ABA==='agenda')rAgenda(div);
   else if(ABA==='pacientes')rPacientes(div);
@@ -677,7 +661,7 @@ function rAgenda(el2){
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
   var dN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];var horas=getHoras();var hj=hoje();
   var label=dias[0].toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+' – '+dias[6].toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'});
-  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convênio',v:'convenio'}];
+  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convênio',v:'conv'}];
 
   var h='<div id="agenda-layout">';
 
@@ -813,32 +797,54 @@ function celulaClick(btn){mSessao(null,btn.dataset.ds,btn.dataset.hora);}
 function sessEditar(sid){var ss=D.sessoes.find(function(x){return x.id===sid;});if(ss)mSessao(ss,null,null);}
 function sessClick(btn){
   var s=D.sessoes.find(function(x){return x.id===btn.dataset.sid;});if(!s)return;
-  var nm=nomePac(s.pacienteId);var pl=plNome(s.planoId);
+  var _cpSC=s.isClinica&&(s.pacientesClinica||[]).filter(function(x){return x;});
+  var nm=s.isClinica?(_cpSC&&_cpSC.length?_cpSC.map(function(id){return nomePac(id);}).join(', '):'Clínica'):nomePac(s.pacienteId)||'Sem paciente';
+  var pl=plNome(s.planoId);
   var snm={agendado:'Agendado',confirmado:'Confirmado',realizado:'Realizado',falta:'Falta',desmarcado:'Desmarcado',remarcado:'Remarcado',falta_prof:'Falta Profissional'};
   var sc={realizado:'#16a34a',falta:'#dc2626',remarcado:'#d97706',desmarcado:'#6b7280',agendado:'#1e6b3f',confirmado:'#1e6b3f'};
   var h='<div class="mh"><h3>'+esc(nm)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
-  h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:18px;font-weight:800">'+esc(s.hora)+'</div><div style="font-size:11px;color:var(--sl3)">Horário</div></div>';
-  h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:14px;font-weight:700;color:'+(sc[s.status]||'#1e6b3f')+'">'+esc(snm[s.status]||s.status)+'</div><div style="font-size:11px;color:var(--sl3)">Status</div></div>';
-  h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:13px;font-weight:600">'+esc(pl)+'</div><div style="font-size:11px;color:var(--sl3)">Plano</div></div>';
-  h+='<div style="text-align:center;padding:8px;background:var(--g4);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--g1)">R$'+(s.valor||0).toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Valor</div></div>';
+  // Info compacta em linha única
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:16px">';
+  h+='<div style="text-align:center;padding:10px 4px;background:var(--g4);border-radius:10px">';
+  h+='<div style="font-size:16px;font-weight:800;color:var(--sl)">'+esc(s.hora)+'</div>';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-top:2px">Horário</div></div>';
+  h+='<div style="text-align:center;padding:10px 4px;background:var(--g4);border-radius:10px">';
+  h+='<div style="font-size:12px;font-weight:700;color:'+(sc[s.status]||'#1e6b3f')+'">'+esc(snm[s.status]||s.status)+'</div>';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-top:2px">Status</div></div>';
+  h+='<div style="text-align:center;padding:10px 4px;background:var(--g4);border-radius:10px">';
+  h+='<div style="font-size:12px;font-weight:600;color:var(--sl)">'+esc(pl)+'</div>';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-top:2px">Plano</div></div>';
+  h+='<div style="text-align:center;padding:10px 4px;background:var(--g4);border-radius:10px">';
+  h+='<div style="font-size:13px;font-weight:800;color:var(--g1)">R$'+(s.valor||0).toFixed(2)+'</div>';
+  h+='<div style="font-size:10px;color:var(--sl3);margin-top:2px">Valor</div></div>';
   h+='</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  // Status — label + 2x2 grid
+  h+='<div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Atualizar status</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
   h+='<button class="btn btn-p btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'realizado\')">✅ Atendido</button>';
   h+='<button class="btn btn-d btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'falta\')">❌ Falta</button>';
   h+='<button class="btn btn-a btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'desmarcado\')">⬜ Desmarcado</button>';
-  h+='<button class="btn btn-s btn-sm" data-sid="'+esc(s.id)+'" onclick="moverSessao(\''+esc(s.id)+'\')" >🔄 Remarcar</button>';
   h+='<button class="btn btn-b btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'agendado\')">📋 Agendar</button>';
+  h+='<button class="btn btn-d btn-sm" data-sid="'+esc(s.id)+'" onclick="statusRapido(this.dataset.sid,\'falta_prof\')">🙋 Falta Prof.</button>';
+  h+='<div style="grid-column:1/-1"></div>';
+  h+='</div>';
+  // Ações — label + 3 botões grandes
+  h+='<div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Ações</div>';
+  var pidMenu=s.pacienteId;
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+  if(pidMenu)h+='<button class="btn btn-p btn-sm" onclick="fecharM();irPerfilEvo(\''+pidMenu+'\')">📝 Evoluir</button>';
+  else h+='<button class="btn btn-s btn-sm" style="opacity:.5;cursor:default">📝 Clínica</button>';
+  h+='<button class="btn btn-s btn-sm" data-sid="'+esc(s.id)+'" onclick="fecharM();sessEditar(this.dataset.sid)">✏️ Editar</button>';
+  h+='<button class="btn btn-a btn-sm" data-sid="'+esc(s.id)+'" onclick="fecharM();moverSessao(\''+esc(s.id)+'\')">📅 Mover</button>';
+  h+='</div>';
+  // Remarcar + Excluir — linha final
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<button class="btn btn-s btn-sm" data-sid="'+esc(s.id)+'" onclick="fecharM();moverSessao(\''+esc(s.id)+'\')">🔄 Remarcar</button>';
   h+='<button class="btn btn-d btn-sm" data-sid="'+esc(s.id)+'" onclick="fecharM();excluirSessaoModal(this.dataset.sid)">🗑️ Excluir</button>';
   h+='</div>';
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-  var pidMenu=s.pacienteId;
-  h+='<button class="btn btn-p btn-bl" onclick="fecharM();irPerfilEvo(\''+pidMenu+'\')">📝 Evoluir</button>';
-  h+='<button class="btn btn-s btn-bl" data-sid="'+esc(s.id)+'" onclick="fecharM();sessEditar(this.dataset.sid)">✏️ Editar</button>';
-  h+='<button class="btn btn-a btn-bl" data-sid="'+esc(s.id)+'" onclick="moverSessao(\''+esc(s.id)+'\')">📅 Mover</button>';
-  h+='</div>';
+  // Alerta de faltas
   var f30=D.sessoes.filter(function(x){if(x.pacienteId!==s.pacienteId||x.status!=='falta')return false;var d=new Date(x.data+'T12:00:00');return(new Date()-d)/(864e5)<=30;}).length;
-  if(f30>0)h+='<div style="margin-top:10px;padding:8px;background:#fef2f2;border-radius:8px;font-size:12px;color:#dc2626;font-weight:600">⚠️ '+f30+' falta(s) nos últimos 30 dias</div>';
+  if(f30>0)h+='<div style="margin-top:12px;padding:10px;background:#fef2f2;border-radius:10px;font-size:12px;color:#dc2626;font-weight:600">⚠️ '+f30+' falta(s) nos últimos 30 dias</div>';
   abrirM(h);
 }
 function excluirSessaoModal(sid){
@@ -894,6 +900,11 @@ function statusRapido(sid,status){
   s.status=status;
   salvar();fecharM();renderizar();
   toast((snm[status]||status)+' registrado!');
+  if(status==='desmarcado'||status==='falta_prof'){
+    setTimeout(function(){
+      if(confirm('Deseja remarcar esta sessão?'))remarcar(sid);
+    },300);
+  }
 }
 
 // ── Modal Sessão ─────────────────────────────────────────────────
@@ -947,7 +958,7 @@ function mSessao(s,ds,hr){
     h+='<div class="fr"><div class="fg"><label>Tipo</label><select class="fi" id="ms-rec-tipo" onchange="toggleRec()"><option value="">Não repetir</option><option value="sem">Por semanas</option><option value="qtd">Pacote (nº de sessões)</option></select></div>';
     h+='<div class="fg" id="ms-rec-val-w" style="display:none"><label id="ms-rec-lbl">Quantas semanas?</label><input class="fi" type="number" id="ms-rec-val" min="1" max="100" value="4"/></div></div></div>';
   }
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;position:sticky;bottom:0;background:var(--card);padding:10px 0 16px;border-top:1px solid var(--borda)">';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;padding:10px 0 16px;border-top:1px solid var(--borda)">';
   h+='<button class="btn btn-p btn-bl" onclick="salvarSessao()">Salvar sessão</button>';
   if(!nova&&(s.status==='adiado'||s.status==='desmarcado'||s.status==='falta_prof'))h+='<button class="btn btn-a" onclick="remarcar(\''+esc(s.id)+'\')">📅 Remarcar</button>';
   if(!nova)h+='<button class="btn btn-d" data-sid="'+esc(s.id)+'" onclick="excluirSessao(this.dataset.sid)">Excluir</button>';
@@ -1128,16 +1139,17 @@ function rPerfil(el2){
   var abas=['resumo','anamnese','evo','sessoes','avaliacoes','dados'];
 
   var abaL={resumo:'Resumo',anamnese:'Anamnese',evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',avaliacoes:'Avaliações',dados:'Dados'};
-  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">';
-  h+='<button class="btn btn-s btn-sm" onclick="voltarPac()">← Voltar</button><div style="flex:1"></div>';
+  // Linha 1: ações principais
+  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
   h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Evolução</button>';
   h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
-  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">Histórico ('+((p.escalasDin||[]).length)+')</button>';
+  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,this.dataset.pid)">+ Sessão</button>';
+  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar</button>';
+  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico</button>';
   if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
   if(!p.inativo)h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" onclick="inativarPaciente(this.dataset.pid)">Inativar</button>';
   else h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="reativarPaciente(this.dataset.pid)">Reativar</button>';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,this.dataset.pid)">+ Sessão</button>';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)" title="Editar paciente" style="padding:6px 10px">✏️</button></div>';
+  h+='</div>';
   h+='<div class="ptab">';
   abas.forEach(function(a){h+='<div class="pt '+(PAC_ABA===a?'on':'')+'" data-a="'+a+'" onclick="trocarAba(this.dataset.a)">'+abaL[a]+'</div>';});
   h+='</div>';
@@ -1161,13 +1173,19 @@ function rAbaEvo(p){
   if(!evos.length)return'<div style="text-align:center;padding:40px;color:var(--sl3);display:flex;flex-direction:column;align-items:center;gap:12px"><div style="font-size:40px">📋</div><div>Nenhuma evolução registrada.</div><button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Registrar primeira evolução</button></div>';
   var h='';
   evos.forEach(function(e){
-    h+='<div class="evo-item"><div style="font-size:11px;color:var(--sl3);font-weight:600;margin-bottom:4px">'+fmtDH(e.ts)+'</div>';
+    var bloq1=(Date.now()-(e.ts||0))>86400000&&e.id;
+    var dtLabel=e.dataEvo?(fmtD(e.dataEvo)+' · digitado em '+fmtDH(e.ts)):fmtDH(e.ts);
+    h+='<div class="evo-item"><div style="font-size:11px;color:var(--sl3);font-weight:600;margin-bottom:4px">'+dtLabel+(bloq1?' 🔒':'')+'</div>';
     h+='<div style="font-size:13px;white-space:pre-wrap;line-height:1.55">'+esc(e.texto)+'</div>';
-    var vt=[];if(e.pa)vt.push('PA: <strong>'+esc(e.pa)+'</strong>');if(e.sat)vt.push('Sat: <strong>'+esc(e.sat)+'</strong>%');if(e.bpm)vt.push('FC: <strong>'+esc(e.bpm)+'</strong>bpm');if(vt.length)h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;padding:5px 8px;background:#f0f9ff;border-radius:6px;border:1px solid #bae6fd">'+vt.map(function(v){return'<span style="font-size:12px;color:var(--blue)">'+v+'</span>';}).join(' · ')+'</div>';if(e.dor!=null)h+='<div style="display:flex;gap:14px;margin-top:6px"><span style="font-size:12px;color:var(--sl3)">Dor: <strong style="color:var(--red)">'+e.dor+'/10</strong></span><span style="font-size:12px;color:var(--sl3)">Mob: <strong style="color:var(--green)">'+e.mob+'/10</strong></span></div>';
+    var vt=[];if(e.pa)vt.push('PA: <strong>'+esc(e.pa)+'</strong>');if(e.sat)vt.push('Sat: <strong>'+esc(e.sat)+'</strong>%');if(e.bpm)vt.push('FC: <strong>'+esc(e.bpm)+'</strong>bpm');if(vt.length)h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;padding:5px 8px;background:#f0f9ff;border-radius:6px;border:1px solid #bae6fd">'+vt.map(function(v){return'<span style="font-size:12px;color:var(--blue)">'+v+'</span>';}).join(' · ')+'</div>';if(e.dor!=null||e.mob!=null){h+='<div style="display:flex;gap:14px;margin-top:6px">';if(e.dor!=null)h+='<span style="font-size:12px;color:var(--sl3)">Dor: <strong style="color:var(--red)">'+e.dor+'/10</strong></span>';if(e.mob!=null)h+='<span style="font-size:12px;color:var(--sl3)">Mob: <strong style="color:var(--green)">'+e.mob+'/10</strong></span>';h+='</div>';}
     h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
-    h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="mEvo(this.dataset.pid,this.dataset.eid)">Editar</button>';
-    h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="delEvo(this.dataset.pid,this.dataset.eid)">Excluir</button>';
-    
+    if(!bloq1){
+      h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="mEvo(this.dataset.pid,this.dataset.eid)">✏️ Editar</button>';
+      h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="delEvo(this.dataset.pid,this.dataset.eid)">🗑️ Excluir</button>';
+    } else {
+      h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" data-eid="'+esc(e.id)+'" onclick="abrirAdendo(this.dataset.pid,this.dataset.eid)">📎 Adendo</button>';
+    }
+    if(e.adendos&&e.adendos.length){e.adendos.forEach(function(a){h+='<div style="margin-top:8px;padding:8px;background:#fef3c7;border-radius:8px;border-left:3px solid #d97706"><div style="font-size:10px;font-weight:700;color:#92400e;margin-bottom:3px">📎 Adendo — '+fmtDH(a.ts)+'</div><div style="font-size:12px;color:#78350f">'+esc(a.texto)+'</div></div>';});}
     h+='</div></div>';
   });
   return h;
@@ -1264,11 +1282,10 @@ function salvarPaciente(){
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
   if(D.cfg.usarAnamnese)['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){var e2=el('mp-'+k);if(e2)dados[k]=e2.value;});
-  if(pid){var p=D.pacientes.find(function(x){return x.id===pid;});if(p)Object.assign(p,dados);}
-  else{dados.id=uid();dados.evolucoes=[];D.pacientes.push(dados);}
   if(pid){
     if(!confirm('Confirmar alteração dos dados do paciente?'))return;
-  }
+    var p=D.pacientes.find(function(x){return x.id===pid;});if(p)Object.assign(p,dados);
+  } else{dados.id=uid();dados.evolucoes=[];D.pacientes.push(dados);}
   if(pid)registrarHistóricoAlteracao('Paciente editado — '+nome);
   salvar();fecharM();if(PAC_ID)renderizar();else renderPacs('');toast(pid?'Paciente atualizado!':'Paciente cadastrado!');
 }
@@ -1776,6 +1793,15 @@ function salvarEvo(){
 }
 
 
+function abrirAdendo(pid,eid){
+  var h='<div class="mh"><h3>📎 Adendo</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">O adendo complementa a evolução sem alterar o registro original. Ficará marcado com data e hora.</div>';
+  h+='<input type="hidden" id="ad-pid" value="'+esc(pid)+'"/>';
+  h+='<input type="hidden" id="ad-eid" value="'+esc(eid)+'"/>';
+  h+='<div class="fg"><label>Texto do adendo *</label><textarea class="fi" id="ad-txt" rows="4" placeholder="Complemento à evolução..."></textarea></div>';
+  h+='<button class="btn btn-p btn-bl" onclick="salvarAdendo()">Salvar adendo</button>';
+  abrirM(h);
+}
 function salvarAdendo(){
   var pid=el('ad-pid')?el('ad-pid').value:'';
   var eid=el('ad-eid')?el('ad-eid').value:'';
@@ -2075,7 +2101,7 @@ function rFinanceiro(el2){
     });
     Object.values(gruposFinanc).forEach(function(g){
       // Cabeçalho do grupo
-      h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;background:var(--g4);border-radius:8px;padding:8px 10px;margin-bottom:6px">';
+      h+='<div style="display:flex;align-items:center;gap:8px;background:var(--g4);border-radius:8px;padding:8px 10px;margin-bottom:6px">';
       h+='<div style="width:12px;height:12px;border-radius:50%;background:'+g.cor+';flex-shrink:0"></div>';
       h+='<div style="flex:1;font-size:13px;font-weight:800">'+esc(g.nome)+' ';
       if(g.mesmoPag)h+='<span class="badge bg-b" style="font-size:10px">Mesmo pagador</span>';
@@ -2535,6 +2561,10 @@ function rMais(el2){
   h+='</select></div></div><p style="font-size:11px;color:var(--sl3)">Define os horários na grade da agenda.</p></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Funcionalidades opcionais</div>';
   var opcsLei=[
+    {k:'usarGrafico',l:'Gráfico de evolução',d:'Campos de dor e mobilidade (0-10) nas evoluções',icon:'❓',
+     lei:'Funcionalidade opcional',
+     ldesc:'Permite registrar pontuação de dor (EVA) e mobilidade de 0 a 10 nas evoluções, gerando gráfico de progresso clínico.',
+     llink:''},
     {k:'usarAnamnese',l:'Anamnese completa',d:'Histórico médico',icon:'❓',
      lei:'Res. COFFITO nº 424/2013',
      ldesc:'A anamnese é parte do prontuário fisioterapêutico. A Resolução COFFITO nº 424/2013 orienta o registro completo das informações clínicas do paciente, incluindo histórico médico, queixas e antecedentes.',
@@ -2564,7 +2594,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px">💚</div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.010 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.011 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -3105,10 +3135,13 @@ function calcPacote(p){
 function abrirCatalogoEscalas(pid){
   var cats={
     fragilidade:'Frágilidade e Geriatria',
+    fragilidadeExtra:'Frágilidade e Geriatria',
     quedas:'Risco de Quedas',
     mobilidade:'Mobilidade',
     qualidade:'Qualidade de Vida',
+    qualidadeExtra:'Qualidade de Vida',
     neurologico:'Neurologico',
+    neurologicoExtra:'Neurologico',
     neuromuscular:'Doencas Neuromusculares',
     lombar:'Coluna e Dor Lombar',
     dor:'Dor e Impacto Funcional'
@@ -4182,8 +4215,6 @@ function rAjuda(el2){
     ['Adicionar escala','Toque em "+ Escala" para abrir o catálogo com mais de 20 escalas disponíveis.'],
     ['Categorias disponíveis','Frágilidade, Risco de Quedas, Mobilidade, Qualidade de Vida, Neurológico, Doenças Neuromusculares, Coluna/Lombar e Dor.'],
     ['Roland Morris','Questionário de 24 itens para avaliar incapacidade por dor lombar. 0-4 = mínima, 17-24 = muito grave.'],
-    ['Índice de Barthel','Avalia independência em 10 atividades. 0-20 = dependência total, 85-100 = independente.'],
-    ['Escala de Berg','Risco de queda. 0-35 = alto risco, 36-44 = médio, 45-56 = baixo risco.'],
     ['Gráfico de evolução','Se aplicar a mesma escala 2 ou mais vezes, aparece gráfico de barras mostrando a evolução da pontuação.'],
     ['Histórico','Todos os registros ficam salvos com data e hora.'],
   ],'Defina metas mensuráveis com prazo para mostrar ao paciente a evolução do tratamento.');
@@ -4231,7 +4262,6 @@ function rAjuda(el2){
     ['Modo escuro/claro','Em Mais → Aparência → toque em Claro ou Escuro.'],
     ['Cor principal','Escolha entre 6 cores predefinidas ou use o seletor de cor personalizada.'],
     ['Imagem de fundo','Toque em "Escolher imagem" para usar uma foto como fundo. Salva apenas neste dispositivo.'],
-    ['Cores da agenda','Personalize a cor do dia atual e dos feriados na grade. Em Mais → Aparência → Cores da agenda.'],
   ],'A imagem de fundo é salva localmente — não sincroniza com a nuvem entre dispositivos.');
 
   h+=sec('🛡️','Proteção e backup de dados',[
