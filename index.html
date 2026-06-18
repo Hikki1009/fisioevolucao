@@ -943,7 +943,7 @@ function mSessao(s,ds,hr){
   var t2isC=D.tipos.find(function(t){return t.id===s.tipoId;});
   var isC=!!(t2isC&&(t2isC.nome.toLowerCase().includes('clínica')||t2isC.nome.toLowerCase().includes('clinica')));
   var opsPac='<option value="">Opcional...</option>'+D.pacientes.slice().sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');}).map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===s.pacienteId?' selected':'')+'>'+esc(p.nome)+'</option>';}).join('');
-  var opsPlano='<option value="">Sem plano</option>'+D.planos.map(function(p){var vl=p.valor?' (R$'+parseFloat(p.valor).toFixed(2)+')':'';return'<option value="'+esc(p.id)+'"'+(p.id===s.planoId?' selected':'')+'>'+esc(p.nome)+vl+'</option>';}).join('');
+  var opsPlano='<option value="">Selecione o plano/convênio...</option>'+D.planos.map(function(p){var vl=p.valor?' (R$'+parseFloat(p.valor).toFixed(2)+')':'';return'<option value="'+esc(p.id)+'"'+(p.id===s.planoId?' selected':'')+'>'+esc(p.nome)+vl+'</option>';}).join('');
   var opsHora='';getHoras().forEach(function(h2){opsHora+='<option value="'+h2+'"'+(h2===s.hora?' selected':'')+'>'+h2+'</option>';});
   var opsSt=['agendado','confirmado','realizado','falta','adiado','desmarcado','falta_prof','cancelado'].map(function(st){return'<option value="'+st+'"'+(st===s.status?' selected':'')+'>'+stL(st)+'</option>';}).join('');
   var opsPag=['pendente','pago','atrasado','isento'].map(function(st){var L={pendente:'Pendente',pago:'Pago',atrasado:'Atrasado',isento:'Isento'};return'<option value="'+st+'"'+((s.statusPag||'pendente')===st?' selected':'')+'>'+L[st]+'</option>';}).join('');
@@ -975,7 +975,7 @@ function mSessao(s,ds,hr){
   h+='<div class="fr"><div class="fg"><label>Data</label><input class="fi" type="date" id="ms-data" value="'+esc(s.data||hoje())+'"/>';
   h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
   h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
-  h+='<div class="fr"><div class="fg"><label>Plano</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
+  h+='<div class="fr"><div class="fg"><label>💰 Plano / Convênio (obrigatório)</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
   h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00" oninput="calcMulti()" onchange="calcMulti()"/></div></div>';
   
   h+='<div class="fg"><label>Data prevista de recebimento</label><input class="fi" type="date" id="ms-dtpag" value="'+(s.dataPrevista||'')+'"/></div>';
@@ -1050,7 +1050,17 @@ function salvarSessao(){
   var data=el('ms-data').value;var hora=el('ms-hora').value;
   if(!data||!hora){toast('Preencha data e horário');return;}
   var planoId=el('ms-plano').value;
-  if(!planoId){toast('Identifique a origem do atendimento (Plano/Convênio)');return;}
+  if(!planoId){
+    toast('Selecione o Plano/Convênio (campo destacado abaixo)');
+    var planoEl=el('ms-plano');
+    if(planoEl){
+      planoEl.scrollIntoView({behavior:'smooth',block:'center'});
+      planoEl.style.border='2px solid var(--red)';
+      planoEl.focus();
+      setTimeout(function(){planoEl.style.border='';},3000);
+    }
+    return;
+  }
   // Auto-atualizar valor se plano mudou e valor estava vazio antes
   var valor=parseFloat(el('ms-valor').value)||0;
   if(!valor&&planoId){var pl2=D.planos.find(function(x){return x.id===planoId;});if(pl2&&pl2.valor>0)valor=pl2.valor;}
