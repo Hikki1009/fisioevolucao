@@ -218,6 +218,18 @@ function salvar(){
 function carregar(){
   ['pacientes','sessoes','feriados','planos','tipos','notas'].forEach(function(k){try{var v=localStorage.getItem('fe_'+k);if(v!=null)D[k]=JSON.parse(v);}catch(e){}});
   try{var c=localStorage.getItem('fe_cfg');if(c)D.cfg=Object.assign({},D.cfg,JSON.parse(c));}catch(e){}
+  sanitizarDados();
+}
+function sanitizarDados(){
+  // Garante que campos essenciais nunca quebrem .map()/.find()/.filter() por causa de
+  // dados corrompidos ou de versões antigas (ex: localStorage ou Firebase com formato inesperado).
+  if(!Array.isArray(D.pacientes))D.pacientes=[];
+  if(!Array.isArray(D.sessoes))D.sessoes=[];
+  if(!Array.isArray(D.feriados))D.feriados=[];
+  if(!Array.isArray(D.planos)||!D.planos.length)D.planos=[{id:'p1',nome:'Particular',valor:0},{id:'p2',nome:'SUS',valor:0}];
+  if(!Array.isArray(D.tipos)||!D.tipos.length)D.tipos=[{id:'t1',nome:'Particular',cor:'#2563eb'},{id:'t2',nome:'Clínica',cor:'#dc2626'},{id:'t3',nome:'Domiciliar',cor:'#d97706'},{id:'t4',nome:'Avaliação',cor:'#7c3aed'}];
+  if(typeof D.cfg!=='object'||D.cfg===null||Array.isArray(D.cfg))D.cfg={};
+  if(typeof D.notas!=='string')D.notas=D.notas||'';
 }
 
 // ── Firebase ──────────────────────────────────────────────────────
@@ -248,6 +260,7 @@ function fbCarregar(){
     var d=s.val();
     if(d){if(d.pacientes)D.pacientes=d.pacientes;if(d.sessoes)D.sessoes=d.sessoes;if(d.feriados)D.feriados=d.feriados;if(d.planos)D.planos=d.planos;if(d.tipos)D.tipos=d.tipos;if(d.cfg)D.cfg=Object.assign({},D.cfg,d.cfg);if(d.notas!=null)D.notas=d.notas;}
     else carregar();
+    sanitizarDados();
     boot();
   }).catch(function(){carregar();boot();});
 }
