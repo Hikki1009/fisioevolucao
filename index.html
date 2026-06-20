@@ -965,6 +965,7 @@ function mSessao(s,ds,hr,pacienteIdFixo){
   h+='</div>';
   h+='<div id="ms-multi-preview" style="display:none;background:var(--amberbg);color:var(--amber);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;margin-top:6px"></div>';
   h+='</div>';
+  h+='</div>';
   h+='<div class="fr"><div class="fg"><label>Data</label><input class="fi" type="date" id="ms-data" value="'+esc(s.data||hoje())+'"/>';
   h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
   h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
@@ -2218,7 +2219,7 @@ function rCofre(el2){
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">';
     h+='<div><div style="font-size:14px;font-weight:800">'+esc(pl.nome)+'</div>';
     if(pl.mesmoPagador)h+=' <span class="badge bg-b" style="font-size:10px">Mesmo pagador</span>';
-    h+='</div></div>';
+    h+='</div>';
     var statusCor=pendVal===0?'var(--green)':'var(--amber)';
     h+='<div style="font-size:13px;font-weight:800;color:'+statusCor+'">'+( pendVal===0?'✅ Quitado':'⏳ Pendente')  +'</div></div>';
 
@@ -2653,7 +2654,6 @@ function rMais(el2){
   h+='</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:10px;margin-top:10px;font-size:11px;color:var(--sl3);text-align:center">Desenvolvido com ❤️ usando Claude AI (Anthropic)</div>';
   h+='</div><div style="text-align:center;margin-top:16px"><button style="background:none;border:none;font-size:10px;color:var(--sl4);cursor:pointer" onclick="mExcluirConta()">Solicitar exclusão de conta</button></div>';
-  h+='</div>';
   el2.innerHTML=h;
 }
 
