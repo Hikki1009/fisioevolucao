@@ -554,20 +554,10 @@ function rInicio(el2){
   }
   if(sHj.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
-    // Legenda única e compacta
-    h+='<div style="padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px">';
-    h+='<div style="display:flex;gap:10px;align-items:center;margin-bottom:4px">';
-    h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block"></span>Atend.</span>';
-    h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#d97706;display:inline-block"></span>Pend.</span>';
-    h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#dc2626;display:inline-block"></span>Falta</span>';
-    h+='<span style="display:flex;align-items:center;gap:3px"><span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;display:inline-block"></span>Remasc.</span>';
+    // Legenda única: a cor da bolinha mostra o status atual; os botões A/D/F/R definem o novo status
+    h+='<div style="padding:6px 8px;background:var(--g4);border-radius:8px;font-size:11px;color:var(--sl3);margin-bottom:8px">';
+    h+='Toque em <strong style="color:#16a34a">A</strong>tendido, <strong style="color:#94a3b8">D</strong>esmarcado, <strong style="color:#dc2626">F</strong>alta do profissional ou <strong style="color:#7c3aed">R</strong>emarcado para atualizar o status.';
     h+='</div>';
-    h+='<div style="display:flex;gap:10px;color:var(--sl3)">';
-    h+='<span><strong style="color:#16a34a">A</strong>=Atendido</span>';
-    h+='<span><strong style="color:#94a3b8">D</strong>=Desmarcado</span>';
-    h+='<span><strong style="color:#dc2626">F</strong>=Prof.</span>';
-    h+='<span><strong style="color:#7c3aed">R</strong>=Remarcado</span>';
-    h+='</div></div>';
     sHj.forEach(function(s){
       var cor=tpCor(s.tipoId);
       var statusCor={agendado:'#d97706',confirmado:'#d97706',realizado:'#16a34a',falta:'#dc2626',adiado:'#7c3aed',cancelado:'#dc2626',falta_prof:'#dc2626',desmarcado:'#94a3b8'}[s.status]||'#d97706';
@@ -671,12 +661,6 @@ function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toa
 var _filtroPlano='';var _filtroAgenda='';
 function tipoMatchFiltro(s,filtro){
   if(!filtro)return true;
-  if(filtro==='particular'||filtro==='conv'){
-    var pl=D.planos.find(function(p){return p.id===s.planoId;});
-    var nmPl=(pl&&pl.nome||'').toLowerCase();
-    if(filtro==='particular')return nmPl.indexOf('particular')>-1;
-    return nmPl.indexOf('particular')===-1&&!!pl;
-  }
   var t=D.tipos.find(function(t){return t.id===s.tipoId;});
   var nmT=(t&&t.nome||'').toLowerCase();
   if(filtro==='domiciliar')return nmT.indexOf('domiciliar')>-1;
@@ -685,12 +669,12 @@ function tipoMatchFiltro(s,filtro){
   return true;
 }
 function rAgenda(el2){
-  var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mSessao(null,null,null);};
+  var fab2=el('fab');fab2.style.display='none';
   var seg=semIni(_semRef);var dias=[];
   for(var i=0;i<7;i++){var d2=new Date(seg);d2.setDate(seg.getDate()+i);dias.push(d2);}
   var dN=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];var horas=getHoras();var hj=hoje();
   var label=dias[0].toLocaleDateString('pt-BR',{day:'numeric',month:'short'})+' – '+dias[6].toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'});
-  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'},{l:'Particular',v:'particular'},{l:'Convênio',v:'conv'}];
+  var filtros=[{l:'Todos',v:''},{l:'Domiciliar',v:'domiciliar'},{l:'Clínica',v:'clinica'},{l:'Consultório',v:'consultorio'}];
 
   var h='<div id="agenda-layout">';
 
@@ -822,7 +806,7 @@ function confirmarExportacao(){
 function semIni(ref){var d=new Date(ref);d.setHours(0,0,0,0);var dw=d.getDay();d.setDate(d.getDate()-(dw===0?6:dw-1));return d;}
 function navSem(n){_semRef.setDate(_semRef.getDate()+n*7);renderizar();}
 function setFiltroPlano(btn){_filtroPlano=btn.dataset.v;renderizar();}
-function celulaClick(btn){mSessao(null,btn.dataset.ds,btn.dataset.hora);}
+function celulaClick(btn){toast('Para criar uma sessão, acesse o perfil do paciente e toque em "+ Sessão"');}
 function sessEditar(sid){var ss=D.sessoes.find(function(x){return x.id===sid;});if(ss)mSessao(ss,null,null);}
 function sessClick(btn){
   var s=D.sessoes.find(function(x){return x.id===btn.dataset.sid;});if(!s)return;
@@ -937,11 +921,13 @@ function statusRapido(sid,status){
 }
 
 // ── Modal Sessão ─────────────────────────────────────────────────
-function mSessao(s,ds,hr){
+function mSessao(s,ds,hr,pacienteIdFixo){
   var nova=!s;
-  s=s||{id:'',pacienteId:'',data:ds||hoje(),hora:hr||'08:00',tipoId:'',planoId:'',valor:0,statusPag:'pendente',dataPrevista:'',status:'agendado',obs:'',isClinica:false,pacientesClinica:[]};
+  s=s||{id:'',pacienteId:pacienteIdFixo||'',data:ds||hoje(),hora:hr||'08:00',tipoId:'',planoId:'',valor:0,statusPag:'pendente',dataPrevista:'',status:'agendado',obs:'',isClinica:false,pacientesClinica:[]};
+  if(pacienteIdFixo&&!s.pacienteId)s.pacienteId=pacienteIdFixo;
   var t2isC=D.tipos.find(function(t){return t.id===s.tipoId;});
   var isC=!!(t2isC&&(t2isC.nome.toLowerCase().includes('clínica')||t2isC.nome.toLowerCase().includes('clinica')));
+  var pacFixo=D.pacientes.find(function(p){return p.id===(pacienteIdFixo||s.pacienteId);});
   var opsPac='<option value="">Opcional...</option>'+D.pacientes.slice().sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');}).map(function(p){return'<option value="'+esc(p.id)+'"'+(p.id===s.pacienteId?' selected':'')+'>'+esc(p.nome)+'</option>';}).join('');
   var opsPlano='<option value="">Selecione o plano/convênio...</option>'+D.planos.map(function(p){var vl=p.valor?' (R$'+parseFloat(p.valor).toFixed(2)+')':'';return'<option value="'+esc(p.id)+'"'+(p.id===s.planoId?' selected':'')+'>'+esc(p.nome)+vl+'</option>';}).join('');
   var opsHora='';getHoras().forEach(function(h2){opsHora+='<option value="'+h2+'"'+(h2===s.hora?' selected':'')+'>'+h2+'</option>';});
@@ -953,7 +939,14 @@ function mSessao(s,ds,hr){
   h+='<div class="fg"><label>Tipo de atendimento</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
   D.tipos.forEach(function(t){var sel=t.id===s.tipoId;h+='<button data-tid="'+esc(t.id)+'" onclick="selTipo(this,event)" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid '+(sel?t.cor:'transparent')+';background:'+t.cor+(sel?'40':'18')+';color:'+t.cor+'" id="tbtn-'+esc(t.id)+'">'+esc(t.nome)+'</button>';});
   h+='<input type="hidden" id="ms-tipo" value="'+esc(s.tipoId)+'"/></div></div>';
-  h+='<div id="ms-pac-norm" style="display:'+(isC?'none':'block')+'"><div class="fg"><label>Paciente</label><select class="fi" id="ms-pac">'+opsPac+'</select></div></div>';
+  if(pacienteIdFixo&&pacFixo){
+    h+='<div id="ms-pac-norm" style="display:'+(isC?'none':'block')+'"><div class="fg"><label>Paciente</label>';
+    h+='<div class="fi" style="display:flex;align-items:center;background:var(--g4);font-weight:700;color:var(--g1)">🔒 '+esc(pacFixo.nome)+'</div>';
+    h+='<select id="ms-pac" style="display:none"><option value="'+esc(pacFixo.id)+'" selected>'+esc(pacFixo.nome)+'</option></select>';
+    h+='</div></div>';
+  } else {
+    h+='<div id="ms-pac-norm" style="display:'+(isC?'none':'block')+'"><div class="fg"><label>Paciente</label><select class="fi" id="ms-pac">'+opsPac+'</select></div></div>';
+  }
   var qtdC=(s.pacientesClinica&&s.pacientesClinica.length>0)?s.pacientesClinica.length:2;
   var isMulti=!!(s.atendimentoMultiplo);
   h+='<div id="ms-pac-clin" style="display:'+(isC?'block':'none')+'">';
@@ -1145,7 +1138,7 @@ function renderPacs(q){
     var prox=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.data>=hj;}).sort(function(a,b){return a.data.localeCompare(b.data);});
     var pend=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;}).length;
     var semEvo=Math.max(0,D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length-(p.evolucoes||[]).length);
-    h+='<div class="pac" data-pid="'+esc(p.id)+'" onclick="abrirPerfil(this.dataset.pid)">';
+    h+='<div class="pac" data-pid="'+esc(p.id)+'" onclick="irPerfilEvo(this.dataset.pid)">';
     h+='<div class="av">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     h+='<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
     if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
@@ -1167,7 +1160,6 @@ function irPerfilEvo(pid){
   if(!pid)return;
   PAC_ID=pid;PAC_ABA='evo';renderizar();
 }
-function abrirPerfil(pid){PAC_ID=pid;PAC_ABA='evo';renderizar();}
 function voltarPac(){PAC_ID=null;ir('pacientes');}
 
 function rPerfil(el2){
@@ -1183,7 +1175,7 @@ function rPerfil(el2){
   var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
   h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Evolução</button>';
   h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,this.dataset.pid)">+ Sessão</button>';
+  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,null,this.dataset.pid)">+ Sessão</button>';
   h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar</button>';
   if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico</button>';
   if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
@@ -1235,10 +1227,9 @@ function rAbaSess(p){
   var ss=D.sessoes.filter(function(s){return s.pacienteId===p.id;}).sort(function(a,b){return b.data.localeCompare(a.data);});
   if(!ss.length)return'<div style="text-align:center;padding:40px;color:var(--sl3)">Nenhuma sessão.</div>';
   var h='';
-  ss.forEach(function(s){var cor=tpCor(s.tipoId);h+='<div class="sess-item" style="border-left-color:'+esc(cor)+'"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-weight:700;color:'+esc(cor)+'">'+esc(s.hora)+'</span><span style="font-size:12px;color:var(--sl3)">'+fmtD(s.data)+'</span>';if(s.tipoId)h+='<span class="badge bg-s">'+esc(tpNome(s.tipoId))+'</span>';h+=stB(s.status);if(s.valor)h+='<span class="badge bg-g">R$'+parseFloat(s.valor).toFixed(2)+'</span></div>';if(s.obs)h+='<div style="font-size:12px;color:var(--sl3);margin-top:4px">'+esc(s.obs)+'</div>';h+='<button class="btn btn-s btn-sm" style="margin-top:7px" data-sid="'+esc(s.id)+'" onclick="sessClick2(this.dataset.sid)">Editar</button></div>';});
+  ss.forEach(function(s){var cor=tpCor(s.tipoId);h+='<div class="sess-item" style="border-left-color:'+esc(cor)+'"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><span style="font-weight:700;color:'+esc(cor)+'">'+esc(s.hora)+'</span><span style="font-size:12px;color:var(--sl3)">'+fmtD(s.data)+'</span>';if(s.tipoId)h+='<span class="badge bg-s">'+esc(tpNome(s.tipoId))+'</span>';h+=stB(s.status);if(s.valor)h+='<span class="badge bg-g">R$'+parseFloat(s.valor).toFixed(2)+'</span></div>';if(s.obs)h+='<div style="font-size:12px;color:var(--sl3);margin-top:4px">'+esc(s.obs)+'</div>';h+='<button class="btn btn-s btn-sm" style="margin-top:7px" data-sid="'+esc(s.id)+'" onclick="sessEditar(this.dataset.sid)">Editar</button></div>';});
   return h;
 }
-function sessClick2(sid){var s=D.sessoes.find(function(x){return x.id===sid;});if(s)mSessao(s,null,null);}
 
 function rAbaGraf(p){return'<div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Gráfico de dor e mobilidade.</p><canvas id="cvs" style="width:100%;height:200px"></canvas></div>';}
 function desenharGraf(p){
@@ -1317,7 +1308,7 @@ function salvarPaciente(){
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
   var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
   var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
-  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,celularDono:el('mp-cel-dono')?el('mp-cel-dono').value:'',celular2:el('mp-cel2')?el('mp-cel2').value:'',celular2Dono:el('mp-cel2-dono')?el('mp-cel2-dono').value:'',diagnostico:el('mp-diag').value,obs:el('mp-obs').value,atleta:el('mp-atleta')&&el('mp-atleta').checked,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
+  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
@@ -1909,8 +1900,7 @@ function verificarDadosVitais(pid,pa,sat,bpm){
     }
   }
   var fcMax=220-(idade||30);
-  var ehAtleta=p&&p.atleta;
-  var fcMinAlerta=ehAtleta?40:50;
+  var fcMinAlerta=50;
 
   // Verificar PA
   if(pa&&pa.includes(' x ')){
@@ -1934,7 +1924,7 @@ function verificarDadosVitais(pid,pa,sat,bpm){
   if(bpm){
     var bpmN=parseInt(bpm)||0;
     if(bpmN>fcMax)alertas.push('⚠️ FC elevada: '+bpm+' bpm (máx. esperada para '+idade+' anos: '+fcMax+' bpm)');
-    else if(bpmN<fcMinAlerta)alertas.push('⚠️ FC baixa: '+bpm+' bpm (mín. alerta: '+fcMinAlerta+' bpm'+(ehAtleta?' — atleta':'')+')');
+    else if(bpmN<fcMinAlerta)alertas.push('⚠️ FC baixa: '+bpm+' bpm (mín. alerta: '+fcMinAlerta+' bpm)');
   }
   
   if(!alertas.length)return false;
@@ -2654,7 +2644,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px">💚</div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.011 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.016 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -3703,38 +3693,21 @@ function toggleConsciente(sim){
   if(btnNão)btnNão.className='btn btn-sm '+(sim?'btn-s':'btn-p');
   if(wrap)wrap.style.display=sim?'none':'block';
 }
-function addAnMed(){
-  var wrap=el('an-meds-wrap');if(!wrap)return;
+function addAnLinha(wrapId,cols,campos){
+  // campos: array de {ph:placeholder, idSuf:sufixo do id, center:bool opcional}
+  var wrap=el(wrapId);if(!wrap)return;
   var i=wrap.children.length;
   var div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;margin-bottom:6px';
-  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Medicamento" id="an-med-n-'+i+'"/><input class="fi" style="padding:6px" placeholder="Objetivo" id="an-med-o-'+i+'"/><input class="fi" style="padding:6px" placeholder="Horário" id="an-med-h-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-meds-wrap\',this)">✕</button>';
+  div.style.cssText='display:grid;grid-template-columns:'+cols+';gap:6px;margin-bottom:6px';
+  var html2=campos.map(function(c){return'<input class="fi" style="padding:6px'+(c.center?';text-align:center':'')+'" placeholder="'+c.ph+'" id="'+c.idSuf+'-'+i+'"/>';}).join('');
+  html2+='<button class="btn btn-d btn-sm" onclick="delAnRow(\''+wrapId+'\',this)">✕</button>';
+  div.innerHTML=html2;
   wrap.appendChild(div);
 }
-function addAnExm(){
-  var wrap=el('an-exms-wrap');if(!wrap)return;
-  var i=wrap.children.length;
-  var div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:2fr 3fr auto;gap:6px;margin-bottom:6px';
-  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Exame" id="an-exm-n-'+i+'"/><input class="fi" style="padding:6px" placeholder="Resultado" id="an-exm-r-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-exms-wrap\',this)">✕</button>';
-  wrap.appendChild(div);
-}
-function addAnForca(){
-  var wrap=el('an-forca-wrap');if(!wrap)return;
-  var i=wrap.children.length;
-  var div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px';
-  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Movimento" id="an-fm-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-fd-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-fe-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-forca-wrap\',this)">✕</button>';
-  wrap.appendChild(div);
-}
-function addAnAdm(){
-  var wrap=el('an-adm-wrap');if(!wrap)return;
-  var i=wrap.children.length;
-  var div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:3fr 1fr 1fr auto;gap:6px;margin-bottom:6px';
-  div.innerHTML='<input class="fi" style="padding:6px" placeholder="Articulação" id="an-am-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Dir" id="an-ad-'+i+'"/><input class="fi" style="padding:6px;text-align:center" placeholder="Esq" id="an-ae-'+i+'"/><button class="btn btn-d btn-sm" onclick="delAnRow(\'an-adm-wrap\',this)">✕</button>';
-  wrap.appendChild(div);
-}
+function addAnMed(){addAnLinha('an-meds-wrap','2fr 2fr 1fr auto',[{ph:'Medicamento',idSuf:'an-med-n'},{ph:'Objetivo',idSuf:'an-med-o'},{ph:'Horário',idSuf:'an-med-h'}]);}
+function addAnExm(){addAnLinha('an-exms-wrap','2fr 3fr auto',[{ph:'Exame',idSuf:'an-exm-n'},{ph:'Resultado',idSuf:'an-exm-r'}]);}
+function addAnForca(){addAnLinha('an-forca-wrap','3fr 1fr 1fr auto',[{ph:'Movimento',idSuf:'an-fm'},{ph:'Dir',idSuf:'an-fd',center:true},{ph:'Esq',idSuf:'an-fe',center:true}]);}
+function addAnAdm(){addAnLinha('an-adm-wrap','3fr 1fr 1fr auto',[{ph:'Articulação',idSuf:'an-am'},{ph:'Dir',idSuf:'an-ad',center:true},{ph:'Esq',idSuf:'an-ae',center:true}]);}
 function delAnRow(wrapId,btn){btn.parentElement.remove();}
 
 function salvarAnamnese(){
@@ -4267,8 +4240,8 @@ function rAjuda(el2){
   h+=sec('📅','Agenda — Grade semanal',[
     ['Navegar semanas','Use os botões ‹ Ant e Próx › para avançar ou voltar semanas.'],
     ['Filtro por plano','Botões horizontais acima da grade — filtre para ver só os pacientes de um plano específico.'],
-    ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica, Consultório, Particular ou Convênio.'],
-    ['Criar sessão','Toque em qualquer célula vazia da grade para abrir o formulário de nova sessão.'],
+    ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica ou Consultório. Para filtrar por Particular/Convênio, use o filtro por Plano, acima da grade.'],
+    ['Criar sessão','A partir do Perfil do Paciente: toque em "+ Sessão" no topo do perfil. A Agenda é só para visualizar e editar sessões já criadas.'],
     ['Editar sessão','Toque no nome do paciente dentro da grade para ver detalhes e editar.'],
     ['Tipo Clínica','Selecione o tipo Clínica → marque "Atendimento múltiplo" → informe a quantidade → o app calcula o valor total automaticamente.'],
     ['Recorrência semanal','Ao criar sessão, escolha "Por semanas" e informe quantas semanas repetir.'],
@@ -4711,12 +4684,11 @@ function getFeriadosAno(ano){
   var result=fixos.map(function(f){return{data:ano+'-'+f.d,nome:f.n,nacional:true};});
   var pascoa=calcPascoa(ano);
   function ad(d,n){var r=new Date(d);r.setDate(r.getDate()+n);return r;}
-  function fmt(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();}
-  result.push({data:fmt(ad(pascoa,-48)),nome:'Segunda de Carnaval',nacional:true});
-  result.push({data:fmt(ad(pascoa,-47)),nome:'Terça de Carnaval',nacional:true});
-  result.push({data:fmt(ad(pascoa,-2)),nome:'Sexta-feira Santa',nacional:true});
-  result.push({data:fmt(pascoa),nome:'Páscoa',nacional:true});
-  result.push({data:fmt(ad(pascoa,60)),nome:'Corpus Christi',nacional:true});
+  result.push({data:fmtISO(ad(pascoa,-48)),nome:'Segunda de Carnaval',nacional:true});
+  result.push({data:fmtISO(ad(pascoa,-47)),nome:'Terça de Carnaval',nacional:true});
+  result.push({data:fmtISO(ad(pascoa,-2)),nome:'Sexta-feira Santa',nacional:true});
+  result.push({data:fmtISO(pascoa),nome:'Páscoa',nacional:true});
+  result.push({data:fmtISO(ad(pascoa,60)),nome:'Corpus Christi',nacional:true});
   return result;
 }
 function iniciarFeriadosNacionais(){
