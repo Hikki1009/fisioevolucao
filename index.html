@@ -131,6 +131,30 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 #sino-btn{position:relative;background:none;border:none;cursor:pointer;color:#fff;padding:4px 8px;font-size:20px;display:flex;align-items:center;}
 #sino-badge{position:absolute;top:-2px;right:0;background:#ef4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:800;min-width:16px;text-align:center;display:none;}
 #sino-painel{position:fixed;top:60px;right:8px;width:320px;max-width:calc(100vw - 16px);background:var(--card);border:1px solid var(--borda);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:200;display:none;max-height:70vh;overflow-y:auto;}
+/* Calendário customizado */
+#cal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center}
+#cal-box{background:var(--card);border-radius:16px;width:calc(100% - 32px);max-width:340px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+#cal-header{background:var(--g1);color:#fff;padding:16px 18px 12px}
+#cal-header .cal-ano{font-size:12px;font-weight:700;opacity:.8;margin-bottom:2px}
+#cal-header .cal-data-sel{font-size:22px;font-weight:800}
+#cal-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--borda)}
+#cal-nav .cal-mes-ano{font-size:14px;font-weight:700;color:var(--sl)}
+#cal-nav button{background:none;border:none;cursor:pointer;color:var(--g1);font-size:18px;padding:4px 8px;border-radius:6px}
+#cal-nav button:hover{background:var(--g4)}
+#cal-dias-sem{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 10px 4px}
+#cal-dias-sem span{text-align:center;font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase}
+#cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 10px 10px;gap:2px}
+.cal-dia{height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;border-radius:50%;cursor:pointer;color:var(--sl);transition:.1s}
+.cal-dia:hover{background:var(--g3);color:var(--g1)}
+.cal-dia.hoje{color:var(--g1);font-weight:800}
+.cal-dia.sel{background:var(--g1);color:#fff;font-weight:800}
+.cal-dia.sel:hover{background:var(--g2)}
+.cal-dia.outro-mes{color:var(--sl4)}
+.cal-dia.vazio{cursor:default}
+#cal-footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid var(--borda)}
+.cal-inp-fake{width:100%;padding:9px 12px;border:1px solid var(--borda);border-radius:8px;color:var(--sl);background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+.cal-inp-fake:focus,.cal-inp-fake:active{border-color:var(--g1);box-shadow:0 0 0 3px rgba(30,107,63,.1);outline:none}
+.cal-inp-fake .cal-placeholder{color:var(--sl3)}
 </style>
 </head>
 <body>
@@ -185,6 +209,27 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
   </div>
 </div>
 
+<div id="cal-ov" onclick="fecharCal()">
+  <div id="cal-box" onclick="event.stopPropagation()">
+    <div id="cal-header">
+      <div class="cal-ano" id="cal-ano-txt"></div>
+      <div class="cal-data-sel" id="cal-data-txt">Selecione uma data</div>
+    </div>
+    <div id="cal-nav">
+      <button onclick="navCal(-1)">&#8249;</button>
+      <span id="cal-mes-ano" class="cal-mes-ano"></span>
+      <button onclick="navCal(1)">&#8250;</button>
+    </div>
+    <div id="cal-dias-sem">
+      <span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span>
+    </div>
+    <div id="cal-grid"></div>
+    <div id="cal-footer">
+      <button class="btn btn-s btn-sm" onclick="fecharCal()">Cancelar</button>
+      <button class="btn btn-p btn-sm" onclick="confirmarCal()">Definir</button>
+    </div>
+  </div>
+</div>
 <div id="ov" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;overflow:hidden" onclick="fecharM();fecharSino()">
   <div class="modal" onclick="event.stopPropagation()">
     <div id="mbody"></div>
@@ -449,6 +494,82 @@ function baixarXLS(nome,linhas){
 var ABA='inicio',PAC_ID=null,PAC_ABA='resumo',BtnVolCb=null;
 var _semRef=new Date();
 
+// ── CALENDÁRIO CUSTOMIZADO ────────────────────────────────────────
+var _calCb=null,_calVal=null,_calMes=null,_calAno=null,_calSel=null;
+var _mesesPT=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var _diasSemPT=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+function abrirCal(valorAtual, callback){
+  _calCb=callback;
+  var d=valorAtual?new Date(valorAtual+'T12:00:00'):new Date();
+  _calSel=valorAtual||null;
+  _calMes=d.getMonth();
+  _calAno=d.getFullYear();
+  renderCal();
+  el('cal-ov').style.display='flex';
+}
+function fecharCal(){el('cal-ov').style.display='none';_calCb=null;}
+function confirmarCal(){
+  if(_calCb&&_calSel)_calCb(_calSel);
+  fecharCal();
+}
+function navCal(dir){
+  _calMes+=dir;
+  if(_calMes>11){_calMes=0;_calAno++;}
+  if(_calMes<0){_calMes=11;_calAno--;}
+  renderCal();
+}
+function selecionarDiaCal(iso){
+  _calSel=iso;
+  renderCal();
+}
+function renderCal(){
+  var hj=hoje();
+  // Header
+  var anoEl=el('cal-ano-txt');var dtEl=el('cal-data-txt');
+  if(anoEl)anoEl.textContent=_calAno;
+  if(dtEl){
+    if(_calSel){
+      var ds=new Date(_calSel+'T12:00:00');
+      dtEl.textContent=_diasSemPT[ds.getDay()].slice(0,3)+', '+ds.getDate()+' de '+_mesesPT[ds.getMonth()].slice(0,3).toLowerCase()+'.';
+    } else {dtEl.textContent='Selecione uma data';}
+  }
+  // Nav
+  var mnEl=el('cal-mes-ano');
+  if(mnEl)mnEl.textContent=_mesesPT[_calMes]+' de '+_calAno;
+  // Grid
+  var grid=el('cal-grid');if(!grid)return;
+  var primeiroDia=new Date(_calAno,_calMes,1).getDay();
+  var diasNoMes=new Date(_calAno,_calMes+1,0).getDate();
+  var diasMesAnt=new Date(_calAno,_calMes,0).getDate();
+  var h='';
+  // Dias do mês anterior (cinza)
+  for(var i=primeiroDia-1;i>=0;i--){
+    h+='<div class="cal-dia outro-mes">'+(diasMesAnt-i)+'</div>';
+  }
+  // Dias do mês atual
+  for(var d=1;d<=diasNoMes;d++){
+    var isoD=_calAno+'-'+((_calMes+1)<10?'0':'')+(_calMes+1)+'-'+(d<10?'0':'')+d;
+    var cls='cal-dia';
+    if(isoD===hj)cls+=' hoje';
+    if(isoD===_calSel)cls+=' sel';
+    h+='<div class="'+cls+'" data-iso="'+isoD+'" onclick="selecionarDiaCal(this.dataset.iso)">'+d+'</div>';
+  }
+  // Completar grid com próximo mês
+  var total=primeiroDia+diasNoMes;
+  var resto=total%7===0?0:7-(total%7);
+  for(var n=1;n<=resto;n++){h+='<div class="cal-dia outro-mes">'+n+'</div>';}
+  grid.innerHTML=h;
+}
+// Cria um campo visual que abre o calendário customizado
+function criarCampoData(idHidden, valorInicial, placeholder){
+  var val=valorInicial||'';
+  var txt=val?fmtD(val):'';
+  return '<input type="hidden" id="'+idHidden+'" value="'+esc(val)+'">'
+    +'<div class="cal-inp-fake" tabindex="0" onclick="abrirCal(el(\''+idHidden+'\').value,function(v){el(\''+idHidden+'\').value=v;this.querySelector(\'.cal-val\').textContent=fmtD(v);this.querySelector(\'.cal-val\').classList.remove(\'cal-placeholder\');}.bind(this))" onkeydown="if(event.key===\'Enter\'||event.key===\' \')this.click()">'
+    +'<span class="cal-val'+(txt?'':' cal-placeholder')+'">'+(txt||placeholder||'Selecionar data')+'</span>'
+    +'<span style="color:var(--g1);font-size:16px">📅</span>'
+    +'</div>';
+}
 function boot(){
   aplicarTema();
   iniciarFeriadosNacionais();
@@ -658,7 +779,7 @@ function marcarStatus(btn,st){
 function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toast('Nota salva!');}}
 
 // ── AGENDA ───────────────────────────────────────────────────────
-var _filtroPlano='';var _filtroAgenda='';
+var _filtroPlano='';var _filtroAgenda='';var _filtroInativos='ativos';
 function tipoMatchFiltro(s,filtro){
   if(!filtro)return true;
   var t=D.tipos.find(function(t){return t.id===s.tipoId;});
@@ -688,7 +809,7 @@ function rAgenda(el2){
   // Botões ação
   h+='<div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">';
   h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar semana</button>';
   h+='</div></div>';
 
   // ── ÁREA PRINCIPAL ──
@@ -746,39 +867,14 @@ function rAgenda(el2){
   // Botões mobile (abaixo da grade)
   h+='<div id="agenda-acoes-mobile" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">';
   h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar semana</button>';
   h+='</div>';
 
   h+='</div></div>';
   el2.innerHTML=h;
 }
 
-function mExportarAgenda(){
-  var h='<div class="mh"><h3>📥 Exportar dados</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">Selecione o que deseja exportar:</p>';
-  var opcoes=[
-    {id:'exp-fin',label:'💰 Financeiro',desc:'Sessões com valores e status de pagamento'},
-    {id:'exp-evo',label:'📝 Evoluções',desc:'Evoluções clínicas por paciente'},
-    {id:'exp-falt',label:'❌ Faltas',desc:'Sessões com falta e cancelamento'},
-    {id:'exp-pac',label:'👥 Pacientes',desc:'Cadastro completo de pacientes'},
-    {id:'exp-sess',label:'📅 Agenda',desc:'Todas as sessões agendadas'},
-  ];
-  opcoes.forEach(function(op){
-    h+='<label style="display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid var(--borda);border-radius:8px;margin-bottom:8px;cursor:pointer;background:var(--card)">';
-    h+='<input type="checkbox" id="'+op.id+'" style="width:18px;height:18px;margin-top:2px;flex-shrink:0"/>';
-    h+='<div><div style="font-size:13px;font-weight:700">'+op.label+'</div>';
-    h+='<div style="font-size:11px;color:var(--sl3)">'+op.desc+'</div></div></label>';
-  });
-  h+='<div style="display:flex;gap:8px;margin-top:4px">';
-  h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(true)">Selecionar todos</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="selecionarTodosExp(false)">Limpar</button>';
-  h+='</div>';
-  h+='<div class="fg" style="margin-top:12px"><label>Enviar para e-mail (opcional)</label>';
-  h+='<input class="fi" type="email" id="exp-email" placeholder="seu@email.com"/>';
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">Se preenchido, abrirá seu e-mail com os dados no corpo da mensagem.</div></div>';
-  h+='<button class="btn btn-p btn-bl" style="margin-top:14px" onclick="confirmarExportacao()">📥 Exportar selecionados</button>';
-  abrirM(h);
-}
+function mExportarAgenda(){exportarSessoes();toast('Semana exportada! 📥');}
 
 function selecionarTodosExp(val){
   ['exp-fin','exp-evo','exp-falt','exp-pac','exp-sess'].forEach(function(id){
@@ -885,7 +981,7 @@ function moverSessao(sid){
   var s=D.sessoes.find(function(x){return x.id===sid;});if(!s)return;
   var h='<div class="mh"><h3>📅 Mover sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:12px">'+esc(nomePac(s.pacienteId))+' — '+esc(s.hora)+'</div>';
-  h+='<div class="fg"><label>Nova data</label><input class="fi" type="date" id="mv-data" value="'+esc(s.data)+'"/></div>';
+  h+='<div class="fg"><label>Nova data</label>'+criarCampoData('mv-data', s.data, 'Selecionar data')+'</div>';
   h+='<div class="fg"><label>Novo horário</label><select class="fi" id="mv-hora">';
   getHoras().forEach(function(h2){h+='<option value="'+h2+'"'+(h2===s.hora?' selected':'')+'>'+h2+'</option>';});
   h+='</select></div>';
@@ -934,10 +1030,11 @@ function mSessao(s,ds,hr,pacienteIdFixo){
   var opsSt=['agendado','confirmado','realizado','falta','adiado','desmarcado','falta_prof','cancelado'].map(function(st){return'<option value="'+st+'"'+(st===s.status?' selected':'')+'>'+stL(st)+'</option>';}).join('');
   var opsPag=['pendente','pago','atrasado','isento'].map(function(st){var L={pendente:'Pendente',pago:'Pago',atrasado:'Atrasado',isento:'Isento'};return'<option value="'+st+'"'+((s.statusPag||'pendente')===st?' selected':'')+'>'+L[st]+'</option>';}).join('');
   var h='<div class="mh"><h3>'+(nova?'Nova':'Editar')+' Sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<button class="btn btn-p btn-bl" style="font-size:15px;padding:14px;margin-bottom:14px" onclick="salvarSessao()">💾 Salvar sessão</button>';
+  h+='<button class="btn btn-p btn-bl" style="font-size:15px;padding:14px;margin-bottom:14px" onclick="salvarSessao()">💾 Salvar '+(pacienteIdFixo&&nova?'sessões':'sessão')+'</button>';
   h+='<input type="hidden" id="ms-id" value="'+esc(s.id)+'"/>';
+  h+='<input type="hidden" id="ms-pac-fixo" value="'+esc(pacienteIdFixo||'')+'"/>';
   h+='<div class="fg"><label>Tipo de atendimento</label><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
-  D.tipos.forEach(function(t){var sel=t.id===s.tipoId;h+='<button data-tid="'+esc(t.id)+'" onclick="selTipo(this,event)" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid '+(sel?t.cor:'transparent')+';background:'+t.cor+(sel?'40':'18')+';color:'+t.cor+'" id="tbtn-'+esc(t.id)+'">'+esc(t.nome)+'</button>';});
+  D.tipos.forEach(function(t){var sel=t.id===s.tipoId;h+='<button data-tid="'+esc(t.id)+'" onclick="selTipo(this,event)" style="padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid '+(sel?t.cor:"transparent")+';background:'+t.cor+(sel?'40':'18')+';color:'+t.cor+'" id="tbtn-'+esc(t.id)+'">'+esc(t.nome)+'</button>';});
   h+='<input type="hidden" id="ms-tipo" value="'+esc(s.tipoId)+'"/></div></div>';
   if(pacienteIdFixo&&pacFixo){
     h+='<div id="ms-pac-norm" style="display:'+(isC?'none':'block')+'"><div class="fg"><label>Paciente</label>';
@@ -950,11 +1047,9 @@ function mSessao(s,ds,hr,pacienteIdFixo){
   var qtdC=(s.pacientesClinica&&s.pacientesClinica.length>0)?s.pacientesClinica.length:2;
   var isMulti=!!(s.atendimentoMultiplo);
   h+='<div id="ms-pac-clin" style="display:'+(isC?'block':'none')+'">';
-  // Checkbox atendimento múltiplo
   h+='<div class="fg"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600">';
   h+='<input type="checkbox" id="ms-multi" '+(isMulti?'checked':'')+' onchange="toggleMulti(this)" style="width:18px;height:18px"/>';
   h+='Atendimento múltiplo (valor × nº pacientes)</label></div>';
-  // Bloco que aparece ao marcar — quantidade + lista de pacientes + preview
   h+='<div id="ms-multi-wrap" style="display:'+(isMulti?'block':'none')+'">';
   h+='<div class="fg"><label>Qtd. de pacientes</label><input class="fi" type="number" id="ms-qtd-clin" min="1" max="30" value="'+qtdC+'" oninput="atualizarClin();calcMulti()"/></div>';
   h+='<div id="ms-clin-pacs">';
@@ -966,19 +1061,26 @@ function mSessao(s,ds,hr,pacienteIdFixo){
   h+='<div id="ms-multi-preview" style="display:none;background:var(--amberbg);color:var(--amber);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:700;margin-top:6px"></div>';
   h+='</div>';
   h+='</div>';
-  h+='<div class="fr"><div class="fg"><label>Data</label><input class="fi" type="date" id="ms-data" value="'+esc(s.data||hoje())+'"/>';
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
-  h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
+  if(pacienteIdFixo&&nova){
+    h+='<div class="fg"><label>Datas e horários</label><div id="ms-datas-wrap">';
+    h+='<div class="ms-data-linha" style="display:flex;gap:6px;align-items:center;margin-bottom:6px">';
+    h+='<div style="flex:2">'+criarCampoData('ms-data-0', s.data||hoje(), 'Selecionar data')+'</div>';
+    h+='<select class="fi ms-hora-inp" style="flex:1">'+opsHora+'</select>';
+    h+='</div></div>';
+    h+='<button type="button" class="btn btn-s btn-sm" style="width:100%;margin-top:4px" onclick="adicionarLinhaData()">+ Adicionar outra data</button></div>';
+  } else {
+    h+='<div class="fr"><div class="fg"><label>Data</label>'+criarCampoData('ms-data', s.data||hoje(), 'Selecionar data')+'</div>';
+    h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
+  }
   h+='<div class="fr"><div class="fg"><label>💰 Plano / Convênio (obrigatório)</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
   h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00" oninput="calcMulti()" onchange="calcMulti()"/></div></div>';
-  
-  h+='<div class="fg"><label>Data prevista de recebimento</label><input class="fi" type="date" id="ms-dtpag" value="'+(s.dataPrevista||'')+'"/></div>';
+  h+='<div class="fg"><label>Data prevista de recebimento</label>'+criarCampoData('ms-dtpag', s.dataPrevista||'', 'Opcional')+'</div>';
   h+='<div style="font-size:11px;color:var(--sl3);margin-bottom:6px">Opcional — deixe vazio para usar a regra do plano.</div>';
   h+='<div class="fr"><div class="fg"><label>Pagamento</label><select class="fi" id="ms-pag" onchange="togglePrev()">'+opsPag+'</select></div>';
   h+='<div class="fg"><label>Status</label><select class="fi" id="ms-st">'+opsSt+'</select></div></div>';
   h+='<div class="fg" id="ms-prev-wrap" style="display:'+(s.dataPrevista?'block':'none')+'"><label>Previsão anotada</label><input class="fi" type="text" id="ms-prev" value="'+esc(s.dataPrevista||'')+'" placeholder="Ex: 60 dias, Março/2026"/></div>';
   h+='<div class="fg"><label>Observações</label><textarea class="fi" id="ms-obs">'+esc(s.obs||'')+'</textarea></div>';
-  if(nova){
+  if(nova&&!pacienteIdFixo){
     h+='<div class="fsec"><div class="fsec-t">Recorrência (opcional)</div>';
     h+='<div class="fr"><div class="fg"><label>Tipo</label><select class="fi" id="ms-rec-tipo" onchange="toggleRec()"><option value="">Não repetir</option><option value="sem">Por semanas</option><option value="qtd">Pacote (nº de sessões)</option></select></div>';
     h+='<div class="fg" id="ms-rec-val-w" style="display:none"><label id="ms-rec-lbl">Quantas semanas?</label><input class="fi" type="number" id="ms-rec-val" min="1" max="100" value="4"/></div></div></div>';
@@ -988,6 +1090,19 @@ function mSessao(s,ds,hr,pacienteIdFixo){
   if(!nova)h+='<button class="btn btn-d" data-sid="'+esc(s.id)+'" onclick="excluirSessao(this.dataset.sid)">Excluir</button>';
   h+='</div>';
   abrirM(h);
+}
+function adicionarLinhaData(){
+  var wrap=el('ms-datas-wrap');if(!wrap)return;
+  var idx=wrap.querySelectorAll('.ms-data-linha').length;
+  var opsHora2='';getHoras().forEach(function(h2){opsHora2+='<option value="'+h2+'">'+h2+'</option>';});
+  var div=document.createElement('div');
+  div.className='ms-data-linha';
+  div.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px';
+  var idHidden='ms-data-'+idx;
+  div.innerHTML='<div style="flex:2">'+criarCampoData(idHidden,'','')+' </div>'
+    +'<select class="fi ms-hora-inp" style="flex:1">'+opsHora2+'</select>'
+    +'<button type="button" class="btn btn-d btn-sm" onclick="this.parentElement.remove()" style="flex-shrink:0">✕</button>';
+  wrap.appendChild(div);
 }
 
 function selTipo(btn,ev){
@@ -1035,27 +1150,21 @@ function togglePrev(){var sel=el('ms-pag');var w=el('ms-prev-wrap');if(sel&&w)w.
 function toggleRec(){var t=el('ms-rec-tipo');var w=el('ms-rec-val-w');var l=el('ms-rec-lbl');if(!t||!w)return;w.style.display=t.value?'block':'none';if(l)l.textContent=t.value==='sem'?'Quantas semanas?':'Nº de sessões?';}
 
 function salvarSessao(){
-  var sid=el('ms-id').value;var tipoId=el('ms-tipo').value;
+  var sid=el('ms-id').value;
+  var pacFixoId=el('ms-pac-fixo')?el('ms-pac-fixo').value:'';
+  var tipoId=el('ms-tipo').value;
   var t2=D.tipos.find(function(x){return x.id===tipoId;});
   var isC=!!(t2&&(t2.nome.toLowerCase().includes('clínica')||t2.nome.toLowerCase().includes('clinica')));
   var pacId='';var pacsC=[];
   if(isC){document.querySelectorAll('#ms-clin-pacs .ms-cpac').forEach(function(s2){pacsC.push(s2.value||'');});}
   else{pacId=el('ms-pac')?el('ms-pac').value:'';}
-  var data=el('ms-data').value;var hora=el('ms-hora').value;
-  if(!data||!hora){toast('Preencha data e horário');return;}
   var planoId=el('ms-plano').value;
   if(!planoId){
     toast('Selecione o Plano/Convênio (campo destacado abaixo)');
     var planoEl=el('ms-plano');
-    if(planoEl){
-      planoEl.scrollIntoView({behavior:'smooth',block:'center'});
-      planoEl.style.border='2px solid var(--red)';
-      planoEl.focus();
-      setTimeout(function(){planoEl.style.border='';},3000);
-    }
+    if(planoEl){planoEl.scrollIntoView({behavior:'smooth',block:'center'});planoEl.style.border='2px solid var(--red)';planoEl.focus();setTimeout(function(){planoEl.style.border='';},3000);}
     return;
   }
-  // Auto-atualizar valor se plano mudou e valor estava vazio antes
   var valor=parseFloat(el('ms-valor').value)||0;
   if(!valor&&planoId){var pl2=D.planos.find(function(x){return x.id===planoId;});if(pl2&&pl2.valor>0)valor=pl2.valor;}
   var statusPag=el('ms-pag').value;var dataPrev=el('ms-prev')?el('ms-prev').value:'';
@@ -1063,16 +1172,48 @@ function salvarSessao(){
   var isMultiCheck=el('ms-multi')&&el('ms-multi').checked;
   if(isC&&isMultiCheck&&pacsC.length>0){
     var qtdPacsReal=parseInt(el('ms-qtd-clin')?el('ms-qtd-clin').value:1)||1;
-    var valorUnit=valor;
-    if(qtdPacsReal>1){valor=valorUnit*qtdPacsReal;}
+    if(qtdPacsReal>1)valor=valor*qtdPacsReal;
   }
+
+  // Modo múltiplas datas (vem do perfil, sessão nova)
+  if(pacFixoId&&!sid){
+    var linhas=document.querySelectorAll('#ms-datas-wrap .ms-data-linha');
+    var datas=[];
+    linhas.forEach(function(linha,idx){
+      var dHid=linha.querySelector('input[type="hidden"]');
+      var hInp=linha.querySelector('.ms-hora-inp');
+      if(dHid&&dHid.value&&hInp&&hInp.value)datas.push({data:dHid.value,hora:hInp.value});
+    });
+    if(!datas.length){toast('Preencha pelo menos uma data e horário');return;}
+    var criadas=0;
+    datas.forEach(function(dt){
+      D.sessoes.push({id:uid(),pacienteId:pacId||pacFixoId,data:dt.data,hora:dt.hora,tipoId:tipoId||'',planoId:planoId,valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC,atendimentoMultiplo:!!(isC&&isMultiCheck)});
+      criadas++;
+    });
+    salvar();
+    // Mostra confirmação com botão para adicionar mais
+    var hpop='<div style="text-align:center;padding:24px">';
+    hpop+='<div style="font-size:48px;margin-bottom:10px">✅</div>';
+    hpop+='<div style="font-size:18px;font-weight:800;margin-bottom:6px">'+criadas+' sessão(ões) agendada(s)!</div>';
+    hpop+='<div style="font-size:13px;color:var(--sl3);margin-bottom:20px">As sessões já aparecem na Agenda.</div>';
+    hpop+='<div style="display:flex;flex-direction:column;gap:10px">';
+    hpop+='<button class="btn btn-p btn-bl" data-pid="'+esc(pacFixoId)+'" onclick="fecharM(true);mSessao(null,null,null,this.dataset.pid)">+ Adicionar mais sessões</button>';
+    hpop+='<button class="btn btn-s btn-sm" onclick="fecharM(true);renderizar()">Voltar ao perfil</button>';
+    hpop+='</div></div>';
+    el('mbody').innerHTML=hpop;
+    return;
+  }
+
+  // Modo sessão única (editar existente ou criar sem paciente fixo)
+  var data=el('ms-data')?el('ms-data').value:'';var hora=el('ms-hora')?el('ms-hora').value:'';
+  if(!data||!hora){toast('Preencha data e horário');return;}
   var novaSess={pacienteId:pacId,data:data,hora:hora,tipoId:tipoId||'',planoId:planoId||'',valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC,atendimentoMultiplo:!!(isC&&isMultiCheck)};
   if(sid){var s3=D.sessoes.find(function(x){return x.id===sid;});if(s3)Object.assign(s3,novaSess);salvar();fecharM();renderizar();toast('Sessão atualizada!');}
   else{
     var recTipo=el('ms-rec-tipo')?el('ms-rec-tipo').value:'';var recVal=parseInt(el('ms-rec-val')?el('ms-rec-val').value:1)||1;
-    var total=recTipo?recVal:1;var criadas=0;var dBase=new Date(data+'T12:00:00');
-    for(var i=0;i<total;i++){var dI=new Date(dBase);dI.setDate(dBase.getDate()+i*7);D.sessoes.push(Object.assign({id:uid()},novaSess,{data:fmtISO(dI)}));criadas++;}
-    salvar();fecharM();renderizar();toast(criadas>1?criadas+' sessões criadas!':'Sessão agendada!');
+    var total=recTipo?recVal:1;var criadas2=0;var dBase=new Date(data+'T12:00:00');
+    for(var i=0;i<total;i++){var dI=new Date(dBase);dI.setDate(dBase.getDate()+i*7);D.sessoes.push(Object.assign({id:uid()},novaSess,{data:fmtISO(dI)}));criadas2++;}
+    salvar();fecharM();renderizar();toast(criadas2>1?criadas2+' sessões criadas!':'Sessão agendada!');
   }
 }
 function excluirSessao(sid){if(!confirm('Excluir esta sessão?'))return;D.sessoes=D.sessoes.filter(function(x){return x.id!==sid;});salvar();fecharM();renderizar();toast('Sessão excluída');}
@@ -1111,29 +1252,45 @@ function exportarSessoes(){
 
 // ── PACIENTES ────────────────────────────────────────────────────
 function rPacientes(el2){
+  _filtroInativos='ativos';
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mPaciente(null);};
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div style="font-size:13px;font-weight:700;color:var(--sl3)">'+D.pacientes.length+' paciente(s) cadastrado(s)</div></div>';
+  var nAtivos=D.pacientes.filter(function(p){return!p.inativo;}).length;
+  var nInativos=D.pacientes.filter(function(p){return p.inativo;}).length;
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+  h+='<div style="font-size:13px;font-weight:700;color:var(--sl3)">'+nAtivos+' ativo(s)'+(nInativos?' · '+nInativos+' inativo(s)':'')+'</div>';
+  if(nInativos>0){h+='<div style="display:flex;gap:4px"><button class="btn btn-sm btn-p" id="fil-ativos" onclick="setFiltroInativos("ativos")">Ativos</button><button class="btn btn-sm btn-s" id="fil-inativos" onclick="setFiltroInativos("inativos")">Inativos</button></div>';}
+  h+='</div>';
   h+='<input class="fi" style="margin-bottom:12px" placeholder="Buscar paciente..." oninput="filtroPac(this.value)" id="busca-pac"/>';
   h+='<div id="lista-pac"></div>';
   h+='<div id="pac-loading" style="text-align:center;padding:30px;color:var(--sl3)"><div style="font-size:24px;margin-bottom:8px">⏳</div>Carregando pacientes...</div>';
   el2.innerHTML=h;
-  // Aguardar dados do Firebase ou usar localStorage
   setTimeout(function(){
     var lst=el('lista-pac');
-    if(lst){
-      var loading=el('pac-loading');if(loading)loading.remove();
-      renderPacs('');
-    }
+    if(lst){var loading=el('pac-loading');if(loading)loading.remove();renderPacs('');}
   }, D.pacientes.length>0?0:800);
+}
+function setFiltroInativos(modo){
+  _filtroInativos=modo;
+  var bA=el('fil-ativos');var bI=el('fil-inativos');
+  if(bA)bA.className='btn btn-sm '+(modo==='ativos'?'btn-p':'btn-s');
+  if(bI)bI.className='btn btn-sm '+(modo==='inativos'?'btn-p':'btn-s');
+  renderPacs(el('busca-pac')?el('busca-pac').value:'');
 }
 function filtroPac(q){renderPacs(q);}
 
 function renderPacs(q){
   var lst=el('lista-pac');if(!lst)return;
   q=(q||'').toLowerCase();
-  var t3=q?q.split(' ').filter(function(t){return t.length>0;}):[]; var lista=D.pacientes.filter(function(p){if(!q)return true;var n2=(p.nome||'').toLowerCase();var d2=(p.diagnostico||'').toLowerCase();return t3.every(function(t){return n2.includes(t)||d2.includes(t);});});
+  var t3=q?q.split(' ').filter(function(t){return t.length>0;}):[]; 
+  var lista=D.pacientes.filter(function(p){
+    var matchFiltro=_filtroInativos==='inativos'?!!p.inativo:!p.inativo;
+    if(!matchFiltro)return false;
+    if(!q)return true;
+    var n2=(p.nome||'').toLowerCase();var d2=(p.diagnostico||'').toLowerCase();
+    return t3.every(function(t){return n2.includes(t)||d2.includes(t);});
+  });
   lista.sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');});
-  if(!lista.length){lst.innerHTML='<div style="text-align:center;padding:36px;color:var(--sl3)">'+(D.pacientes.length===0?'Nenhum paciente. Toque no + para adicionar.':'Nenhum resultado.')+'</div>';return;}
+  if(!lista.length){var msgVazia=D.pacientes.length===0?'Nenhum paciente. Toque no + para adicionar.':_filtroInativos==='inativos'?'Nenhum paciente inativo.':'Nenhum resultado.';lst.innerHTML='<div style="text-align:center;padding:36px;color:var(--sl3)">'+msgVazia+'</div>';return;}
   var h='';var hj=hoje();
   lista.forEach(function(p){
     var prox=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.data>=hj;}).sort(function(a,b){return a.data.localeCompare(b.data);});
@@ -1174,9 +1331,8 @@ function rPerfil(el2){
   var abaL={resumo:'Resumo',anamnese:'Anamnese',evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',avaliacoes:'Avaliações',dados:'Dados'};
   // Linha 1: ações principais
   var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
-  h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Evolução</button>';
-  h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
   h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,null,this.dataset.pid)">+ Sessão</button>';
+  h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
   h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar</button>';
   if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico</button>';
   if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
@@ -1203,7 +1359,7 @@ function trocarAba(a){PAC_ABA=a;renderizar();}
 
 function rAbaEvo(p){
   var evos=(p.evolucoes||[]).slice().reverse();
-  if(!evos.length)return'<div style="text-align:center;padding:40px;color:var(--sl3);display:flex;flex-direction:column;align-items:center;gap:12px"><div style="font-size:40px">📋</div><div>Nenhuma evolução registrada.</div><button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Registrar primeira evolução</button></div>';
+  if(!evos.length)return'<div style="text-align:center;padding:40px;color:var(--sl3);display:flex;flex-direction:column;align-items:center;gap:12px"><div style="font-size:40px">📋</div><div>Nenhuma evolução registrada.</div><div style="font-size:12px">Acesse Evoluções → Pendentes para evoluir as sessões.</div></div>';
   var h='';
   evos.forEach(function(e){
     var bloq1=(Date.now()-(e.ts||0))>86400000&&e.id;
@@ -1275,6 +1431,9 @@ function mPaciente(pac){
   h+='</select></div>';
   h+='<div class="fr"><div class="fg"><label>Nascimento</label><input class="fi" type="text" id="mp-nasc" value="'+esc(p.dataNasc)+'" placeholder="DD/MM/AAAA" maxlength="10" oninput="mData(this)"/></div>';
   h+='<div class="fg"><label>Diagnóstico</label><input class="fi" type="text" id="mp-diag" value="'+esc(p.diagnostico)+'"/></div></div>';
+  h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="mp-cid" value="'+esc(p.cid||'')+'" placeholder="Ex: M54.5 — digite para buscar" oninput="buscarCid(this.value)"/>';
+  h+='<div id="cid-sugest" style="display:none;background:var(--card);border:1px solid var(--borda);border-radius:8px;max-height:180px;overflow-y:auto;position:relative;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>';
+  h+='<div id="cid-nome" style="font-size:12px;color:var(--g1);font-weight:600;margin-top:3px">'+esc(p.cidNome||'')+'</div></div>';
   h+='<div class="fr"><div class="fg"><label>Telefone</label><input class="fi" type="tel" id="mp-tel" value="'+esc(p.telefone)+'" placeholder="(00) 0000-0000" maxlength="15" oninput="mTel(this)"/></div>';
   h+='<div class="fg"><label>Celular</label><input class="fi" type="tel" id="mp-cel" value="'+esc(p.celular||'')+'" placeholder="(00) 00000-0000" maxlength="15" oninput="mTel(this)"/></div></div>';
   h+='</div>';
@@ -1291,11 +1450,11 @@ function mPaciente(pac){
   h+='</div></div>';
   h+='<div id="pac-wrap" style="display:'+(p.pacote?'block':'none')+'">';
   h+='<div class="fg"><label>Total de sessoes vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
-  h+='<div class="fg"><label>Data de inicio</label><input class="fi" type="date" id="mp-pacote-ini" value="'+(p.pacoteIni||'')+'"/></div>';
+  h+='<div class="fg"><label>Data de inicio</label>'+criarCampoData('mp-pacote-ini', p.pacoteIni||'', 'Selecionar data')+'</div>';
   h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessoes realizadas sao contadas automaticamente pela agenda.</div>';
   h+='</div></div>';
 
-  if(D.cfg.usarAnamnese){h+='<div class="fsec"><div class="fsec-t">Anamnese</div>';['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){h+='<div class="fg"><label>'+{alergias:'Alergias',medicamentos:'Medicamentos',cirurgias:'Cirurgias',comorbidades:'Comorbidades',pressao:'Pressão arterial'}[k]+'</label><input class="fi" type="text" id="mp-'+k+'" value="'+esc(p[k]||'')+'"/></div>';});h+='</div>';}
+  if(D.cfg.usarAnamnese&&p.id){h+='<div class="card" style="border-color:var(--g3);background:var(--g4);margin-bottom:10px"><div style="font-size:12px;color:var(--sl2)">📋 Para preencher a <strong>Anamnese completa</strong> (queixa, medicamentos, exames, avaliação física), salve e acesse a aba <strong>Anamnese</strong> no perfil do paciente.</div></div>';}
   h+='<div style="display:flex;gap:8px"><button class="btn btn-p btn-bl" onclick="salvarPaciente()">Salvar</button>';
   if(p.id)h+='<button class="btn btn-d" data-pid="'+esc(p.id)+'" onclick="delPaciente(this.dataset.pid)">Excluir</button>';
   h+='</div>';
@@ -1315,7 +1474,6 @@ function salvarPaciente(){
   };
   if(D.cfg.usarAnamnese)['alergias','medicamentos','cirurgias','comorbidades','pressao'].forEach(function(k){var e2=el('mp-'+k);if(e2)dados[k]=e2.value;});
   if(pid){
-    if(!confirm('Confirmar alteração dos dados do paciente?'))return;
     var p=D.pacientes.find(function(x){return x.id===pid;});if(p)Object.assign(p,dados);
   } else{dados.id=uid();dados.evolucoes=[];D.pacientes.push(dados);}
   if(pid)registrarHistóricoAlteracao('Paciente editado — '+nome);
@@ -1330,17 +1488,32 @@ function delPaciente(pid){
 
 // ── Evolução ─────────────────────────────────────────────────────
 var CID10=[
-  {c:'M54.5',n:'Dor lombar'},{c:'M54.2',n:'Cervicalgia'},
-  {c:'M75.1',n:'Sindrome do manguito rotador'},{c:'M17',n:'Osteoartrose do joelho'},
-  {c:'M16',n:'Coxartrose'},{c:'M47',n:'Espondilose'},{c:'M51.1',n:'Hernia de disco'},
+  {c:'M54.5',n:'Dor lombar'},{c:'M54.2',n:'Cervicalgia'},{c:'M54.4',n:'Lumbago com ciatica'},
+  {c:'M54.3',n:'Ciatica'},{c:'M54.1',n:'Radiculopatia'},
+  {c:'M75.1',n:'Sindrome do manguito rotador'},{c:'M75.0',n:'Capsulite adesiva do ombro'},
+  {c:'M75.5',n:'Bursite do ombro'},{c:'M75.2',n:'Tendinite bicipital'},
+  {c:'M17',n:'Osteoartrose do joelho'},{c:'M16',n:'Coxartrose'},
+  {c:'M22.2',n:'Condromalacia patelar'},{c:'M76.5',n:'Tendinite patelar'},
+  {c:'M47',n:'Espondilose'},{c:'M51.1',n:'Hernia de disco lombar'},
+  {c:'M50',n:'Hernia de disco cervical'},{c:'M48.0',n:'Estenose espinal'},
+  {c:'M65',n:'Tendinite'},{c:'M77.1',n:'Epicondilite lateral (cotovelo)'},
+  {c:'M77.0',n:'Epicondilite medial'},{c:'M79.3',n:'Fascite plantar'},
+  {c:'M76.6',n:'Tendinopatia do calcaneo'},{c:'M76.3',n:'Sindrome da banda iliotibial'},
+  {c:'M79.1',n:'Mialgia e dor miofascial'},{c:'M79.7',n:'Fibromialgia'},
+  {c:'S72',n:'Fratura do femur'},{c:'S82',n:'Fratura da perna e tibia'},
+  {c:'S42',n:'Fratura do ombro e clavicula'},{c:'S52',n:'Fratura do antebraco'},
+  {c:'S83',n:'Lesao ligamentar do joelho LCA LCP'},{c:'S93',n:'Entorse do tornozelo'},
   {c:'G35',n:'Esclerose multipla'},{c:'G80',n:'Paralisia cerebral'},
-  {c:'I63',n:'AVC isquemico'},{c:'I64',n:'AVC não especificado'},
-  {c:'S72',n:'Fratura do femur'},{c:'S82',n:'Fratura da perna'},
-  {c:'M79.3',n:'Fascite plantar'},{c:'M65',n:'Tendinite'},
-  {c:'J45',n:'Asma'},{c:'J44',n:'DPOC'},{c:'Q05',n:'Espinha bifida'},
-  {c:'F84.0',n:'Autismo'},{c:'F80',n:'Atraso no desenvolvimento'},
-  {c:'M54.4',n:'Lumbago com ciatica'},{c:'M25.5',n:'Dor articular'},
+  {c:'I63',n:'AVC isquemico'},{c:'I64',n:'AVC nao especificado'},
+  {c:'G56.0',n:'Sindrome do tunel do carpo'},{c:'G54',n:'Radiculopatia cervical e lombar'},
+  {c:'G20',n:'Doenca de Parkinson'},
+  {c:'J45',n:'Asma'},{c:'J44',n:'DPOC'},
+  {c:'Q05',n:'Espinha bifida'},{c:'F84.0',n:'Autismo'},
+  {c:'F80',n:'Atraso no desenvolvimento'},{c:'Q66',n:'Pe torto congenito'},
+  {c:'M25.5',n:'Dor articular'},{c:'M06',n:'Artrite reumatoide'},
   {c:'M62.5',n:'Atrofia muscular'},{c:'R26',n:'Disturbio da marcha'},
+  {c:'M81',n:'Osteoporose'},{c:'M85.8',n:'Osteopenia'},
+  {c:'R51',n:'Cefaleia'},{c:'H81',n:'Vertigem posicional e labirintite'},
 ];
 function buscarCid(q){
   var sugest=el('cid-sugest');if(!sugest)return;
@@ -1359,7 +1532,7 @@ function buscarCid(q){
   });
 }
 function selecionarCid(cod,nome){
-  var inp=el('mp-cid');if(inp)inp.value=cod;
+  var inp=el('mp-cid')||el('ed-cid');if(inp)inp.value=cod;
   var nm=el('cid-nome');if(nm)nm.textContent=nome;
   var sugest=el('cid-sugest');if(sugest)sugest.style.display='none';
 }
@@ -1761,19 +1934,17 @@ function mEvo(pid,eid){
   var maxDt=hoje();
   var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
   var minDtStr=fmtISO(minDt);
-  h+='<div class="fg"><label>Data do atendimento</label><input class="fi" type="date" id="me-data-evo" value="'+esc(dataEvo)+'" min="'+minDtStr+'" max="'+maxDt+'"/>';
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div>';
-  h+='<div id="me-datas-extras" style="margin-top:4px"></div>';
-  h+='<button type="button" class="btn btn-s btn-sm" style="margin-top:6px;width:100%;font-size:12px" onclick="adicionarDataExtra()">+ Datas de atendimento</button></div>';
+  h+='<div class="fg"><label>Data do atendimento</label>'+criarCampoData('me-data-evo',dataEvo,'Selecionar data');
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
   h+='<div class="fsec" style="margin-bottom:10px"><div class="fsec-t">Dados vitais (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   h+='<div class="fg" style="margin:0"><label>PA (mmHg)</label><input class="fi" type="text" id="me-pa" value="'+esc(e.pa||'')+'" placeholder="120 x 80" oninput="mascaraPA(this)" maxlength="9"/></div>';
   h+='<div class="fg" style="margin:0"><label>Saturação (%)</label><div style="position:relative"><input class="fi" type="number" id="me-sat" min="0" max="100" value="'+(e.sat!=null?e.sat:'')+'" placeholder="98" style="padding-right:28px"/><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--sl3);font-size:13px;pointer-events:none">%</span></div></div>';
   h+='<div class="fg" style="margin:0"><label>Bat. (bpm)</label><input class="fi" type="number" id="me-bpm" min="0" max="300" value="'+(e.bpm!=null?e.bpm:'')+'" placeholder="72"/></div>';
   h+='</div></div>';
-  h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="5" placeholder="Descreva a sessão...">'+esc(e.texto)+'</textarea></div>';
   h+='<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Modelos rápidos</div><div style="display:flex;gap:5px;flex-wrap:wrap">';
   var MODELOS=D.cfg.modelosEvo||MODELOS_DEFAULT;MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
   h+='</div></div>';
+  h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="5" placeholder="Descreva a sessão...">'+esc(e.texto)+'</textarea></div>';
   if(D.cfg.usarGrafico){h+='<div class="fr"><div class="fg"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" value="'+(e.dor!=null?e.dor:'')+'" placeholder="0-10"/></div><div class="fg"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" value="'+(e.mob!=null?e.mob:'')+'" placeholder="0-10"/></div></div>';}
   var _evoTs=e.ts||0;var _evoBloq=e.id&&(Date.now()-_evoTs)>86400000;
   if(_evoBloq){h+='<div style="padding:10px;background:var(--redbg);border-radius:8px;font-size:12px;color:var(--red);font-weight:700;margin-bottom:10px">🔒 Esta evolução não pode mais ser editada (passou de 24h).</div>';}
@@ -1790,16 +1961,6 @@ function salvarEvo(){
   var dor=dEl?parseInt(dEl.value):NaN,mob=mEl?parseInt(mEl.value):NaN;
   var paV=el('me-pa')?el('me-pa').value.trim():'';var satV=el('me-sat')?el('me-sat').value:'';var bpmV=el('me-bpm')?el('me-bpm').value:'';if(eid){var ev3=p.evolucoes.find(function(x){return x.id===eid;});if(ev3){ev3.texto=txt;if(!isNaN(dor))ev3.dor=dor;if(!isNaN(mob))ev3.mob=mob;if(paV)ev3.pa=paV;if(satV)ev3.sat=satV;if(bpmV)ev3.bpm=bpmV;}}
   else{var nv3={id:uid(),ts:Date.now(),texto:txt};if(!isNaN(dor))nv3.dor=dor;if(!isNaN(mob))nv3.mob=mob;if(paV)nv3.pa=paV;if(satV)nv3.sat=satV;if(bpmV)nv3.bpm=bpmV;var dtEvo=el('me-data-evo')?el('me-data-evo').value:hoje();nv3.dataEvo=dtEvo||hoje();p.evolucoes.push(nv3);}
-  // Salvar evoluções para datas extras também
-  var datasExtras=document.querySelectorAll('.me-data-extra');
-  datasExtras.forEach(function(inp){
-    var dtExtra=inp.value;
-    if(!dtExtra)return;
-    var nExtra={id:uid(),ts:Date.now(),texto:txt,dataEvo:dtExtra};
-    if(!isNaN(dor))nExtra.dor=dor;if(!isNaN(mob))nExtra.mob=mob;
-    if(paV)nExtra.pa=paV;if(satV)nExtra.sat=satV;if(bpmV)nExtra.bpm=bpmV;
-    p.evolucoes.push(nExtra);
-  });
   salvar();atualizarBadge();
   function mostrarConfirmacaoEvo(){
     var hpop='<div style="text-align:center;padding:24px">';
@@ -1847,18 +2008,6 @@ function salvarAdendo(){
 }
 
 
-function adicionarDataExtra(){
-  var wrap=document.getElementById('me-datas-extras');if(!wrap)return;
-  var maxDt=hoje();
-  var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
-  var minDtStr=fmtISO(minDt);
-  var div=document.createElement('div');
-  div.style.cssText='display:flex;gap:6px;align-items:center;margin-top:4px';
-  div.innerHTML='<input class="fi me-data-extra" type="date" min="'+minDtStr+'" max="'+maxDt+'" style="flex:1"/>'
-    +'<button type="button" class="btn btn-d btn-sm" onclick="this.parentElement.remove()" style="flex-shrink:0">✕</button>';
-  wrap.appendChild(div);
-}
-
 function mEvoComDados(pid,eDados){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var e=eDados||{};
@@ -1868,7 +2017,7 @@ function mEvoComDados(pid,eDados){
   var maxDt=hoje();
   var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
   var minDtStr=fmtISO(minDt);
-  h+='<div class="fg"><label>Data do atendimento</label><input class="fi" type="date" id="me-data-evo" value="'+esc(dataEvo)+'" min="'+minDtStr+'" max="'+maxDt+'"/>';
+  h+='<div class="fg"><label>Data do atendimento</label>'+criarCampoData('me-data-evo',dataEvo,'Selecionar data');
   h+='<div style="font-size:11px;color:var(--amber);margin-top:3px">📋 Texto copiado da evolução anterior. Dados vitais em branco para novo preenchimento.</div></div>';
   h+='<div class="fsec" style="margin-bottom:10px"><div class="fsec-t">Dados vitais (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   h+='<div class="fg" style="margin:0"><label>PA (mmHg)</label><input class="fi" type="text" id="me-pa" value="" placeholder="120 x 80" oninput="mascaraPA(this)" maxlength="9"/></div>';
@@ -1879,8 +2028,8 @@ function mEvoComDados(pid,eDados){
   var MODELOS_C=D.cfg.modelosEvo||MODELOS_DEFAULT;MODELOS_C.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
   h+='</div></div>';
   h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="6" placeholder="Descreva a sessão...">'+esc(e.texto||'')+'</textarea></div>';
-  h+='<div class="fg" style="display:flex;gap:10px"><div style="flex:1"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" placeholder="—"/></div>';
-  h+='<div style="flex:1"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" placeholder="—"/></div></div>';
+  if(D.cfg.usarGrafico){h+='<div class="fg" style="display:flex;gap:10px"><div style="flex:1"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" placeholder="—"/></div>';
+  h+='<div style="flex:1"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" placeholder="—"/></div></div>';}
   h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';
   abrirM(h);
 }
@@ -1986,13 +2135,19 @@ function delEvo(pid,eid){if(!confirm('Excluir evolução?'))return;registrarHist
 function rEvolucoes(el2){
   var fab2=el('fab');fab2.style.display='none';
   var hj=hoje();
-  var sem0=semIni(_semRef).toISOString().slice(0,10);
-  var anoAtras=new Date();anoAtras.setFullYear(anoAtras.getFullYear()-1);
-  var anoAtrasStr=anoAtras.toISOString().slice(0,7)+'-01';
   var mes0=hj.slice(0,7)+'-01';
+  var anoAtras=new Date();anoAtras.setFullYear(anoAtras.getFullYear()-1);
+  var anoAtrasStr=fmtISO(anoAtras).slice(0,7)+'-01';
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:12px">Evoluções Clínicas</div>';
+  // Filtro principal: Pendentes vs Realizadas
+  h+='<div style="display:flex;gap:6px;margin-bottom:12px">';
+  h+='<button class="btn btn-sm btn-p" id="evo-modo-pend" onclick="setModoEvo(\'pend\')" style="flex:1">⏳ Pendentes</button>';
+  h+='<button class="btn btn-sm btn-s" id="evo-modo-real" onclick="setModoEvo(\'real\')" style="flex:1">✅ Realizadas</button>';
+  h+='</div>';
+  h+='<input type="hidden" id="evo-modo-ativo" value="pend"/>';
+  // Filtros de data (só aparece no modo Realizadas)
+  h+='<div id="evo-filtros-data" style="display:none">';
   h+='<input class="fi" style="margin-bottom:8px" placeholder="Buscar paciente..." id="busca-evo" oninput="filtrarEvo()"/>';
-  // Filtros de data
   h+='<div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">';
   h+='<button class="btn btn-sm btn-p" id="evo-ft-hj" onclick="setFiltroEvo(\'hj\')">Hoje</button>';
   h+='<button class="btn btn-sm btn-s" id="evo-ft-sem" onclick="setFiltroEvo(\'sem\')">Esta semana</button>';
@@ -2004,9 +2159,60 @@ function rEvolucoes(el2){
   h+='<div class="fg"><label>Até</label><input class="fi" type="date" id="evo-dt-fim" value="'+hj+'"/></div>';
   h+='</div><button class="btn btn-p btn-sm" onclick="filtrarEvo()">Filtrar</button></div>';
   h+='<input type="hidden" id="evo-ft-ativo" value="hj"/>';
+  h+='</div>';
   h+='<div id="evo-lista"></div>';
   el2.innerHTML=h;
-  filtrarEvo();
+  setModoEvo('pend');
+}
+function setModoEvo(modo){
+  var mEl=el('evo-modo-ativo');if(mEl)mEl.value=modo;
+  var bP=el('evo-modo-pend');var bR=el('evo-modo-real');
+  if(bP)bP.className='btn btn-sm '+(modo==='pend'?'btn-p':'btn-s');
+  if(bR)bR.className='btn btn-sm '+(modo==='real'?'btn-p':'btn-s');
+  var filtrosData=el('evo-filtros-data');
+  if(filtrosData)filtrosData.style.display=modo==='real'?'block':'none';
+  if(modo==='pend') renderPendentes();
+  else filtrarEvo();
+}
+function renderPendentes(){
+  var lista=el('evo-lista');if(!lista)return;
+  // Coleta sessões realizadas sem evolução correspondente
+  var hj=hoje();
+  var pendentes=[];
+  D.pacientes.forEach(function(p){
+    var sessPac=(D.sessoes||[]).filter(function(s){
+      return s.pacienteId===p.id && s.status==='realizado' && s.data<=hj;
+    });
+    var nEvo=(p.evolucoes||[]).length;
+    var nReal=sessPac.length;
+    if(nReal>nEvo){
+      // Tem mais sessões realizadas do que evoluções — considera as mais recentes como pendentes
+      var diff=nReal-nEvo;
+      var sessPend=sessPac.slice().sort(function(a,b){return b.data.localeCompare(a.data);}).slice(0,diff);
+      sessPend.forEach(function(s){
+        pendentes.push({pac:p,sess:s});
+      });
+    }
+  });
+  pendentes.sort(function(a,b){return b.sess.data.localeCompare(a.sess.data);});
+  if(!pendentes.length){
+    lista.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:40px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:600;margin-bottom:6px">Tudo em dia!</div><div style="font-size:12px;color:var(--sl3)">Nenhuma sessão aguardando evolução.</div></div>';
+    return;
+  }
+  var h='<div style="font-size:12px;color:var(--sl3);margin-bottom:8px">'+pendentes.length+' sessão(ões) aguardando evolução</div>';
+  pendentes.forEach(function(item){
+    var p=item.pac;var s=item.sess;
+    var tpNm=s.tipoId?(D.tipos.find(function(t){return t.id===s.tipoId;})||{}).nome||'':'';
+    h+='<div class="card" style="margin-bottom:8px;cursor:pointer;border-left:3px solid var(--amber)" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+    h+='<span style="font-size:13px;font-weight:700">'+esc(p.nome)+'</span>';
+    h+='<span style="font-size:11px;color:var(--amber);font-weight:700">⏳ '+fmtD(s.data)+'</span>';
+    h+='</div>';
+    if(tpNm)h+='<span style="font-size:11px;color:var(--sl3)">'+esc(tpNm)+'</span>';
+    h+='<div style="font-size:11px;color:var(--g1);font-weight:600;margin-top:6px">Toque para evoluir →</div>';
+    h+='</div>';
+  });
+  lista.innerHTML=h;
 }
 function setFiltroEvo(tipo){
   var ativo=el('evo-ft-ativo');if(ativo)ativo.value=tipo;
@@ -2158,6 +2364,14 @@ function rFinanceiro(el2){
       });
     });
     h+='</div>';
+  }
+  // Pagamento em lote por plano
+  if(D.planos.length){
+    h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:6px">Pagamento em lote</div>';
+    h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Quitar todas as sessões pendentes de um plano de uma vez.</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+    D.planos.forEach(function(pl){h+='<button class="btn btn-a btn-sm" data-plid="'+esc(pl.id)+'" onclick="mPagamentoLote(this.dataset.plid)">'+esc(pl.nome)+'</button>';});
+    h+='</div></div>';
   }
   el2.innerHTML=h;
 }
@@ -2488,10 +2702,7 @@ function rRelatorios(el2){
   cards.forEach(function(c){h+='<div class="card" style="cursor:pointer;margin:0" data-fn="'+c.f+'" onclick="window[this.dataset.fn]()"><div style="font-size:24px;margin-bottom:6px">'+c.e+'</div><div style="font-size:13px;font-weight:700">'+c.t+'</div><div style="font-size:11px;color:var(--sl3);margin-top:3px">'+c.d+'</div><div style="margin-top:8px"><span class="badge bg-g">Excel / .csv</span></div></div>';});
   h+='</div><button class="btn btn-p btn-bl" onclick="relTodos()">Baixar todos</button>';
   h+='<button class="btn btn-s btn-bl" style="margin-top:8px" onclick="mRelEmail()">✉️ Enviar por e-mail</button>';
-  h+='<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">';
-  h+='<button class="btn btn-s btn-sm" onclick="previewRel(\'pacotes\')">Pacotes</button>';
-  D.planos.forEach(function(pl){h+='<button class="btn btn-a btn-sm" data-plid="'+esc(pl.id)+'" onclick="mPagamentoLote(this.dataset.plid)">'+esc(pl.nome)+': Lote</button>';});
-  h+='</div>';
+  h+='<div style="margin-top:8px"><button class="btn btn-s btn-sm" onclick="previewRel(\'pacotes\')">📦 Relatório de pacotes</button></div>';
   el2.innerHTML=h;
 }
 function getPer(){var m=el('rel-mes'),a=el('rel-ano');var now=new Date();return{mes:m?parseInt(m.value):now.getMonth(),ano:a?parseInt(a.value):now.getFullYear()};}
@@ -2568,7 +2779,7 @@ function confirmarRelEmail(){
 
 // ── MAIS ─────────────────────────────────────────────────────────
 function rMais(el2){
-  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Configurações</div>';
+  var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Mais</div>';
   if(FBU){
     var temCrefito=!!(D.cfg.crefito&&D.cfg.crefito.trim());
     h+='<div class="card">';
@@ -2591,6 +2802,18 @@ function rMais(el2){
     }
     h+='</div>';
   }
+
+  // ── Clinica ───────────────────────────────────────────────────────
+  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">Clínica</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h+='<div class="card" style="margin:0;cursor:pointer;border-color:var(--g3)" onclick="ir(\'financeiro\')"><div style="font-size:22px;margin-bottom:6px">💰</div><div style="font-size:13px;font-weight:800;color:var(--g1)">Financeiro</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Receitas, pendentes, cofre</div></div>';
+  h+='<div class="card" style="margin:0;cursor:pointer" onclick="ir(\'relatorios\')"><div style="font-size:22px;margin-bottom:6px">📊</div><div style="font-size:13px;font-weight:800">Relatórios</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Excel, evoluções, faltas</div></div>';
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+  h+='<div class="card" style="margin:0;cursor:pointer" onclick="ir(\'grafico-fin\')"><div style="font-size:22px;margin-bottom:6px">📈</div><div style="font-size:13px;font-weight:800">IR / Receita anual</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Exportar para imposto de renda</div></div>';
+  h+='<div class="card" style="margin:0;cursor:pointer" onclick="ir(\'ajuda\')"><div style="font-size:22px;margin-bottom:6px">📖</div><div style="font-size:13px;font-weight:800">Manual</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Guia completo do app</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 8px">Configurações</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">🔒 Segurança</div>';
   var inativAtual=D.cfg.inatividade||0;
   var optsInativLabel={0:'Sem tempo',1:'1 minuto',5:'5 minutos',10:'10 minutos',30:'30 minutos',60:'1 hora',360:'6 horas',720:'12 horas',1440:'24 horas'};
@@ -2634,7 +2857,7 @@ function rMais(el2){
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistórico()">🕐 Histórico de versões</button></div></div>';
-  h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Acesso rápido</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="ir(\'financeiro\')">Financeiro</button><button class="btn btn-s btn-sm" onclick="ir(\'relatorios\')">Relatórios</button><button class="btn btn-s btn-sm" onclick="ir(\'ajuda\')">Manual</button><button class="btn btn-a btn-sm" onclick="ir(\'grafico-fin\')">IR</button></div></div>';
+
   // Feedback
   h+='<div class="card" style="margin-bottom:10px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Feedback</div>';
   h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:12px">Encontrou um erro, tem uma sugestão ou quer elogiar? Envie seu feedback diretamente para o desenvolvedor.</p>';
@@ -2645,7 +2868,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px">💚</div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.016 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.023 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -3562,7 +3785,7 @@ function editarAnamnese(pid){
 
   var dataAval=an.dataAvaliacao||hoje();
   var h='<div class="mh"><h3>Anamnese — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<div class="fg"><label>Data da avaliação</label><input class="fi" type="date" id="an-data" value="'+esc(dataAval)+'"/></div>';
+  h+='<div class="fg"><label>Data da avaliação</label>'+criarCampoData('an-data',dataAval,'Selecionar data')+'</div>';
 
   // Bloco 1 — Identificação
   h+='<div class="fsec"><div class="fsec-t">Identificação</div>';
@@ -3974,14 +4197,14 @@ function confirmarInativacao(){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   p.inativo=true;p.motivoInativo=mot;p.obsInativo=obs;p.dtInativo=new Date().toISOString();
   registrarHistóricoAlteracao('Paciente inativado: '+p.nome+' — '+mot);
-  salvar();fecharM();renderPacs('');toast('Paciente inativado!');
+  salvar();fecharM();renderizar();toast('Paciente inativado!');
 }
 function reativarPaciente(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   if(!confirm('Reativar '+p.nome+'?'))return;
   p.inativo=false;p.motivoInativo='';p.dtInativo='';
   registrarHistóricoAlteracao('Paciente reativado: '+p.nome);
-  salvar();renderPacs('');toast('Paciente reativado!');
+  salvar();renderizar();toast('Paciente reativado!');
 }
 
 
@@ -4013,16 +4236,16 @@ function mPagamentoLote(planoId){
   var now=new Date();var mes=now.getMonth()+1;var ano=now.getFullYear();
   var h='<div class="mh"><h3>Recebimento em Lote — '+esc(pl.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:12px">Quitar todas as sessoes pendentes deste plano de uma vez.</p>';
-  h+='<div class="fr"><div class="fg"><label>Mes</label><select class="fi" id="lot-mes">';
+  h+='<div class="fr"><div class="fg"><label>Mes</label><select class="fi" id="lot-mes" onchange="atualizarPreviewLote()">';
   var mNm=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   mNm.forEach(function(m,i){h+='<option value="'+(i+1)+'"'+((i+1===mes)?' selected':'')+'>'+m+'</option>';});
-  h+='</select></div><div class="fg"><label>Ano</label><select class="fi" id="lot-ano">';
+  h+='</select></div><div class="fg"><label>Ano</label><select class="fi" id="lot-ano" onchange="atualizarPreviewLote()">';
   for(var a=ano-1;a<=ano+1;a++)h+='<option value="'+a+'"'+(a===ano?' selected':'')+'>'+a+'</option>';
   h+='</select></div></div>';
   // Preview das sessoes
   var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&s.statusPag==='pendente'&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
   var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
-  h+='<div style="padding:10px;background:var(--g4);border-radius:8px;margin-bottom:12px">';
+  h+='<div id="lot-preview" style="padding:10px;background:var(--g4);border-radius:8px;margin-bottom:12px">';
   h+='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>';
   h+='<div style="font-size:18px;font-weight:800;color:var(--g1)">Total: R$'+total.toFixed(2)+'</div>';
   h+='</div>';
@@ -4040,6 +4263,32 @@ function confirmarLote(){
   var pl=D.planos.find(function(x){return x.id===planoId;});
   registrarHistóricoAlteracao('Pagamento em lote: '+(pl?pl.nome:planoId)+' '+mes+'/'+ano+' ('+sessoes.length+' sessoes)');
   salvar();fecharM();renderizar();toast(sessoes.length+' sessao(oes) quitada(s)!');
+}
+
+function atualizarPreviewLote(){
+  var planoId=el('lot-plano')?el('lot-plano').value:'';
+  var mes=parseInt(el('lot-mes')?el('lot-mes').value:0);
+  var ano=parseInt(el('lot-ano')?el('lot-ano').value:0);
+  var preview=el('lot-preview');if(!preview)return;
+  var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&s.statusPag==='pendente'&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
+  var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
+  var corTotal=sessPend.length===0?'var(--sl3)':'var(--g1)';
+  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>'
+    +'<div style="font-size:18px;font-weight:800;color:'+corTotal+'">Total: R$'+total.toFixed(2)+'</div>'
+    +(sessPend.length===0?'<div style="font-size:12px;color:var(--sl3);margin-top:4px">Nenhuma sessão pendente neste período.</div>':'');
+}
+
+function atualizarPreviewLote(){
+  var planoId=el('lot-plano')?el('lot-plano').value:'';
+  var mes=parseInt(el('lot-mes')?el('lot-mes').value:0);
+  var ano=parseInt(el('lot-ano')?el('lot-ano').value:0);
+  var preview=el('lot-preview');if(!preview)return;
+  var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&s.statusPag==='pendente'&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
+  var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
+  var corTotal=sessPend.length===0?'var(--sl3)':'var(--g1)';
+  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>'
+    +'<div style="font-size:18px;font-weight:800;color:'+corTotal+'">Total: R$'+total.toFixed(2)+'</div>'
+    +(sessPend.length===0?'<div style="font-size:12px;color:var(--sl3);margin-top:4px">Nenhuma sessão pendente neste período.</div>':'');
 }
 
 
@@ -4273,7 +4522,7 @@ function rAjuda(el2){
   ],'Navegue entre as abas pelo menu horizontal no topo do perfil.');
 
   h+=sec('📝','Evoluções — Registro clínico',[
-    ['Nova evolução','No perfil → aba Evoluções → toque em "+ Evolução". Ou toque em "+ Evo" na lista de pacientes.'],
+    ['Nova evolução','Acesse a aba Evoluções → Pendentes. As sessões realizadas sem evolução aparecem listadas. Toque no nome do paciente para abrir o formulário de evolução.'],
     ['Data do atendimento','Ao registrar, escolha a data correta do atendimento — pode ser retroativa até 1 ano atrás.'],
     ['Dados vitais','Preencha PA (ex: 120 x 80), Saturação (%) e Frequência Cardíaca (bpm). Todos opcionais.'],
     ['Modelos rápidos','Toque em Modelo 1, 2, 3 ou 4 para preencher com texto pronto. Personalize em Mais → Modelos.'],
