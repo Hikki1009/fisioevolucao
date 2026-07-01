@@ -6,114 +6,179 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1e6b3f"/>
 <title>FisioEvolução</title>
-<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --g1:#1e6b3f;--g2:#2d8a52;--g3:#d1fae5;--g4:#f0fdf4;
-  --sl:#1e293b;--sl2:#475569;--sl3:#94a3b8;--sl4:#cbd5e1;
-  --bg:#f1f5f2;--card:#fff;--borda:#e2e8e4;
-  --red:#dc2626;--redbg:#fee2e2;
-  --amber:#d97706;--amberbg:#fef3c7;
-  --green:#16a34a;--greenbg:#dcfce7;
-  --blue:#2563eb;--bluebg:#dbeafe;
-  --purple:#7c3aed;--purplebg:#ede9fe;
+  --g1:#00875A;--g2:#00A86B;--g3:#DCFCEE;--g4:#F0FBF6;
+  --sl:#111827;--sl2:#374151;--sl3:#6B7280;--sl4:#D1D5DB;
+  --bg:#F3F6F4;--card:#FFFFFF;--borda:#E5EAE7;
+  --red:#E11D48;--redbg:#FFF1F2;
+  --amber:#D97706;--amberbg:#FFFBEB;
+  --green:#059669;--greenbg:#ECFDF5;
+  --blue:#2563EB;--bluebg:#EFF6FF;
+  --purple:#7C3AED;--purplebg:#F5F3FF;
+  --sh1:0 1px 4px rgba(0,0,0,.06),0 2px 8px rgba(0,0,0,.04);
+  --sh2:0 4px 16px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
+  --sh3:0 12px 40px rgba(0,0,0,.13);
+  --r:14px;--rs:8px;--rp:100px;
 }
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none}
+body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font-family:inherit}
 
-#app{padding-bottom:68px;min-height:100vh}
-#topo{background:var(--g1);color:#fff;padding:8px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#app{padding-bottom:72px;min-height:100vh}
+#topo{background:linear-gradient(135deg,#00875A 0%,#006644 100%);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,80,50,.25)}
 #topo-logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
 #topo-titulo{display:none}
-#topo-titulo span{color:#4ade80}
-#btn-vol{background:var(--g1);color:#fff;border:2px solid rgba(255,255,255,.4);border-radius:10px;padding:10px 20px;font-size:12px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;flex-shrink:0}
-#conteudo{max-width:720px;margin:0 auto;padding:12px}
-#nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--borda);display:flex;z-index:50;box-shadow:0 -2px 8px rgba(0,0,0,.06)}
-.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px 8px;background:none;border:none;border-top:2px solid transparent;color:var(--sl3);font-size:10px;font-weight:500;cursor:pointer;transition:.15s;position:relative}
-.nb svg{width:20px;height:20px;stroke-width:2}
+#topo-titulo span{color:#6EE7B7}
+#btn-vol{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:var(--rp);padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;flex-shrink:0;backdrop-filter:blur(4px);letter-spacing:.02em}
+#btn-vol:hover{background:rgba(255,255,255,.25)}
+#conteudo{max-width:720px;margin:0 auto;padding:14px}
+#nav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,.07);display:flex;z-index:50;box-shadow:0 -4px 24px rgba(0,0,0,.07)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 10px;background:none;border:none;color:var(--sl3);font-size:10px;font-weight:500;cursor:pointer;transition:.2s;position:relative;border-top:2px solid transparent}
+.nb svg{width:22px;height:22px;stroke-width:1.8;transition:.2s}
 .nb.on{color:var(--g1);border-top-color:var(--g1);font-weight:700}
-.nb-bdg{position:absolute;top:3px;right:calc(50% - 18px);background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;min-width:16px;text-align:center;display:none}
-.fab{position:fixed;bottom:76px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--g1);color:#fff;font-size:26px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(30,107,63,.4);z-index:40;font-weight:700}
-.card{background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--borda);margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;white-space:nowrap}
-.btn-p{background:var(--g1);color:#fff}.btn-s{background:var(--bg);color:var(--sl2);border:1px solid var(--borda)}.btn-d{background:var(--redbg);color:var(--red)}.btn-a{background:var(--amberbg);color:var(--amber)}.btn-b{background:var(--bluebg);color:var(--blue)}
-.btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}.btn-bl{width:100%}
-.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:700}
-.bg-g{background:var(--g3);color:var(--g1)}.bg-r{background:var(--redbg);color:var(--red)}.bg-a{background:var(--amberbg);color:var(--amber)}.bg-b{background:var(--bluebg);color:var(--blue)}.bg-s{background:var(--bg);color:var(--sl2)}.bg-p{background:var(--purplebg);color:var(--purple)}
-.fg{margin-bottom:11px}
-.fg label{display:block;font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
-.fi{width:100%;padding:9px 12px;border:1px solid var(--borda);border-radius:8px;color:var(--sl);background:#fff;outline:none;transition:.15s;font-size:14px}
-.fi:focus{border-color:var(--g1);box-shadow:0 0 0 3px rgba(30,107,63,.1)}
-textarea.fi{resize:vertical;min-height:76px}
+.nb.on svg{stroke-width:2.4}
+.nb-bdg{position:absolute;top:3px;right:calc(50% - 20px);background:var(--red);color:#fff;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:800;min-width:16px;text-align:center;display:none}
+.fab{position:fixed;bottom:80px;right:18px;width:54px;height:54px;border-radius:50%;background:var(--g1);color:#fff;font-size:26px;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,135,90,.4),0 2px 6px rgba(0,135,90,.3);z-index:40;font-weight:700;transition:.2s}
+.fab:hover{transform:scale(1.05);box-shadow:0 8px 28px rgba(0,135,90,.5)}
+.card{background:var(--card);border-radius:var(--r);padding:16px;border:none;margin-bottom:12px;box-shadow:var(--sh1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--rp);padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;letter-spacing:.01em}
+.btn-p{background:var(--g1);color:#fff;box-shadow:0 4px 14px rgba(0,135,90,.28)}
+.btn-p:hover{background:#006644;transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,135,90,.35)}
+.btn-s{background:#F1F5F3;color:var(--sl2);border:1.5px solid var(--borda)}
+.btn-s:hover{background:#E8EFEB}
+.btn-d{background:var(--redbg);color:var(--red)}
+.btn-a{background:var(--amberbg);color:var(--amber)}
+.btn-b{background:var(--bluebg);color:var(--blue)}
+.btn-sm{padding:6px 13px;font-size:12px}
+.btn-bl{width:100%;border-radius:var(--r)}
+.badge{display:inline-block;padding:2px 8px;border-radius:var(--rp);font-size:11px;font-weight:700;letter-spacing:.01em}
+.bg-g{background:var(--g3);color:#006644}.bg-r{background:var(--redbg);color:var(--red)}.bg-a{background:var(--amberbg);color:var(--amber)}.bg-b{background:var(--bluebg);color:var(--blue)}.bg-s{background:var(--bg);color:var(--sl2)}.bg-p{background:var(--purplebg);color:var(--purple)}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px}
+.fi{width:100%;padding:11px 14px;border:1.5px solid var(--borda);border-radius:var(--rs);color:var(--sl);background:#fff;outline:none;transition:all .2s;font-size:14px;font-weight:500}
+.fi:focus{border-color:var(--g1);box-shadow:0 0 0 4px rgba(0,135,90,.1)}
+textarea.fi{resize:vertical;min-height:82px}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.fsec{background:var(--g4);border-radius:10px;padding:12px;margin-bottom:11px;border:1px solid var(--g3)}
-.fsec-t{font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-.trow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--borda)}
+.fsec{background:var(--g4);border-radius:var(--r);padding:14px;margin-bottom:12px;border:1px solid var(--g3)}
+.fsec-t{font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.09em;margin-bottom:10px}
+.trow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--borda)}
 .trow:last-child{border:none}
 .trow-l h4{font-size:13px;font-weight:600}.trow-l p{font-size:11px;color:var(--sl3);margin-top:2px}
-.tog{position:relative;width:42px;height:24px;flex-shrink:0}
+.tog{position:relative;width:44px;height:26px;flex-shrink:0}
 .tog input{opacity:0;width:0;height:0}
-.tog-s{position:absolute;inset:0;background:#cbd5e1;border-radius:24px;cursor:pointer;transition:.2s}
-.tog-s:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tog-s{position:absolute;inset:0;background:#CBD5E1;border-radius:26px;cursor:pointer;transition:.25s}
+.tog-s:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .tog input:checked~.tog-s{background:var(--g1)}
 .tog input:checked~.tog-s:before{transform:translateX(18px)}
-.modal{background:var(--card);color:var(--sl);border-radius:16px;padding:20px 18px 24px;width:calc(100% - 32px);max-width:640px;max-height:90vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:201}
-.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.mh h3{font-size:16px;font-weight:800}
-.mc{background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl2);display:flex;align-items:center;justify-content:center}
-#login-sc{position:fixed;inset:0;background:linear-gradient(150deg,var(--g1) 0%,#0d4726 100%);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px}
-.lbox{background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:370px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
-.lerr{font-size:12px;color:var(--red);background:var(--redbg);padding:8px 12px;border-radius:8px;margin-bottom:12px;display:none}
-.gw{overflow:auto;border-radius:10px;border:1px solid var(--borda);max-height:calc(100vh - 170px);scrollbar-width:auto;scrollbar-color:var(--g1) var(--g3)}.gw::-webkit-scrollbar{width:8px;height:8px}.gw::-webkit-scrollbar-thumb{background:var(--g1);border-radius:4px}.gw::-webkit-scrollbar-track{background:var(--g3)}
+.modal{background:var(--card);color:var(--sl);border-radius:20px;padding:22px 20px 26px;width:calc(100% - 28px);max-width:640px;max-height:90vh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:201;box-shadow:var(--sh3)}
+.mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.mh h3{font-size:17px;font-weight:800;color:var(--sl)}
+.mc{background:var(--bg);border:none;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--sl3);display:flex;align-items:center;justify-content:center;transition:.15s}
+.mc:hover{background:var(--borda)}
+#login-sc{position:fixed;inset:0;background:linear-gradient(160deg,#004d30 0%,#00875A 60%,#10B981 100%);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;gap:14px}
+.lbox{background:#fff;border-radius:20px;padding:28px 22px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.22)}
+.lerr{font-size:12px;color:var(--red);background:var(--redbg);padding:9px 13px;border-radius:var(--rs);margin-bottom:12px;display:none;font-weight:500}
+.gw{overflow:auto;border-radius:var(--r);border:1px solid var(--borda);max-height:calc(100vh - 170px);scrollbar-width:auto;scrollbar-color:var(--g1) var(--g3)}.gw::-webkit-scrollbar{width:6px;height:6px}.gw::-webkit-scrollbar-thumb{background:var(--g1);border-radius:3px}.gw::-webkit-scrollbar-track{background:var(--g3)}
 .grade{display:grid;background:#fff;min-width:460px;padding-bottom:100px}
-.gh{background:var(--g1);color:#fff;padding:5px 3px;text-align:center;font-size:10px;font-weight:700;position:sticky;top:0;z-index:2}
+.gh{background:var(--g1);color:#fff;padding:6px 3px;text-align:center;font-size:10px;font-weight:700;position:sticky;top:0;z-index:2;letter-spacing:.03em}
 .ghora{background:var(--g4);color:var(--g1);padding:4px 3px;text-align:center;font-size:10px;font-weight:700;border-right:1px solid var(--borda);border-bottom:1px solid var(--borda);position:sticky;left:0;z-index:1}
 .gc{padding:2px;border-right:1px solid var(--borda);border-bottom:1px solid var(--borda);min-height:36px;cursor:pointer;transition:.1s}
-.gc:hover{background:var(--g4)}.gc.hj{background:#f0fdf4}
-.gev{padding:2px 4px;border-radius:4px;font-size:9px;font-weight:700;margin-bottom:1px;line-height:1.3;word-break:break-word;cursor:pointer;border-left:3px solid transparent}
-
+.gc:hover{background:var(--g4)}.gc.hj{background:#F0FBF5}
+.gev{padding:2px 4px;border-radius:5px;font-size:9px;font-weight:700;margin-bottom:1px;line-height:1.3;word-break:break-word;cursor:pointer;border-left:3px solid transparent}
 .nsem{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .nsem strong{font-size:13px;font-weight:700}
-.nbtn{background:var(--bg);color:var(--sl2);border:1px solid var(--borda);border-radius:8px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600}
-.pac{background:var(--card);border:1px solid var(--borda);border-radius:10px;padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:11px;cursor:pointer;transition:.15s}
-.pac:hover{border-color:var(--g1)}
-.av{width:42px;height:42px;border-radius:50%;background:var(--g3);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--g1);flex-shrink:0;overflow:hidden}
+.nbtn{background:var(--card);color:var(--sl2);border:1.5px solid var(--borda);border-radius:var(--rp);padding:6px 14px;font-size:13px;cursor:pointer;font-weight:600;transition:.15s;box-shadow:var(--sh1)}
+.nbtn:hover{background:var(--g4);border-color:var(--g1);color:var(--g1)}
+.pac{background:var(--card);border:none;border-radius:var(--r);padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;box-shadow:var(--sh1)}
+.pac:hover{box-shadow:var(--sh2);transform:translateY(-1px)}
+.av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--g3),var(--g4));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:var(--g1);flex-shrink:0;overflow:hidden;box-shadow:0 2px 6px rgba(0,135,90,.15)}
 .av img{width:100%;height:100%;object-fit:cover}
-.ptab{display:flex;gap:4px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none;padding-bottom:2px}
+.ptab{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:2px}
 .ptab::-webkit-scrollbar{display:none}
-.pt{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid var(--borda);background:var(--card);color:var(--sl3);white-space:nowrap;flex-shrink:0;transition:.15s}
-.pt.on{background:var(--g1);color:#fff;border-color:var(--g1)}
-.evo-item{border-left:3px solid var(--g1);padding:10px 12px;margin-bottom:10px;background:var(--g4);border-radius:0 8px 8px 0}
-.sess-item{background:var(--card);border-left:4px solid var(--g1);border-radius:0 10px 10px 0;padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--sl);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:.3s;z-index:1000;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+.pt{padding:7px 14px;border-radius:var(--rp);font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--borda);background:var(--card);color:var(--sl3);white-space:nowrap;flex-shrink:0;transition:all .2s}
+.pt.on{background:var(--g1);color:#fff;border-color:var(--g1);box-shadow:0 3px 10px rgba(0,135,90,.25)}
+.evo-item{border-left:3px solid var(--g1);padding:12px 14px;margin-bottom:10px;background:var(--g4);border-radius:0 var(--rs) var(--rs) 0}
+.sess-item{background:var(--card);border-left:4px solid var(--g1);border-radius:0 var(--r) var(--r) 0;padding:12px 14px;margin-bottom:8px;box-shadow:var(--sh1)}
+#toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(8px);background:rgba(17,24,39,.9);color:#fff;padding:9px 20px;border-radius:var(--rp);font-size:13px;font-weight:600;opacity:0;transition:.3s;z-index:1000;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;backdrop-filter:blur(8px)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 body.tema-escuro{
-  --g1:#1a5c35;--g2:#236b40;--g3:#1a3d28;--g4:#152e1e;
-  --sl:#e2e8f0;--sl2:#cbd5e1;--sl3:#94a3b8;--sl4:#64748b;
-  --bg:#0f172a;--card:#1e293b;--borda:#334155;
+  --g1:#10B981;--g2:#34D399;--g3:#064E3B;--g4:#022C22;
+  --sl:#F9FAFB;--sl2:#E5E7EB;--sl3:#9CA3AF;--sl4:#4B5563;
+  --bg:#0B1120;--card:#111827;--borda:#1F2937;
+  --red:#FB7185;--redbg:rgba(225,29,72,.15);
+  --amber:#FBBF24;--amberbg:rgba(217,119,6,.15);
+  --blue:#60A5FA;--bluebg:rgba(37,99,235,.15);
+  --purple:#A78BFA;--purplebg:rgba(124,58,237,.15);
+  --sh1:0 1px 4px rgba(0,0,0,.3),0 2px 8px rgba(0,0,0,.2);
+  --sh2:0 4px 16px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.2);
+  --sh3:0 12px 40px rgba(0,0,0,.5);
 }
+body.tema-escuro #topo{background:linear-gradient(135deg,#064E3B 0%,#0B1120 100%);box-shadow:0 2px 16px rgba(0,0,0,.4)}
+body.tema-escuro #nav{background:rgba(17,24,39,.92);border-top-color:rgba(255,255,255,.07)}
+body.tema-escuro .card{background:var(--card);box-shadow:var(--sh1)}
+body.tema-escuro .fi{background:#1F2937;border-color:var(--borda);color:var(--sl)}
+body.tema-escuro .btn-s{background:#1F2937;border-color:var(--borda);color:var(--sl2)}
+body.tema-escuro .modal{background:var(--card)}
+body.tema-escuro .pac{background:var(--card)}
+body.tema-escuro .nbtn{background:var(--card);border-color:var(--borda);color:var(--sl2)}
+body.tema-escuro .lbox{background:#1F2937}
+body.tema-escuro .av{background:linear-gradient(135deg,var(--g3),var(--g4));color:#6EE7B7}
+body.tema-escuro .grade{background:var(--bg)}
+body.tema-escuro .gh{background:#064E3B;color:#A7F3D0}
+body.tema-escuro .ghora{background:#111827;color:#A7F3D0;border-color:var(--borda)}
+body.tema-escuro .gc{background:var(--bg);border-color:var(--borda);color:var(--sl)}
+body.tema-escuro .gc:hover{background:#0d1b2e}
+body.tema-escuro .gc.hj{background:#022C22}
+body.tema-escuro .fsec{background:var(--g4);border-color:var(--g3)}
+body.tema-escuro .evo-item{background:rgba(16,185,129,.08)}
+body.tema-escuro .sess-item{background:var(--card)}
+body.tema-escuro .pt{background:var(--card);border-color:var(--borda);color:var(--sl3)}
+body.tema-escuro [style*="color:var(--g1)"]{color:#34D399 !important}
+body.tema-escuro [style*="background:var(--g4)"]{background:var(--g4) !important}
+body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !important}
 
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--g2);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--g1)}
 
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:var(--g4);border-radius:3px;}
-::-webkit-scrollbar-thumb{background:var(--g2);border-radius:3px;}
-::-webkit-scrollbar-thumb:hover{background:var(--g1);}
+#sino-btn{position:relative;background:rgba(255,255,255,.12);border:none;cursor:pointer;color:#fff;padding:7px 9px;font-size:20px;display:flex;align-items:center;border-radius:var(--rp);transition:.2s}
+#sino-btn:hover{background:rgba(255,255,255,.22)}
+#sino-badge{position:absolute;top:-3px;right:-2px;background:#EF4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:800;min-width:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--g1)}
+#sino-painel{position:fixed;top:62px;right:8px;width:320px;max-width:calc(100vw - 16px);background:var(--card);border:none;border-radius:18px;box-shadow:var(--sh3);z-index:200;display:none;max-height:70vh;overflow-y:auto}
 
+#cal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+#cal-box{background:var(--card);border-radius:20px;width:calc(100% - 32px);max-width:340px;overflow:hidden;box-shadow:var(--sh3)}
+#cal-header{background:linear-gradient(135deg,var(--g1),#006644);color:#fff;padding:18px 20px 14px}
+#cal-header .cal-ano{font-size:12px;font-weight:700;opacity:.75;margin-bottom:3px;letter-spacing:.04em}
+#cal-header .cal-data-sel{font-size:23px;font-weight:800}
+#cal-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--borda)}
+#cal-nav .cal-mes-ano{font-size:14px;font-weight:700;color:var(--sl)}
+#cal-nav button{background:none;border:none;cursor:pointer;color:var(--g1);font-size:18px;padding:5px 9px;border-radius:var(--rs);transition:.15s}
+#cal-nav button:hover{background:var(--g4)}
+#cal-dias-sem{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 10px 4px}
+#cal-dias-sem span{text-align:center;font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase}
+#cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 10px 10px;gap:3px}
+.cal-dia{height:37px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;border-radius:50%;cursor:pointer;color:var(--sl);transition:.15s}
+.cal-dia:hover{background:var(--g3);color:var(--g1)}
+.cal-dia.hoje{color:var(--g1);font-weight:800;position:relative}
+.cal-dia.hoje::after{content:'';position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;background:var(--g1);border-radius:50%}
+.cal-dia.sel{background:var(--g1);color:#fff;font-weight:800;box-shadow:0 2px 8px rgba(0,135,90,.3)}
+.cal-dia.sel:hover{background:#006644}
+.cal-dia.outro-mes{color:var(--sl4)}
+.cal-dia.vazio{cursor:default}
+#cal-footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 14px;border-top:1px solid var(--borda)}
+.cal-inp-fake{width:100%;padding:11px 14px;border:1.5px solid var(--borda);border-radius:var(--rs);color:var(--sl);background:#fff;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:all .2s}
+.cal-inp-fake:focus,.cal-inp-fake:active{border-color:var(--g1);box-shadow:0 0 0 4px rgba(0,135,90,.1);outline:none}
+.cal-inp-fake .cal-placeholder{color:var(--sl3)}
 
-
-body.tema-escuro .gh.on,body.tema-escuro .gh[style*='background']{color:#4ade80 !important;}
-body.tema-escuro .av{color:#fff !important;}
-body.tema-escuro a[style*="color:var(--g1)"]{color:#fff !important;}
-body.tema-escuro [style*="color:var(--g1)"]{color:#e2e8f0 !important;}
-body.tema-escuro .ghora{background:#1e293b !important;color:#e2e8f0 !important;border-color:#334155 !important;}
-body.tema-escuro .grade{background:#0f172a !important;}
-body.tema-escuro .gw{border-color:#334155 !important;}
-body.tema-escuro .gc{color:#e2e8f0 !important;background:#0f172a !important;border-color:#334155 !important;}
-body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
-@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 .fi-an{animation:fi .2s ease}
-
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 @media(min-width:768px){
   #agenda-layout{display:flex;gap:16px;align-items:flex-start;}
@@ -127,40 +192,12 @@ body.tema-escuro .gh{background:#1e293b !important;color:#e2e8f0 !important;}
 @media(max-width:767px){
   #agenda-sidebar{display:none !important;}
 }
-
-#sino-btn{position:relative;background:none;border:none;cursor:pointer;color:#fff;padding:4px 8px;font-size:20px;display:flex;align-items:center;}
-#sino-badge{position:absolute;top:-2px;right:0;background:#ef4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:800;min-width:16px;text-align:center;display:none;}
-#sino-painel{position:fixed;top:60px;right:8px;width:320px;max-width:calc(100vw - 16px);background:var(--card);border:1px solid var(--borda);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:200;display:none;max-height:70vh;overflow-y:auto;}
-/* Calendário customizado */
-#cal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center}
-#cal-box{background:var(--card);border-radius:16px;width:calc(100% - 32px);max-width:340px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18)}
-#cal-header{background:var(--g1);color:#fff;padding:16px 18px 12px}
-#cal-header .cal-ano{font-size:12px;font-weight:700;opacity:.8;margin-bottom:2px}
-#cal-header .cal-data-sel{font-size:22px;font-weight:800}
-#cal-nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--borda)}
-#cal-nav .cal-mes-ano{font-size:14px;font-weight:700;color:var(--sl)}
-#cal-nav button{background:none;border:none;cursor:pointer;color:var(--g1);font-size:18px;padding:4px 8px;border-radius:6px}
-#cal-nav button:hover{background:var(--g4)}
-#cal-dias-sem{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 10px 4px}
-#cal-dias-sem span{text-align:center;font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase}
-#cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:4px 10px 10px;gap:2px}
-.cal-dia{height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;border-radius:50%;cursor:pointer;color:var(--sl);transition:.1s}
-.cal-dia:hover{background:var(--g3);color:var(--g1)}
-.cal-dia.hoje{color:var(--g1);font-weight:800}
-.cal-dia.sel{background:var(--g1);color:#fff;font-weight:800}
-.cal-dia.sel:hover{background:var(--g2)}
-.cal-dia.outro-mes{color:var(--sl4)}
-.cal-dia.vazio{cursor:default}
-#cal-footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid var(--borda)}
-.cal-inp-fake{width:100%;padding:9px 12px;border:1px solid var(--borda);border-radius:8px;color:var(--sl);background:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
-.cal-inp-fake:focus,.cal-inp-fake:active{border-color:var(--g1);box-shadow:0 0 0 3px rgba(30,107,63,.1);outline:none}
-.cal-inp-fake .cal-placeholder{color:var(--sl3)}
 </style>
 </head>
 <body>
 <div id="app">
   <div id="topo">
-    <div id="topo-logo"><img src="data:image/png;base64,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" style="height:44px;width:auto;object-fit:contain" alt="FisioEvolucao"/></div>
+    <div id="topo-logo" style="display:flex;align-items:center;gap:10px"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFEAAABYCAYAAACNgBv+AAAUAUlEQVR42u1ce3Qc1Xn/ZmZXD0uWbRlhG4OxAZvgOhjjBymPYFpIetLGEBLTQB4lDZDT5tAmOQfCgZyzh6ZNSGlI3DxOyElC6yTUWRJDHMfBNaCCscGNkB1ZlmxJu1pppX1oZmd353Hv3Dtz5+sfmhHjrW38joz1nTNH0szce+f+7vf+7hXAcVAikZABAFLZ7NW9vb3XAwAgogyTkBBRAgDo7+//4N69e2dOmg9rb2+PAQCouv4pQoja3t7ejIhy+MGThZLJpAIAkMvlVlmWRXp6euZFgf1jr64MAHDw4MFFiIgVw9gQ3I9NJg5ERAUAZErpfs55etIAGP3IRCIhO5x3CSFwaGhoVXBfOYU+leCSETF2KioiXNAxTfvC+EJX/m2yLfTEx5Sr1a8hIhJK9m7YsKE+AOGEV1uSpGNy/clISiqVWuK6rimE8LP57NpTXeQzpm8ymcy1nud5iIjlSuXbAAAdHR3xE+HoEMBiUf2UZVmbGWOvmKb5g2w2+74TBTIQ49j69esVy7Z3ISJSSg8mk8m6YHEnld6emJw9/rECETFXLH70RMQGEeVkMqlUDeNZrCHXdf1SqfTAiQCJiHEAAL1S+dewn1K5/PCkE+X/p3fGxu4KvtfjnJsDAwPLjkd0wvalUulzQXuGKFwhhCeE4AGQbiqVWnI8QIb95XLFO8PvYYyVenp6ZgccKsFkJESUn3766TihZH/IjcRx+js7O9veCcgQFErp60Fb1/d9REQ/+MkREQ3DeOSdOCl8lslkruWcm4joIiJWq9XHJ50uPJJFBQDI5/MfDlbfQUSkDn2zo6NjRtSvrLUl4S+U0t6QcxDRD0EUQrhCCN80ze8dC8Twfn9//xWMsdFQGzDG8jt37pw1GX3YowJpGMaLwQQoIqLjOG90dva1HQ2AkBMdx2kPOTEEcfzHuEiXDePhY/QRDy2xw9ggIqJA4SAiapp276TnwigYiCgdOnToMs65hYgTOo0xdrBYLF4TNSK1HKTr+qdDnRhw39vtOXcymcwiSZIO04nBmDIAwOjo6A2c82JUEgzLeuWcAbCWGwsFNTQSPNRLruualUrl80dwqqUACEnX9WdqrTPn3C0UCp+IulRh27AvTdP+MVgsKoRwEFEwzo3u7u4rIv3DuQRkDACgWq0+GwHSC0FxHOeVUql0fW2bsJ2qqvcQQn7lOM4rpmk+PZTLhVFQvFaUh4eH19iEvBT4p6+OqerucNFGC6N3n3NcWOPoytu3b28ihOwLFbwQwg8n6AkPKaXPFTTttg0bNtSfSP8333xzLJ/P/5llWxM+ZalUejxXKDwhhHAREVVN/eak9QlP1AE/kE5fyhgbCYH00UeBIrS+49aHsUMWId+rmOb64eH8ss7OzrYAWLm9vb2ho6Pjglwud5WmaR8xLONb1HG6wraMsf50Ov1+XdcfCe9ZlvV8hLslOJcpFKN0Or2cMVYKgUREX+AEV4qo/vM8DxljmuM4A5SxHoexFOdcdV1X1EYxtm3/00u7d8+3CXl6AkBivZFMJhvPCXfmRHOOQ7mhVQ5j2gRHBs50cHlRA3QUmtCphJDf7t+//6qhoaGVDufdExxN6f6Icy/Du4lCvZROp5c7EdGOgDhxBRwqAvLGQ8AAJMfpLBQKtz3wwAPTbNv+ahRhx3H69+7dOz9qwd91FAJ54MCBxY7jDOA4Up7v+xheE1EK+hgAGOq9tKqqnwzi8w8xxgYiVh8ppUP79h1cdM5a4pMR7QMHDlzqOE46AFL4+DaAUQvOObcMw3g0COUusQnZGgIrJsJKZ6Snp2fJeQHgEeLbP+GcG4GuEwGIIjQ0pmlu/cMf+i4GAKhUKl/hrhuKtScEhlFQsS+TWXqMuPzdS2GyVtO0eyNGwwutbrlcfmg86ilcTQj5Q9Qoh2LOGKtkMplrz3lf8HRwpG3TnSEXcs7p6GjhjoD7HuQu54HIu2Lc6AhE9BljJDU8vPq8BjCcvCRJUCgUPhJwICtqxQ8E4eKPAs7zBaIXGBofET3uumJoaOim7u7uVkSsg/OZQkd4x44dMyilRNO0z4xzpv2ziOUd93dQ+ALHw7lCobBuOJdbrev6188rY3Is6u7urhsaGvo0AEDFML4dWF4eJmTHXZ9xAHVdf2Tbtm31jPNquWx87Lw0KMcKDVVdvz3kQHEYgOPujmlZzwEA2JTuQhR+ZBeDfN6LNCJKvb290xljmTAEjADoIaLvOM4IAMhlo/xwkLDoSSQSIQdK5zuIYZXvvmhMHYlePETEsbGxm0ZGRq4M6trCtu3fTnFhTbqMUufVADQ3UuFzgwrfTwAACKVvhs6iYViTbs/PH9U67xsYuDAobYZuTBi5+Jxzs6ura5au6x+OFr60cvmLUyBGDMrY2NhNb4fDE5kcFxGxXC5/fZxTaVfwzEFELAa7K857yxypp3zysGRtwI2u65Kenp7Z+Xz+ukhoKBARR0YKf3qqPuLZSNieNYUdi8XawnkFPwUASIyxrUuXLi21tLR8FgDQ930fAGTXdT0i2FhNmxOiRAJlSZLwjM/t7HGk1HLY6smyBADAOd84DrJyCwBI4X1ENMuFQuVkQURERZIk8cwzz8xsampid911Fz3nOVGJK1GxQgBQOOeVdDr9SncqtUCWlYUAAH7gDyJAddu2bebJZo8kSRIHDx58z3XXXXcvAIhz2k0KdWKlYnyltshPCHkJAEDX9XVv5xDHU2CE0v89UZ2WTCaVECxVVW/RSqW38vn8wjOtG8+aOEsSGjWcCEKI3wOApMTjVwT3fQjEGQCKEWkRx+GHSpIkCQAAy7IeUmKxb+iV0gfnz5ufSQaifc6DKIQo1YZvrut2AwDKAHMnXvR9AFkGX4jsscK9gLNkAEBJknyA8V0SF1x44Tca6+vXFovaJ+bPnb8DzzCAZwtEDAxIMWIgJADwEXEQAEBWlJkA4PkAQpZlDADOHAG0KHAi5NBsNru8paXlwcDCQzabu2fBgvn/NcHd75aQb2B4eFltgXlkZGQJIsqEkB21z4qa9jfBzob6I+mzHR0dMzRN+6hlWZs9z2NBKWFwcHBwLQDA+vXrlX379v1Fe3t7w7lY3JeCXQlKAEIcEeU9e/bMptQZdV13jHPeQwh5cdu2bfUAAIZhPMq58wxj7AlCyEOmaf514ubEYVKyffv2pnw+v6xcLn/Wsu1NnPOhKOiGYfx43759FwIA5HK5S/OFwsZUKnVj7Ra9MzLh0xgfh8rdO9p7b+zduxAcBziPs5kz48qcOXPq4vF4o65b4DiG39DQIDc3NzfV1dXNAkVZWKco82Lx2EJAuFyW5UtlWZ4Xi8UOA5cQ8qpJyFfntrW9DABQrVY/IyvKPxPbfnDOnDmbEVEOdeak1IkBeEoAXKi85b6+vkWzZ8++MlZfvzQuy4tlWV4gScoFkgzTAHGGJElNCNAIiIosy0pra+sJLabruqbneTts2/5uW1tbOwDAaKFw26yWln+RZfmqSqXykblz577U3t4eO9aiTprEwnh4lajTNO02y7K+QyntYowRPM3EOR+xLPJLXdc/8frrr08Px9Wr1U9Sx+kIdom9ube3d+Gkz/wE4gEAALt27bqwXK0+5ES2wB0veZ4nOHddzrnjuq7lup7GOR/hnO9njL1CKf0Py7K+Uiiod/QGwAAA7Ny5c5amaR+1Kd3EXZcEFcSCppU/e6QFPitG4GTiUQCQNU37h5aWlkfi8ficCTHzvCog5hAwJTzRj4hpznneRVelJiW+71uqqvKmpibBOfcKhYLPOfebmpqAECJkWRb9qoqyYfgrVqyonz9//qwZM2ZcGq+vX1oXi62WZXlNXV3d4nA8x3H2M8a+/9prr21ct24dCd2gM60DTxrEoH7sDQ4OXjVv3ryf1dfXX+sJAZ7r7vQ8738IIbuq1eqBxx57LP/cc8+JF154YfqqVasub54x48qYpCyUZZgvx+TZEkozAWC6jzhNAlBAlmOyBHWAME2SpAYEaI4pSsORzv55nucKITpd1/3vSqXy20suuWTPERb4rNNx6Y1EIiFLkuSNlUofb2lu/rkEkKtWq48Wi8UXrrzyyt7ou+3t7bHHH3/85tbW1vc0NDS0KbLcJEtQ7/t+XPZlC8ezXVRRlDgiNoHvN0iKooAERnDuzxNCMN/3Ld/3dc75qO/7A4SQg6qq9l1zzTVjteOtXbtW/LEAPG4dmEwmlbGxsS9QSnur1eq969evr4ta6MAfVM7GUbBwvGBv4uR3okNAOjo65o3kcn/f3t7eEBXvozmxiCgFGZXYO1zhWefwksLN9JFjG9F33x1l03fVZM4H8BKJhHwuJFOPpcNkAPBraxSREM8/Vv3iSP2ejXpHNL9YM7Y437heAgA4mMksipzGn7wqpFQqfYtS2kEIOUgZPcgYGygUCo/Ztv27XC63OjAs8Y6OjjgiSplMZikhZFuxWFweEXMlegYvm81eTR1nD+e8mzHWyxgbsCzyfO2Zk+jfEWMih/3YlL5Ox3dESOHp0oiFrj08qYSh3uho8UbbtrfrlcpTpVJpfalSuSvy3sQ4p81PnNY0bZUiK9cQQn4sSZIchGQlWZYvA4DGwHdzwwbpdHq6oiiLEXFaEAKKWlBUVZ3RUF+/xrLtLb4QOQCICyEGmpun+VEgwsiiNtMSACbqYjEUvk8DNeDWqAU8UlsAgPrG+N8JISqKJF1W39x8H7HtnwNAMkiWuDUh7KlHNzalr1JK99fe7+rqek94TkRV1ZWmaf5519DQLACQ9u/ff1Xo7mzcuLGJUrrWMIwbw7N7pVLpBkT0+kf6L4n2qev61d3d3c3h36lUakmhULgMAKC3t3chdd1bi8XiFSHIDmM7GeMv9/b2Ti8UCu8Nd0IMDw/Pz2azi8OoZmho6HLTNG/NZrOLA4PUsL9//yW5XG51R0fH5dHkcF9f3+Wu6068e1rIJuRlh7G8qqp3mKa5XtO0W3O53Grf93F0dPTGimE8RR1qEUJotVp9qa+vb4Xv+5jP59eks+nlDmN5QimnlArG2KFUKrVAVdWV4b8hsCzrrxzHWdfT07OEMWaYpvl9RJQ6OzvbOOfu2NjYF8Y07YuMM6SUmq7noWEY3wlSXm8wxjeXSqW7hRAYHgIyDONZ27YPAQBUDeO7vu8jdSihlHpvvfXWKr1S2ew4jqDUEdzlmqqqtwAAaJr+pOu5SCm1PCGwUqk8fVo8ANu2twUnlSjnXNi23ZEaTq0J0vcfR0SsmuYTiUSipb+//4pisXg9IuLo6OgN1KHdlNLO9vb2ufv27VvEOc/bhLzY19e3AhGRu67HOOdCCBwdHb3BNM0nXc+zAQDK5fJ9ruuy4eHhu4PTo196/vnnZ5ZKpfsREQez2bWc898xxraYpnk3Ik6AaNv2LxzH2TM8PPzB8T072oMvvvhiazabfV9/f/8luVzu5p/+9KctW7duncsY02zbfrZ3YGBVcDr/i8lksjWbzd6PiKiq6j2nnPmxbftVh7HB7u7u1lxfX1tfX1/L6NjotQEn3qTr+g8RER3G0pqm3Tk4MrLCH99TfZ8nBBY17c6wL8Mwvsxdl2Sz2Q8hIhZU9fZMJjMvl8tdunv37sbhoM5yKJ1+PyHOy6ZpJiuGkWCcW9FvYoyNGYbxFKX014yxrZVK5W7f97G7u3sBIsYMy9pEKX3dsqzvMM7U2jmlUqn3EkJ+SQj5PXfdqmXZPyuVy1+rHcdxnJxhGL841fyjDOP7X/iyZcv0i5YsUZcsWWLEIY6I6Dc2Nkqtra0PpFKp1Z4QHbNmzfqVArBCCOH5AI7v+xiTlNkRhd8KCI7neRTA9wXnhxYuXJi/6KKLhq6//nq6YMGCbkLp3ova2r4JErxPq2rfqovFTFmS6mDlygnrqyhKvRDCAgD0AXzf92VJkkRPT09VkiRPAmgEAF8IQWRZOexkQV9f38UXX3zxXkR0DMP4W+F5/bIsNfieV1FkueHJJ59smpi8ojQiHlYPPzkQJVlulCRpeiSRIHmep8iyLHueN1fX9R+0trZeJFzRK8kyKLGYHFOUGHecNHWcF6a3NP+7quqfqlQqn2tubn6YMecHvu+XAGR5ekvLo6ZpPm6a5tdKpdKXx3VY5anm5uZVIEFu0cWL3hgeHt6GiIr92mu/KajqHZZlb5JluWVkZOQ/Y7HYBbIkNZWqpVEAUG79wAceHRsrfam5qWmdJEmxwcHBzTFFaSGUPqeq6u3VavWJ+vrG++vq6hTO+Vux+vol8bq6lQDQNDQ0tMn3ffnzD37+12q5fEfVMDbFY7GZVdv+4SmXVlVV/Um5XP5N1IINDg5eRQjpGshkbjAM41lCiEUpLZRKpQcOHDiwmFLaVSwWlyd37JhRrVaThJAqIUQvlUsbAEAeGRm5hhLSRRyn3yZkkFKarVQqbyCivGXLlmmWZb1ZLBYfDH3EwcHBD9k26bZtu2Lbds/o6OjtAAAVw9hoGMYziUQiVq0amxhjlmlZu3W9vEmvVDYDAIyNjd3vOE5l/Aw02XPo0KE1uq4/5TiOVS6Xd+m6/itd138EAJDJZP7Stu1uSmnFtknv4ODgndF5n1FaOS5q0tESuolEou5ki15R5zuZTDYeK2yMPg9ziQAAb3Z2LmeMa0NDI+vDZ1u2bJl2tHGiz05LJCRJ0hH/g1xQr62NDJTwWSRyUI5U2wj7jV7ReL0mclEikYtUO06UW6LfFL47kE4nCKFGoVC4J3D440eJbCbGCeZ39mox75RsPV3J2Hfqo/Z5+Hc2l/vY8PDwmui9d/reqbzcFDhnLNc5ddZliqZoiqZoiqZoiqZoiqZoiqZoiqZoiqZoiqZoiqZoiqbouOj/AEFlBaGuCBL6AAAAAElFTkSuQmCC" style="height:42px;width:auto;object-fit:contain;filter:drop-shadow(0 1px 3px rgba(0,0,0,.15))" alt="FisioEvolução"/></div>
     <button id="btn-vol" onclick="btnVolAcao()"></button>
     <button id="sino-btn" onclick="toggleSino()" title="Notificações" style="background:none;border:none;cursor:pointer;padding:6px;position:relative;display:flex;align-items:center;justify-content:center">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -659,14 +696,17 @@ function rInicio(el2){
   var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+' 👋</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
-  h+='<div class="card" style="margin:0;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sHj.length+'</div><div style="font-size:11px;color:var(--sl3)">Hoje</div></div>';
-  h+='<div class="card" style="margin:0;padding:12px;text-align:center;border-color:var(--g3)"><div style="font-size:15px;font-weight:800;color:var(--green)">R$'+recMes.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Recebido/mês</div></div>';
+  h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer" onclick="ir(\'agenda\')" title="Ver agenda"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sHj.length+'</div><div style="font-size:11px;color:var(--sl3)">Hoje</div></div>';
+  h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer;border-color:var(--g3)" onclick="ir(\'financeiro\')" title="Ver financeiro"><div style="font-size:15px;font-weight:800;color:var(--green)">R$'+recMes.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Recebido/mês</div><div style="font-size:9px;color:var(--g1);font-weight:700;margin-top:3px">Ver detalhes →</div></div>';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--red)">'+faltas+'</div><div style="font-size:11px;color:var(--sl3)">Faltas/mês</div></div>';
   h+='</div>';
   if(previsto>0){
-    h+='<div class="card" style="border-color:var(--amberbg);background:var(--amberbg);margin-bottom:10px">';
-    h+='<div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:4px">Previsão de recebimento</div>';
+    h+='<div class="card" style="border-color:var(--amberbg);background:var(--amberbg);margin-bottom:10px;cursor:pointer" onclick="ir(\'financeiro\')" title="Ver pendências">';
+    h+='<div style="display:flex;align-items:center;justify-content:space-between">';
+    h+='<div><div style="font-size:11px;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:4px">Previsão de recebimento</div>';
     h+='<div style="font-size:20px;font-weight:800;color:var(--amber)">R$ '+previsto.toFixed(2)+'</div></div>';
+    h+='<div style="font-size:11px;font-weight:700;color:var(--amber);opacity:.7">Ver →</div>';
+    h+='</div></div>';
   }
   if(ferProx.length>0){
     h+='<div class="card" style="border-color:#fcd34d;background:#fffbeb;margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:6px">🎉 Feriados próximos</div>';
@@ -4489,7 +4529,7 @@ function rAjuda(el2){
   h+=sec('📅','Agenda — Grade semanal',[
     ['Navegar semanas','Use os botões ‹ Ant e Próx › para avançar ou voltar semanas.'],
     ['Filtro por plano','Botões horizontais acima da grade — filtre para ver só os pacientes de um plano específico.'],
-    ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica ou Consultório. Para filtrar por Particular/Convênio, use o filtro por Plano, acima da grade.'],
+    ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica ou Consultório.'],
     ['Criar sessão','A partir do Perfil do Paciente: toque em "+ Sessão" no topo do perfil. A Agenda é só para visualizar e editar sessões já criadas.'],
     ['Editar sessão','Toque no nome do paciente dentro da grade para ver detalhes e editar.'],
     ['Tipo Clínica','Selecione o tipo Clínica → marque "Atendimento múltiplo" → informe a quantidade → o app calcula o valor total automaticamente.'],
@@ -4497,19 +4537,20 @@ function rAjuda(el2){
     ['Pacote de sessões','Escolha "Pacote (nº de sessões)" para criar todas as sessões automaticamente.'],
     ['Remarcar','Mude o status para Adiado → aparece botão "Remarcar" que abre nova sessão pré-preenchida.'],
     ['Feriados','Clique em "Feriados" para cadastrar feriados locais. Os nacionais já aparecem automaticamente.'],
-    ['Exportar dados','Clique em "Exportar" para escolher quais dados baixar (Financeiro, Evoluções, Faltas, Pacientes, Agenda). Opção de enviar por e-mail.'],
+    ['Exportar semana','Clique em "Exportar semana" para baixar as sessões da semana atual em CSV. Para exportar financeiro, evoluções, faltas ou pacientes, acesse Mais → Relatórios.'],
     ['Repetir agenda','Nos primeiros 5 dias do mês, o app pergunta se deseja repetir a agenda do mês anterior, com opção de definir quantas sessões por paciente.'],
     ['Resumo do dia','Toque na data no cabeçalho da grade para ver o resumo daquele dia.'],
   ],'As cores na grade representam o tipo de atendimento. Personalize em Mais → Tipos de atendimento.');
 
   h+=sec('👥','Pacientes — Cadastro e lista',[
     ['Lista','Ordenada alfabeticamente. Busca por nome no campo do topo.'],
+    ['Filtro Ativos / Inativos','Quando há pacientes inativos, aparecem dois botões no topo: "Ativos" (padrão) e "Inativos". A busca funciona dentro do filtro selecionado.'],
     ['Cadastrar','Toque no + . Apenas o nome é obrigatório. Preencha nascimento no formato DD/MM/AAAA.'],
     ['Campos disponíveis','Nome, nascimento, diagnóstico + CID-10 (com busca automática), telefone, celular, cidade, bairro, número, observações e tipo de atendimento.'],
     ['Paciente duplicado','Se já existir paciente com mesmo nome, o app avisa antes de salvar.'],
     ['Editar dados','Dentro do perfil, toque em "Editar" no topo para alterar os dados cadastrais.'],
     ['Inativar','Dentro do perfil → "Inativar". Informe o motivo (Alta, Óbito, Desistência...). O histórico é preservado.'],
-    ['Reativar','Na lista de inativos, toque no paciente → "Reativar".'],
+    ['Reativar','Na lista de pacientes, toque em "Inativos" no topo → toque no paciente → "Reativar". Ou acesse o perfil do paciente inativo e toque em "Reativar".'],
     ['Badge vermelho','Número ao lado do nome = sessões realizadas sem evolução registrada.'],
   ],'Toque em "+ Evolução" no topo do perfil para registrar rapidamente sem mudar de aba.');
 
@@ -4541,38 +4582,40 @@ function rAjuda(el2){
   ],'Defina metas mensuráveis com prazo para mostrar ao paciente a evolução do tratamento.');
 
   h+=sec('💰','Financeiro',[
-    ['Acessar','Em Mais → Acesso rápido → Financeiro.'],
+    ['Acessar','Em Mais → seção Clínica → Financeiro.'],
     ['Visão anual','Recebido, a receber e em atraso no ano selecionado.'],
     ['Filtro mensal','Selecione mês e ano no topo. Clique nas barras do gráfico para filtrar.'],
     ['Por plano','Valor recebido separado por cada plano cadastrado.'],
-    ['Marcar como pago','Toque em "Pago" em qualquer sessão pendente. Ou use "Lote" nos relatórios para quitar todos de um plano de uma vez.'],
+    ['Marcar como pago','Toque em "Pago" em qualquer sessão pendente.'],
+    ['Pagamento em lote','Na tela do Financeiro, role até "Pagamento em lote" → escolha o plano → selecione o mês → toque em "Quitar tudo". O preview atualiza em tempo real ao trocar o mês.'],
     ['Valor automático','Cadastre o valor padrão em cada plano (Mais → Planos) e ele é preenchido automaticamente ao agendar.'],
     ['Alertas de pagamento','Configure regras de pagamento em cada plano para receber alertas no Dashboard quando o vencimento se aproximar.'],
     ['Buscar recebimentos','Filtre por período, plano, paciente e status. Exporte o resultado.'],
-    ['Exportar para IR','Em Mais → Acesso rápido → IR: relatório formatado para declaração de Imposto de Renda.'],
+    ['IR / Receita anual','Em Mais → seção Clínica → IR / Receita anual: relatório anual por tipo de atendimento, formatado para declaração de Imposto de Renda.'],
   ],'Registre o plano e valor em cada sessão para o controle financeiro funcionar corretamente.');
 
   h+=sec('📊','Relatórios',[
-    ['Acessar','Em Mais → Acesso rápido → Relatórios.'],
+    ['Acessar','Em Mais → seção Clínica → Relatórios.'],
     ['Selecionar período','Escolha o mês e ano no topo antes de gerar.'],
-    ['Financeiro','Valores recebidos, pendentes e por plano em planilha Excel.'],
+    ['Financeiro','Valores recebidos, pendentes e por plano em planilha CSV/Excel.'],
     ['Evoluções','Evoluções clínicas de todos os pacientes no período.'],
     ['Faltas','Sessões perdidas com valor estimado de prejuízo.'],
     ['Pacientes','Resumo completo de cada paciente no período.'],
     ['Baixar todos','Toque em "Baixar todos" para gerar os 4 relatórios de uma vez.'],
     ['Enviar por e-mail','Toque em "Enviar por e-mail", informe o destinatário, selecione os relatórios desejados. Os arquivos são baixados e o e-mail é aberto automaticamente para anexar.'],
-    ['Pacotes','Botão "Pacotes" gera relatório com status dos pacotes de sessões de todos os pacientes.'],
+    ['Relatório de pacotes','Botão "📦 Relatório de pacotes" gera relatório com status dos pacotes de sessões de todos os pacientes.'],
   ],'Os relatórios são gerados para o período selecionado. Ajuste o mês e ano antes de exportar.');
 
-  h+=sec('⚙️','Mais — Configurações',[
+  h+=sec('⚙️','Mais — Clínica e Configurações',[
+    ['Seção Clínica','Acesso rápido ao Financeiro, Relatórios, IR / Receita anual e Manual — os quatro cards no topo da tela Mais.'],
     ['Planos e convênios','Cadastre planos com valor padrão e regras de pagamento (quando recebe, dia do mês, dias de antecedência para alertar).'],
     ['Tipos de atendimento','Crie e personalize cores para cada tipo: Clínica, Domiciliar, Consultório, Particular...'],
     ['Horário da agenda','Defina início e fim da grade semanal (de 05:00 a 23:00).'],
     ['Modelos de evolução','Personalize os textos dos modelos rápidos usados nas evoluções.'],
-    ['Gráfico de evolução','Ativa o gráfico de dor e mobilidade no perfil do paciente.'],
-    ['Anamnese completa','Ativa campos extras no cadastro: histórico médico, medicamentos, exames, etc.'],
+    ['Gráfico de evolução','Ativa campos de dor (0-10) e mobilidade (0-10) nas evoluções, gerando gráfico de progresso no perfil.'],
+    ['Anamnese completa','Ativa aba de anamnese no perfil: histórico médico, medicamentos, exames, sinais vitais, força, amplitude de movimento e testes.'],
     ['Notas rápidas','Ativa bloco de notas visível na tela inicial.'],
-    ['Termo de consentimento','Ativa geração e registro de aceite do termo de consentimento no perfil do paciente.'],
+    ['Termo de consentimento','Ativa geração e registro de aceite do TCLE no perfil do paciente.'],
     ['Exportar JSON','Salva todos os dados em arquivo para backup manual.'],
     ['Importar JSON','Restaura dados de um arquivo JSON salvo anteriormente.'],
     ['Histórico de versões','Restaura uma das últimas 3 versões salvas automaticamente.'],
