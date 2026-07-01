@@ -181,10 +181,14 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 @media(min-width:768px){
+  #topo-logo img{height:54px;}
+  #topo{padding:12px 24px;}
+  #topo-logo{gap:12px;}
   #agenda-layout{display:flex;gap:16px;align-items:flex-start;}
-  #agenda-sidebar{width:155px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;}
+  #agenda-sidebar{width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;background:var(--card);border-radius:var(--r);padding:12px;box-shadow:var(--sh1);}
   #agenda-main{flex:1;min-width:0;}
-  #agenda-sidebar .btn{width:100%;justify-content:flex-start;}
+  #agenda-sidebar .btn{width:100%;justify-content:flex-start;font-size:13px;}
+  #agenda-sidebar .filtros-label{font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;}
   #agenda-sidebar .filtros-tipo{display:flex;flex-direction:column;gap:6px;}
   #filtros-tipo-mobile{display:none !important;}
   #agenda-acoes-mobile{display:none !important;}
@@ -841,15 +845,15 @@ function rAgenda(el2){
 
   // ── SIDEBAR ESQUERDA (só no PC) ──
   h+='<div id="agenda-sidebar">';
-  // Filtro Tipo
-  h+='<div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Tipo</div>';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Tipo de atendimento</div>';
   h+='<div class="filtros-tipo">';
-  filtros.forEach(function(f){h+='<button class="btn btn-sm '+((_filtroAgenda||'')===f.v?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px">'+f.l+'</button>';});
+  filtros.forEach(function(f){h+='<button class="btn btn-sm '+((_filtroAgenda||'')===f.v?'btn-p':'btn-s')+'" onclick="setFiltroAgenda(\''+f.v+'\')" style="font-size:12px;width:100%;justify-content:flex-start">'+f.l+'</button>';});
   h+='</div>';
-  // Botões ação
-  h+='<div style="margin-top:14px;display:flex;flex-direction:column;gap:6px">';
-  h+='<button class="btn btn-s btn-sm" onclick="mFeriado()">🎉 Feriados</button>';
-  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()">📥 Exportar semana</button>';
+  h+='<div style="border-top:1px solid var(--borda);margin:12px 0"></div>';
+  h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Ações</div>';
+  h+='<div style="display:flex;flex-direction:column;gap:6px">';
+  h+='<button class="btn btn-s btn-sm" onclick="mFeriado()" style="width:100%;justify-content:flex-start">🎉 Feriados</button>';
+  h+='<button class="btn btn-s btn-sm" onclick="mExportarAgenda()" style="width:100%;justify-content:flex-start">📥 Exportar semana</button>';
   h+='</div></div>';
 
   // ── ÁREA PRINCIPAL ──
@@ -1474,6 +1478,7 @@ function mPaciente(pac){
   h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="mp-cid" value="'+esc(p.cid||'')+'" placeholder="Ex: M54.5 — digite para buscar" oninput="buscarCid(this.value)"/>';
   h+='<div id="cid-sugest" style="display:none;background:var(--card);border:1px solid var(--borda);border-radius:8px;max-height:180px;overflow-y:auto;position:relative;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>';
   h+='<div id="cid-nome" style="font-size:12px;color:var(--g1);font-weight:600;margin-top:3px">'+esc(p.cidNome||'')+'</div></div>';
+  h+='<div class="fg"><label>Descrição diagnóstica livre</label><input class="fi" type="text" id="mp-cid-livre" value="'+esc(p.cidLivre||'')+'" placeholder="Para diagnósticos não listados no CID ou complemento"/></div>';
   h+='<div class="fr"><div class="fg"><label>Telefone</label><input class="fi" type="tel" id="mp-tel" value="'+esc(p.telefone)+'" placeholder="(00) 0000-0000" maxlength="15" oninput="mTel(this)"/></div>';
   h+='<div class="fg"><label>Celular</label><input class="fi" type="tel" id="mp-cel" value="'+esc(p.celular||'')+'" placeholder="(00) 00000-0000" maxlength="15" oninput="mTel(this)"/></div></div>';
   h+='</div>';
@@ -1508,7 +1513,8 @@ function salvarPaciente(){
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
   var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
   var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
-  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,
+  var cidLivre=el('mp-cid-livre')?el('mp-cid-livre').value.trim():'';
+  var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,cidLivre:cidLivre,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
@@ -1528,32 +1534,113 @@ function delPaciente(pid){
 
 // ── Evolução ─────────────────────────────────────────────────────
 var CID10=[
-  {c:'M54.5',n:'Dor lombar'},{c:'M54.2',n:'Cervicalgia'},{c:'M54.4',n:'Lumbago com ciatica'},
-  {c:'M54.3',n:'Ciatica'},{c:'M54.1',n:'Radiculopatia'},
-  {c:'M75.1',n:'Sindrome do manguito rotador'},{c:'M75.0',n:'Capsulite adesiva do ombro'},
-  {c:'M75.5',n:'Bursite do ombro'},{c:'M75.2',n:'Tendinite bicipital'},
-  {c:'M17',n:'Osteoartrose do joelho'},{c:'M16',n:'Coxartrose'},
-  {c:'M22.2',n:'Condromalacia patelar'},{c:'M76.5',n:'Tendinite patelar'},
-  {c:'M47',n:'Espondilose'},{c:'M51.1',n:'Hernia de disco lombar'},
-  {c:'M50',n:'Hernia de disco cervical'},{c:'M48.0',n:'Estenose espinal'},
-  {c:'M65',n:'Tendinite'},{c:'M77.1',n:'Epicondilite lateral (cotovelo)'},
-  {c:'M77.0',n:'Epicondilite medial'},{c:'M79.3',n:'Fascite plantar'},
-  {c:'M76.6',n:'Tendinopatia do calcaneo'},{c:'M76.3',n:'Sindrome da banda iliotibial'},
-  {c:'M79.1',n:'Mialgia e dor miofascial'},{c:'M79.7',n:'Fibromialgia'},
-  {c:'S72',n:'Fratura do femur'},{c:'S82',n:'Fratura da perna e tibia'},
-  {c:'S42',n:'Fratura do ombro e clavicula'},{c:'S52',n:'Fratura do antebraco'},
-  {c:'S83',n:'Lesao ligamentar do joelho LCA LCP'},{c:'S93',n:'Entorse do tornozelo'},
-  {c:'G35',n:'Esclerose multipla'},{c:'G80',n:'Paralisia cerebral'},
-  {c:'I63',n:'AVC isquemico'},{c:'I64',n:'AVC nao especificado'},
-  {c:'G56.0',n:'Sindrome do tunel do carpo'},{c:'G54',n:'Radiculopatia cervical e lombar'},
-  {c:'G20',n:'Doenca de Parkinson'},
-  {c:'J45',n:'Asma'},{c:'J44',n:'DPOC'},
-  {c:'Q05',n:'Espinha bifida'},{c:'F84.0',n:'Autismo'},
-  {c:'F80',n:'Atraso no desenvolvimento'},{c:'Q66',n:'Pe torto congenito'},
-  {c:'M25.5',n:'Dor articular'},{c:'M06',n:'Artrite reumatoide'},
+  // Coluna e dor
+  {c:'M54.5',n:'Dor lombar inespecifica'},{c:'M54.4',n:'Lumbago com ciatica'},
+  {c:'M54.3',n:'Ciatica'},{c:'M54.2',n:'Cervicalgia'},{c:'M54.1',n:'Radiculopatia'},
+  {c:'M54.6',n:'Dor na coluna toracica'},{c:'M54.0',n:'Paniculite afetando pescoco e dorso'},
+  {c:'M51.1',n:'Hernia de disco lombar com radiculopatia'},{c:'M51.0',n:'Hernia de disco lombar com mielopatia'},
+  {c:'M50.0',n:'Hernia de disco cervical com mielopatia'},{c:'M50.1',n:'Hernia de disco cervical com radiculopatia'},
+  {c:'M47.8',n:'Espondilose com radiculopatia'},{c:'M47.1',n:'Espondilose com mielopatia'},
+  {c:'M48.0',n:'Estenose espinal'},{c:'M43.1',n:'Espondilolistese'},{c:'M43.0',n:'Espondilolise'},
+  {c:'M41',n:'Escoliose'},{c:'M40.0',n:'Cifose postural'},{c:'M40.4',n:'Lordose'},
+  // Ombro
+  {c:'M75.0',n:'Capsulite adesiva do ombro (ombro congelado)'},{c:'M75.1',n:'Sindrome do manguito rotador / impacto'},
+  {c:'M75.2',n:'Tendinite bicipital'},{c:'M75.3',n:'Tendinite calcificante do ombro'},
+  {c:'M75.5',n:'Bursite do ombro'},{c:'M75.8',n:'Outras lesoes do ombro'},
+  // Cotovelo
+  {c:'M77.0',n:'Epicondilite medial (cotovelo do golfista)'},{c:'M77.1',n:'Epicondilite lateral (cotovelo do tenista)'},
+  {c:'M70.2',n:'Bursite do olecrano'},
+  // Punho e mao
+  {c:'G56.0',n:'Sindrome do tunel do carpo'},{c:'G56.2',n:'Lesao do nervo ulnar no punho'},
+  {c:'M65.3',n:'Dedo em gatilho (tenossinovite estenosante)'},{c:'M65.4',n:'Tenossinovite de De Quervain'},
+  {c:'M18',n:'Osteoartrose carpometacarpal'},
+  // Quadril
+  {c:'M16.0',n:'Coxartrose bilateral'},{c:'M16.1',n:'Coxartrose unilateral'},
+  {c:'M70.6',n:'Bursite trocanterica'},{c:'M76.1',n:'Tendinite do iliopsoas'},{c:'M76.0',n:'Tendinite glutea'},
+  // Joelho
+  {c:'M17.0',n:'Gonartrose bilateral'},{c:'M17.1',n:'Gonartrose unilateral'},
+  {c:'M22.2',n:'Condromalacia patelar'},{c:'M22.0',n:'Deslocamento recidivante da patela'},
+  {c:'M76.5',n:'Tendinite patelar (joelho do saltador)'},{c:'M76.3',n:'Sindrome da banda iliotibial'},
+  {c:'M70.4',n:'Bursite pre-patelar'},{c:'M70.5',n:'Outras bursites do joelho'},
+  {c:'M23.2',n:'Lesao meniscal por laceracao'},{c:'M23.6',n:'Outros desarranjos do joelho'},
+  // Tornozelo e pe
+  {c:'M79.3',n:'Fascite plantar'},{c:'M76.6',n:'Tendinopatia do calcaneo (Aquiles)'},
+  {c:'M77.5',n:'Esporao calcaneo'},{c:'M20.1',n:'Hallux valgus (joanete)'},{c:'M20.2',n:'Hallux rigidus'},
+  // Articulacoes e artrites
+  {c:'M05',n:'Artrite reumatoide soropositiva'},{c:'M06.0',n:'Artrite reumatoide soronegativa'},
+  {c:'M08',n:'Artrite juvenil'},{c:'M10.0',n:'Gota primaria'},{c:'M15',n:'Poliartrose'},
+  {c:'M19.0',n:'Osteoartrose primaria'},{c:'M25.5',n:'Dor articular'},{c:'M25.3',n:'Instabilidade articular'},
+  // Tecidos moles
+  {c:'M60.9',n:'Miosite'},{c:'M62.5',n:'Atrofia e desgaste muscular'},{c:'M62.4',n:'Contratura muscular'},
+  {c:'M62.0',n:'Diastase muscular'},{c:'M65.9',n:'Sinovite e tenossinovite'},
+  {c:'M66',n:'Ruptura de sinovio e tendao'},{c:'M71.3',n:'Cisto de Baker'},
+  {c:'M72.2',n:'Fibromatose da fascia plantar'},{c:'M79.0',n:'Reumatismo nao especificado'},
+  {c:'M79.1',n:'Mialgia e dor miofascial'},{c:'M79.2',n:'Nevralgia e neurite'},{c:'M79.7',n:'Fibromialgia'},
+  // Ossos e osteoporose
+  {c:'M80.0',n:'Osteoporose pos-menopausa com fratura'},{c:'M81.0',n:'Osteoporose pos-menopausa'},
+  {c:'M81.5',n:'Osteoporose idiopatica'},{c:'M85.8',n:'Osteopenia'},{c:'M84.4',n:'Fratura por estresse'},
+  // Fraturas
+  {c:'S12',n:'Fratura da coluna cervical'},{c:'S22',n:'Fratura de costela e coluna toracica'},
+  {c:'S32',n:'Fratura da coluna lombar e pelve'},
+  {c:'S42.0',n:'Fratura da clavicula'},{c:'S42.2',n:'Fratura proximal do umero'},{c:'S42.3',n:'Fratura da diafise do umero'},
+  {c:'S52.0',n:'Fratura da cabeca do radio'},{c:'S52.5',n:'Fratura do radio distal (Colles)'},
+  {c:'S62',n:'Fratura do punho e mao'},
+  {c:'S72.0',n:'Fratura do colo do femur'},{c:'S72.1',n:'Fratura pertrocanterica'},{c:'S72.3',n:'Fratura da diafise do femur'},
+  {c:'S82.0',n:'Fratura da patela'},{c:'S82.1',n:'Fratura do platô tibial'},{c:'S82.6',n:'Fratura do maléolo lateral'},
+  {c:'S92.0',n:'Fratura do calcaneo'},
+  // Entorses e luxacoes
+  {c:'S43.0',n:'Luxacao do ombro'},{c:'S53.0',n:'Luxacao do cotovelo'},{c:'S73.0',n:'Luxacao do quadril'},
+  {c:'S83.0',n:'Luxacao da patela'},{c:'S83.2',n:'Lesao meniscal traumatica'},
+  {c:'S83.5',n:'Lesao do ligamento cruzado anterior (LCA)'},
+  {c:'S83.4',n:'Lesao do ligamento colateral do joelho'},
+  {c:'S93.0',n:'Luxacao do tornozelo'},{c:'S93.4',n:'Entorse do tornozelo'},
+  // Neurologico
+  {c:'G20',n:'Doenca de Parkinson'},{c:'G21',n:'Parkinsonismo secundario'},
+  {c:'G35',n:'Esclerose multipla'},{c:'G10',n:'Doenca de Huntington'},
+  {c:'G11',n:'Ataxia hereditaria'},{c:'G12.2',n:'Doenca do neurônio motor (ELA)'},
+  {c:'G30',n:'Doenca de Alzheimer'},{c:'G40',n:'Epilepsia'},
+  {c:'G50.0',n:'Neuralgia do trigemeo'},{c:'G51.0',n:'Paralisia de Bell (facial)'},
+  {c:'G54.2',n:'Lesao das raizes cervicais'},{c:'G54.4',n:'Lesao das raizes lombossacrais'},
+  {c:'G56.1',n:'Lesao do nervo mediano'},{c:'G56.3',n:'Lesao do nervo radial'},
+  {c:'G57.0',n:'Lesao do nervo ciatico'},{c:'G57.1',n:'Meralgia parestesica'},
+  {c:'G57.2',n:'Lesao do nervo femoral'},{c:'G57.5',n:'Sindrome do tunel do tarso'},
+  {c:'G58',n:'Outras mononeuropatias'},{c:'G60',n:'Neuropatia hereditaria e idiopatica'},
+  {c:'G61.0',n:'Sindrome de Guillain-Barre'},{c:'G70.0',n:'Miastenia gravis'},
+  {c:'G71.0',n:'Distrofia muscular'},{c:'G71.2',n:'Miopatias congenitas'},
+  {c:'G80.0',n:'Paralisia cerebral espastica quadriplegica'},{c:'G80.1',n:'Paralisia cerebral espastica diplegica'},
+  {c:'G80.2',n:'Paralisia cerebral espastica hemiplegica'},{c:'G80.3',n:'Paralisia cerebral discinética'},
+  {c:'G81.0',n:'Hemiplegia flacida'},{c:'G81.1',n:'Hemiplegia espastica'},
+  {c:'G82.0',n:'Paraplegia flacida'},{c:'G82.1',n:'Paraplegia espastica'},
+  {c:'G82.3',n:'Tetraplegia flacida'},{c:'G82.4',n:'Tetraplegia espastica'},
+  {c:'G83.2',n:'Diplegia dos membros superiores'},{c:'G89.2',n:'Dor cronica'},
+  // AVC e cardiovascular
+  {c:'I60',n:'Hemorragia subaracnoidea'},{c:'I61',n:'Hemorragia intracerebral'},
+  {c:'I63',n:'Infarto cerebral (AVC isquemico)'},{c:'I64',n:'AVC nao especificado'},
+  {c:'I69.3',n:'Sequelas de infarto cerebral'},{c:'I73.9',n:'Doenca vascular periferica'},
+  // Respiratorio
+  {c:'J43',n:'Enfisema pulmonar'},{c:'J44.0',n:'DPOC com infeccao'},{c:'J44.1',n:'DPOC com exacerbacao'},
+  {c:'J45.0',n:'Asma alergica'},{c:'J45.1',n:'Asma nao alergica'},
+  {c:'J96',n:'Insuficiencia respiratoria'},{c:'J98.1',n:'Atelectasia'},
+  // Pediatrico e desenvolvimento
+  {c:'F80',n:'Transtorno do desenvolvimento da fala'},{c:'F82',n:'Transtorno especifico do desenvolvimento motor'},
+  {c:'F84.0',n:'Autismo infantil'},{c:'F84.5',n:'Sindrome de Asperger'},
+  {c:'F90.0',n:'TDAH'},{c:'Q05.9',n:'Espinha bifida'},
+  {c:'Q66.0',n:'Pe torto equinovaro congenito'},{c:'Q66.5',n:'Pe plano congenito'},
+  {c:'Q71',n:'Defeitos por reducao do membro superior'},{c:'Q72',n:'Defeitos por reducao do membro inferior'},
+  {c:'P11.5',n:'Lesao do plexo braquial ao nascer (Erb-Duchenne)'},
+  // Oncologico e pos-cirurgico
+  {c:'C79.5',n:'Metastase ossea'},{c:'C41',n:'Neoplasia maligna dos ossos'},
+  {c:'Z96.6',n:'Presenca de protese ortopedica (joelho/quadril)'},
+  {c:'Z47.0',n:'Acompanhamento apos retirada de fixador externo'},
+  {c:'T84.0',n:'Complicacao mecanica de protese articular'},
+  // Sintomas e outros
+  {c:'R51',n:'Cefaleia'},{c:'R25.2',n:'Caimbra e espasmo muscular'},
+  {c:'R26.0',n:'Marcha ataxica'},{c:'R26.1',n:'Marcha paralitica'},{c:'R26.8',n:'Anormalidades da marcha'},
+  {c:'R29.3',n:'Postura anormal'},{c:'H81.1',n:'VPPB (vertigem posicional paroxistica benigna)'},
+  {c:'H81.3',n:'Labirintite / outras vertigens perifericas'},
+  {c:'M96.1',n:'Sindrome pos-laminectomia'},{c:'G54.6',n:'Sindrome do membro fantasma com dor'},
+  {c:'M81',n:'Osteoporose'},{c:'M06',n:'Artrite reumatoide'},
   {c:'M62.5',n:'Atrofia muscular'},{c:'R26',n:'Disturbio da marcha'},
-  {c:'M81',n:'Osteoporose'},{c:'M85.8',n:'Osteopenia'},
-  {c:'R51',n:'Cefaleia'},{c:'H81',n:'Vertigem posicional e labirintite'},
 ];
 function buscarCid(q){
   var sugest=el('cid-sugest');if(!sugest)return;
@@ -4672,18 +4759,30 @@ function verificarInicioMes(){
 function mostrarModalInicioMes(pacs){
   var mesAtual=new Date();
   var nomeMes=mesAtual.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  var dias=[{v:0,l:'Dom'},{v:1,l:'Seg'},{v:2,l:'Ter'},{v:3,l:'Qua'},{v:4,l:'Qui'},{v:5,l:'Sex'},{v:6,l:'Sab'}];
   var h='<div class="mh"><h3>📅 Novo mês — '+nomeMes+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:13px;color:var(--sl2);margin-bottom:14px">Deseja repetir a agenda do mês passado? Informe quantas sessões agendar para cada paciente.</p>';
+  h+='<p style="font-size:13px;color:var(--sl2);margin-bottom:14px">Deseja repetir a agenda do mês passado? Ajuste dia, horário e quantidade de sessões para cada paciente.</p>';
   h+='<div id="agenda-mes-lista">';
   pacs.forEach(function(p,i){
     var nm=nomePac(p.pacienteId);if(!nm)return;
-    h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--borda)">';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">'+esc(nm)+'</div><div style="font-size:11px;color:var(--sl3)">'+esc(p.hora)+' · '+esc(tpNome(p.tipoId))+'</div></div>';
-    h+='<input type="number" class="fi agm-qtd" min="0" max="30" value="4" data-idx="'+i+'" style="width:64px;text-align:center" placeholder="Qtd"/>';
-    h+='</div>';
+    h+='<div style="padding:10px 0;border-bottom:1px solid var(--borda)">';
+    h+='<div style="font-size:13px;font-weight:700;margin-bottom:8px">'+esc(nm)+'</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;align-items:end">';
+    // Dia da semana
+    h+='<div class="fg" style="margin:0"><label>Dia</label><select class="fi" id="agm-dia-'+i+'">';
+    dias.forEach(function(d){h+='<option value="'+d.v+'"'+(p.diaSemana===d.v?' selected':'')+'>'+d.l+'</option>';});
+    h+='</select></div>';
+    // Horário
+    h+='<div class="fg" style="margin:0"><label>Horário</label><select class="fi" id="agm-hora-'+i+'">';
+    getHoras().forEach(function(hr){h+='<option value="'+hr+'"'+(hr===p.hora?' selected':'')+'>'+hr+'</option>';});
+    h+='</select></div>';
+    // Quantidade
+    h+='<div class="fg" style="margin:0"><label>Qtd</label><input type="number" class="fi agm-qtd" id="agm-qtd-'+i+'" min="0" max="30" value="4" style="text-align:center"/></div>';
+    h+='</div></div>';
   });
   h+='</div>';
   h+='<input type="hidden" id="agm-pacs" value="'+esc(JSON.stringify(pacs))+'"/>';
+  h+='<input type="hidden" id="agm-total" value="'+pacs.length+'"/>';
   h+='<div style="display:flex;gap:8px;margin-top:16px">';
   h+='<button class="btn btn-p" style="flex:1" onclick="confirmarAgendaMes()">✅ Agendar</button>';
   h+='<button class="btn btn-s" style="flex:1" onclick="fecharM()">Não, obrigado</button>';
@@ -4693,17 +4792,17 @@ function mostrarModalInicioMes(pacs){
 
 function confirmarAgendaMes(){
   var pacsRaw=el('agm-pacs')?el('agm-pacs').value:'';
+  var total=parseInt(el('agm-total')?el('agm-total').value:0)||0;
   if(!pacsRaw)return;
   var pacs=JSON.parse(pacsRaw);
-  var qtds=document.querySelectorAll('.agm-qtd');
   var mesAtual=new Date();
   var ano=mesAtual.getFullYear();var mes=mesAtual.getMonth();
   var criadas=0;
-  qtds.forEach(function(inp,i){
-    var qtd=parseInt(inp.value)||0;
-    if(!qtd||!pacs[i])return;
-    // Encontrar a primeira data no mês atual que cai no mesmo dia da semana da sessão original
-    var diaSemana=pacs[i].diaSemana!=null?pacs[i].diaSemana:null;
+  for(var i=0;i<pacs.length;i++){
+    var qtd=parseInt(el('agm-qtd-'+i)?el('agm-qtd-'+i).value:0)||0;
+    if(!qtd||!pacs[i])continue;
+    var diaSemana=el('agm-dia-'+i)?parseInt(el('agm-dia-'+i).value):pacs[i].diaSemana;
+    var hora=el('agm-hora-'+i)?el('agm-hora-'+i).value:pacs[i].hora;
     var primeiroDia=new Date(ano,mes,1);
     var offset=diaSemana!=null?(diaSemana-primeiroDia.getDay()+7)%7:0;
     var criadasPac=0;
@@ -4711,10 +4810,10 @@ function confirmarAgendaMes(){
       var d=new Date(ano,mes,1+offset+s*7);
       if(d.getMonth()!==mes)break;
       var ds=fmtISO(d);
-      D.sessoes.push({id:uid(),pacienteId:pacs[i].pacienteId,data:ds,hora:pacs[i].hora,tipoId:pacs[i].tipoId||'',planoId:pacs[i].planoId||'',valor:pacs[i].valor||0,statusPag:'pendente',status:'agendado',obs:pacs[i].obs||''});
+      D.sessoes.push({id:uid(),pacienteId:pacs[i].pacienteId,data:ds,hora:hora,tipoId:pacs[i].tipoId||'',planoId:pacs[i].planoId||'',valor:pacs[i].valor||0,statusPag:'pendente',status:'agendado',obs:pacs[i].obs||''});
       criadas++;criadasPac++;
     }
-  });
+  }
   salvar();fecharM();renderizar();
   toast(criadas?criadas+' sessões agendadas para este mês!':'Nenhuma sessão agendada.');
 }
