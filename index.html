@@ -82,7 +82,7 @@ textarea.fi{resize:vertical;min-height:82px}
 .lbox{background:#fff;border-radius:20px;padding:28px 22px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.22)}
 .lerr{font-size:12px;color:var(--red);background:var(--redbg);padding:9px 13px;border-radius:var(--rs);margin-bottom:12px;display:none;font-weight:500}
 .gw{overflow:auto;border-radius:var(--r);border:1px solid var(--borda);max-height:calc(100vh - 170px);scrollbar-width:auto;scrollbar-color:var(--g1) var(--g3)}.gw::-webkit-scrollbar{width:6px;height:6px}.gw::-webkit-scrollbar-thumb{background:var(--g1);border-radius:3px}.gw::-webkit-scrollbar-track{background:var(--g3)}
-.grade{display:grid;background:#fff;min-width:460px;padding-bottom:100px}
+.grade{display:grid;background:#fff;min-width:520px;padding-bottom:100px}
 .gh{background:var(--g1);color:#fff;padding:6px 3px;text-align:center;font-size:10px;font-weight:700;position:sticky;top:0;z-index:2;letter-spacing:.03em}
 .ghora{background:var(--g4);color:var(--g1);padding:4px 3px;text-align:center;font-size:10px;font-weight:700;border-right:1px solid var(--borda);border-bottom:1px solid var(--borda);position:sticky;left:0;z-index:1}
 .gc{padding:2px;border-right:1px solid var(--borda);border-bottom:1px solid var(--borda);min-height:36px;cursor:pointer;transition:.1s}
@@ -141,9 +141,9 @@ body.tema-escuro [style*="color:var(--g1)"]{color:#34D399 !important}
 body.tema-escuro [style*="background:var(--g4)"]{background:var(--g4) !important}
 body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !important}
 
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--g2);border-radius:10px}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--g4);border-radius:10px}
+::-webkit-scrollbar-thumb{background:var(--g2);border-radius:10px;border:2px solid var(--g4)}
 ::-webkit-scrollbar-thumb:hover{background:var(--g1)}
 
 #sino-btn{position:relative;background:rgba(255,255,255,.12);border:none;cursor:pointer;color:#fff;padding:7px 9px;font-size:20px;display:flex;align-items:center;border-radius:var(--rp);transition:.2s}
@@ -180,18 +180,30 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 .fi-an{animation:fi .2s ease}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
+@media(min-width:900px){
+  #perfil-layout{display:grid;grid-template-columns:270px 1fr;gap:16px;align-items:start;}
+  #perfil-sidebar{position:sticky;top:76px;}
+  #perfil-header-mobile{display:none;}
+}
+@media(max-width:899px){
+  #perfil-sidebar{display:none;}
+}
 @media(min-width:768px){
-  #topo-logo img{height:54px;}
-  #topo{padding:12px 24px;}
-  #topo-logo{gap:12px;}
-  #agenda-layout{display:flex;gap:16px;align-items:flex-start;}
-  #agenda-sidebar{width:170px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;background:var(--card);border-radius:var(--r);padding:12px;box-shadow:var(--sh1);}
+  #topo-logo img{height:68px;}
+  #topo{padding:10px 28px;}
+  #topo-logo{gap:14px;}
+  #agenda-layout{display:flex;gap:12px;align-items:flex-start;}
+  #agenda-sidebar{width:140px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;background:var(--card);border-radius:var(--r);padding:12px;box-shadow:var(--sh1);}
   #agenda-main{flex:1;min-width:0;}
-  #agenda-sidebar .btn{width:100%;justify-content:flex-start;font-size:13px;}
+  #agenda-sidebar .btn{width:100%;justify-content:flex-start;font-size:12px;padding:7px 10px;}
   #agenda-sidebar .filtros-label{font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px;}
-  #agenda-sidebar .filtros-tipo{display:flex;flex-direction:column;gap:6px;}
+  #agenda-sidebar .filtros-tipo{display:flex;flex-direction:column;gap:5px;}
   #filtros-tipo-mobile{display:none !important;}
   #agenda-acoes-mobile{display:none !important;}
+  .grade{min-width:0;width:100%;}
+  .gh{font-size:11px;padding:7px 2px;}
+  .ghora{font-size:11px;min-width:52px;}
+  .gc{min-height:38px;}
 }
 @media(max-width:767px){
   #agenda-sidebar{display:none !important;}
@@ -823,7 +835,7 @@ function marcarStatus(btn,st){
 function salvarNotas(){var a=el('notas-area');if(a){D.notas=a.value;salvar();toast('Nota salva!');}}
 
 // ── AGENDA ───────────────────────────────────────────────────────
-var _filtroPlano='';var _filtroAgenda='';var _filtroInativos='ativos';
+var _filtroPlano='';var _filtroAgenda='';var _filtroInativos='ativos';var _filtroSituacao='todos';
 function tipoMatchFiltro(s,filtro){
   if(!filtro)return true;
   var t=D.tipos.find(function(t){return t.id===s.tipoId;});
@@ -1296,15 +1308,62 @@ function exportarSessoes(){
 
 // ── PACIENTES ────────────────────────────────────────────────────
 function rPacientes(el2){
-  _filtroInativos='ativos';
+  _filtroInativos='ativos';_filtroSituacao='todos';
   var fab2=el('fab');fab2.style.display='flex';fab2.onclick=function(){mPaciente(null);};
-  var nAtivos=D.pacientes.filter(function(p){return!p.inativo;}).length;
+  var hj=hoje();
+  var ativos=D.pacientes.filter(function(p){return!p.inativo;});
+  var nAtivos=ativos.length;
   var nInativos=D.pacientes.filter(function(p){return p.inativo;}).length;
-  var h='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-  h+='<div style="font-size:13px;font-weight:700;color:var(--sl3)">'+nAtivos+' ativo(s)'+(nInativos?' · '+nInativos+' inativo(s)':'')+'</div>';
-  if(nInativos>0){h+='<div style="display:flex;gap:4px"><button class="btn btn-sm btn-p" id="fil-ativos" onclick="setFiltroInativos("ativos")">Ativos</button><button class="btn btn-sm btn-s" id="fil-inativos" onclick="setFiltroInativos("inativos")">Inativos</button></div>';}
+  var nSemEvo=ativos.filter(function(p){
+    var real=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length;
+    var evo=(p.evolucoes||[]).length;
+    return real>evo;
+  }).length;
+  var nPendente=ativos.filter(function(p){
+    return D.sessoes.some(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;});
+  }).length;
+  var nHoje=ativos.filter(function(p){
+    return D.sessoes.some(function(s){return s.pacienteId===p.id&&s.data===hj;});
+  }).length;
+
+  var h='';
+  // Mini-dashboard
+  h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">';
+  h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer;border-color:var(--g3)" onclick="setFiltroSituacao(\'todos\')">';
+  h+='<div style="font-size:24px;font-weight:900;color:var(--g1)">'+nAtivos+'</div>';
+  h+='<div style="font-size:11px;color:var(--sl3);font-weight:600">Ativos</div></div>';
+  h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer" onclick="setFiltroSituacao(\'semevo\')">';
+  h+='<div style="font-size:24px;font-weight:900;color:var(--red)">'+nSemEvo+'</div>';
+  h+='<div style="font-size:11px;color:var(--sl3);font-weight:600">Sem evolução</div></div>';
+  h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer" onclick="setFiltroSituacao(\'pendente\')">';
+  h+='<div style="font-size:24px;font-weight:900;color:var(--amber)">'+nPendente+'</div>';
+  h+='<div style="font-size:11px;color:var(--sl3);font-weight:600">Pendente pgto</div></div>';
   h+='</div>';
-  h+='<input class="fi" style="margin-bottom:12px" placeholder="Buscar paciente..." oninput="filtroPac(this.value)" id="busca-pac"/>';
+
+  // Busca
+  h+='<input class="fi" style="margin-bottom:10px" placeholder="🔍 Buscar paciente por nome ou diagnóstico..." oninput="filtroPac(this.value)" id="busca-pac"/>';
+
+  // Filtros rápidos por situação
+  h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px" id="filtros-situacao">';
+  var chips=[
+    {v:'todos',l:'Todos'},
+    {v:'semevo',l:'⚠️ Sem evolução'},
+    {v:'pendente',l:'💰 Pgto pendente'},
+    {v:'hoje',l:'📅 Consulta hoje'},
+  ];
+  chips.forEach(function(c){
+    h+='<button class="btn btn-sm '+(_filtroSituacao===c.v?'btn-p':'btn-s')+'" data-sit="'+c.v+'" onclick="setFiltroSituacao(this.dataset.sit)">'+c.l+'</button>';
+  });
+  h+='</div>';
+
+  // Filtro ativos/inativos (quando há inativos)
+  if(nInativos>0){
+    h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+    h+='<div style="font-size:12px;color:var(--sl3)">'+nAtivos+' ativo(s) · '+nInativos+' inativo(s)</div>';
+    h+='<div style="display:flex;gap:4px"><button class="btn btn-sm btn-p" id="fil-ativos" onclick="setFiltroInativos(\'ativos\')">Ativos</button><button class="btn btn-sm btn-s" id="fil-inativos" onclick="setFiltroInativos(\'inativos\')">Inativos</button></div>';
+    h+='</div>';
+  }
+
   h+='<div id="lista-pac"></div>';
   h+='<div id="pac-loading" style="text-align:center;padding:30px;color:var(--sl3)"><div style="font-size:24px;margin-bottom:8px">⏳</div>Carregando pacientes...</div>';
   el2.innerHTML=h;
@@ -1312,6 +1371,13 @@ function rPacientes(el2){
     var lst=el('lista-pac');
     if(lst){var loading=el('pac-loading');if(loading)loading.remove();renderPacs('');}
   }, D.pacientes.length>0?0:800);
+}
+function setFiltroSituacao(sit){
+  _filtroSituacao=sit;
+  document.querySelectorAll('#filtros-situacao .btn').forEach(function(b){
+    b.className='btn btn-sm '+(b.dataset.sit===sit?'btn-p':'btn-s');
+  });
+  renderPacs(el('busca-pac')?el('busca-pac').value:'');
 }
 function setFiltroInativos(modo){
   _filtroInativos=modo;
@@ -1325,35 +1391,75 @@ function filtroPac(q){renderPacs(q);}
 function renderPacs(q){
   var lst=el('lista-pac');if(!lst)return;
   q=(q||'').toLowerCase();
+  var hj=hoje();
   var t3=q?q.split(' ').filter(function(t){return t.length>0;}):[]; 
   var lista=D.pacientes.filter(function(p){
+    // Filtro ativo/inativo
     var matchFiltro=_filtroInativos==='inativos'?!!p.inativo:!p.inativo;
     if(!matchFiltro)return false;
+    // Filtro situação
+    if(_filtroSituacao==='semevo'){
+      var real=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length;
+      var evo=(p.evolucoes||[]).length;
+      if(real<=evo)return false;
+    } else if(_filtroSituacao==='pendente'){
+      if(!D.sessoes.some(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;}))return false;
+    } else if(_filtroSituacao==='hoje'){
+      if(!D.sessoes.some(function(s){return s.pacienteId===p.id&&s.data===hj;}))return false;
+    }
+    // Filtro busca
     if(!q)return true;
     var n2=(p.nome||'').toLowerCase();var d2=(p.diagnostico||'').toLowerCase();
     return t3.every(function(t){return n2.includes(t)||d2.includes(t);});
   });
   lista.sort(function(a,b){return(a.nome||'').localeCompare(b.nome||'','pt-BR');});
-  if(!lista.length){var msgVazia=D.pacientes.length===0?'Nenhum paciente. Toque no + para adicionar.':_filtroInativos==='inativos'?'Nenhum paciente inativo.':'Nenhum resultado.';lst.innerHTML='<div style="text-align:center;padding:36px;color:var(--sl3)">'+msgVazia+'</div>';return;}
-  var h='';var hj=hoje();
+  if(!lista.length){
+    var msgVazia=D.pacientes.length===0?'Nenhum paciente cadastrado. Toque no + para adicionar.':
+      _filtroSituacao==='semevo'?'✅ Todos os pacientes têm evolução registrada.':
+      _filtroSituacao==='pendente'?'✅ Nenhum pagamento pendente.':
+      _filtroSituacao==='hoje'?'Nenhum paciente com consulta hoje.':
+      _filtroInativos==='inativos'?'Nenhum paciente inativo.':'Nenhum resultado encontrado.';
+    lst.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--sl3)"><div style="font-size:32px;margin-bottom:10px">'+(_filtroSituacao!=='todos'?'✅':'🔍')+'</div>'+msgVazia+'</div>';return;
+  }
+  var h='';
   lista.forEach(function(p){
     var prox=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.data>=hj;}).sort(function(a,b){return a.data.localeCompare(b.data);});
-    var pend=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;}).length;
-    var semEvo=Math.max(0,D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length-(p.evolucoes||[]).length);
-    h+='<div class="pac" data-pid="'+esc(p.id)+'" onclick="irPerfilEvo(this.dataset.pid)">';
-    h+='<div class="av">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
-    h+='<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
-    if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
-    if(p.tipoAtend)h+='<div style="font-size:10px;color:var(--g1);font-weight:600;text-transform:uppercase">'+esc(p.tipoAtend)+'</div>';
-    if(p.inativo)h+='<div style="font-size:10px;color:#dc2626;font-weight:700">INATIVO — '+esc(p.motivoInativo||'')+'</div>';
-    if(prox[0])h+='<div style="font-size:11px;color:var(--g1);font-weight:600">Próx: '+fmtD(prox[0].data)+' '+esc(prox[0].hora)+'</div>';
-    h+='</div>';
-    if(semEvo>0)h+='<span class="badge bg-r" style="cursor:pointer" title="'+semEvo+' sessão(ões) realizada(s) sem evolução registrada — Toque para registrar" data-pid2="'+esc(p.id)+'" onclick="event.stopPropagation();irPerfilEvo(this.dataset.pid2)">'+semEvo+' sem evo</span>';
-    if(pend)h+='<span class="badge bg-a" style="cursor:pointer" title="'+pend+' sessão(ões) com pagamento pendente">'+pend+' pend.</span>';
+    var pendSessoes=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;});
+    var pend=pendSessoes.length;
+    var totalPend=pendSessoes.reduce(function(a,s){return a+(s.valor||0);},0);
+    var real=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length;
+    var semEvo=Math.max(0,real-(p.evolucoes||[]).length);
+    var temHoje=D.sessoes.some(function(s){return s.pacienteId===p.id&&s.data===hj;});
     var pk2=calcPacote(p);
-    if(pk2&&pk2.restantes<=3&&pk2.restantes>0)h+='<span class="badge bg-a" title="'+pk2.restantes+' sessao(oes) restante(s) no pacote">'+pk2.restantes+' rest.</span>';
-    if(pk2&&pk2.restantes===0)h+='<span class="badge bg-r" title="Pacote encerrado">Pacote fin.</span>';
-    h+='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
+
+    // Cor da borda esquerda baseada no status
+    var bordaCor=semEvo>0?'var(--red)':pend>0?'var(--amber)':'var(--g3)';
+    var avBg=semEvo>0?'linear-gradient(135deg,#fef2f2,#fee2e2)':pend>0?'linear-gradient(135deg,#fffbeb,#fef3c7)':'linear-gradient(135deg,var(--g3),var(--g4))';
+    var avCol=semEvo>0?'var(--red)':pend>0?'var(--amber)':'var(--g1)';
+
+    h+='<div class="pac" data-pid="'+esc(p.id)+'" onclick="irPerfilEvo(this.dataset.pid)" style="border-left:4px solid '+bordaCor+';padding-left:14px">';
+    // Avatar
+    h+='<div class="av" style="background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
+    // Info
+    h+='<div style="flex:1;min-width:0">';
+    h+='<div style="font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
+    if(p.diagnostico)h+='<div style="font-size:11px;color:var(--sl3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.diagnostico)+(p.cid?' <span style="color:var(--g1);font-weight:600">'+esc(p.cid)+'</span>':'')+'</div>';
+    if(p.inativo)h+='<div style="font-size:10px;color:var(--red);font-weight:700">INATIVO — '+esc(p.motivoInativo||'')+'</div>';
+    // Próxima sessão
+    if(prox[0]){
+      var isHoje=prox[0].data===hj;
+      h+='<div style="font-size:11px;font-weight:600;color:'+(isHoje?'var(--g1)':'var(--sl2)')+';margin-top:2px">'+(isHoje?'🟢 Hoje':'📅 Próx:')+' '+fmtD(prox[0].data)+' às '+esc(prox[0].hora)+'</div>';
+    }
+    h+='</div>';
+    // Badges direita
+    h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">';
+    if(semEvo>0)h+='<span class="badge bg-r" style="cursor:pointer;white-space:nowrap" data-pid2="'+esc(p.id)+'" onclick="event.stopPropagation();irPerfilEvo(this.dataset.pid2)" title="Registrar evolução">'+semEvo+' sem evo</span>';
+    if(pend>0)h+='<span class="badge bg-a" style="white-space:nowrap" title="R$'+totalPend.toFixed(2)+' pendente">R$'+totalPend.toFixed(0)+' pend.</span>';
+    if(pk2&&pk2.restantes<=3&&pk2.restantes>0)h+='<span class="badge bg-a" style="white-space:nowrap">'+pk2.restantes+' restantes</span>';
+    if(pk2&&pk2.restantes===0)h+='<span class="badge bg-r" style="white-space:nowrap">Pacote fim</span>';
+    h+='</div>';
+    h+='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-left:4px;color:var(--sl4)"><polyline points="9 18 15 12 9 6"/></svg>';
+    h+='</div>';
   });
   lst.innerHTML=h;
 }
@@ -1366,44 +1472,129 @@ function voltarPac(){PAC_ID=null;ir('pacientes');}
 
 function rPerfil(el2){
   var p=D.pacientes.find(function(x){return x.id===PAC_ID;});if(!p){voltarPac();return;}
-  // nome do paciente mostrado no btn-vol
-  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← '+esc(p.nome.split(' ')[0]);
   BtnVolCb=function(){voltarPac();};
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
   var abas=['resumo','anamnese','evo','sessoes','grafico','avaliacoes','dados'];
-
   var abaL={resumo:'Resumo',anamnese:'Anamnese',evo:'Evoluções',sessoes:'Sessões',grafico:'Gráfico',avaliacoes:'Avaliações',dados:'Dados'};
-  // Linha 1: ações principais
-  var h='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center">';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,null,this.dataset.pid)">+ Sessão</button>';
-  h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
-  h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar</button>';
-  if((p.escalasDin||[]).length>0)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico</button>';
-  if(D.cfg.usarTermo)h+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
-  if(!p.inativo)h+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" onclick="inativarPaciente(this.dataset.pid)">Inativar</button>';
-  else h+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="reativarPaciente(this.dataset.pid)">Reativar</button>';
-  h+='</div>';
-  h+='<div class="ptab">';
-  abas.forEach(function(a){h+='<div class="pt '+(PAC_ABA===a?'on':'')+'" data-a="'+a+'" onclick="trocarAba(this.dataset.a)">'+abaL[a]+'</div>';});
-  h+='</div>';
-  if(PAC_ABA==='evo')h+=rAbaEvo(p);
-  else if(PAC_ABA==='sessoes')h+=rAbaSess(p);
-  else if(PAC_ABA==='grafico')h+=rAbaGraf(p);
-  else if(PAC_ABA==='dados')h+=rAbaDados(p);
-  else if(PAC_ABA==='anamnese')h+=rAbaAnamnese(p);
-  else if(PAC_ABA==='avaliacoes')h+=rAbaAvaliacoes(p);
-  else if(PAC_ABA==='resumo')h+=rAbaResumo(p);
+  var hj=hoje();
+  var prox=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.data>=hj;}).sort(function(a,b){return a.data.localeCompare(b.data);});
+  var pendSess=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.statusPag==='pendente'&&(s.valor||0)>0;});
+  var totalPend=pendSess.reduce(function(a,s){return a+(s.valor||0);},0);
+  var realTotal=D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado';}).length;
+  var semEvo=Math.max(0,D.sessoes.filter(function(s){return s.pacienteId===p.id&&s.status==='realizado'&&s.data<=hj;}).length-(p.evolucoes||[]).length);
+  var pk2=calcPacote(p);
+  var avBg=semEvo>0?'linear-gradient(135deg,#fef2f2,#fee2e2)':pendSess.length>0?'linear-gradient(135deg,#fffbeb,#fef3c7)':'linear-gradient(135deg,var(--g3),var(--g4))';
+  var avCol=semEvo>0?'var(--red)':pendSess.length>0?'var(--amber)':'var(--g1)';
+
+  // ── Header card (mobile) ────────────────────────────────────────
+  function buildHeader(){
+    var hh='<div class="card" id="perfil-header-mobile" style="margin-bottom:12px">';
+    hh+='<div style="display:flex;gap:14px;align-items:center">';
+    hh+='<div class="av" style="width:58px;height:58px;font-size:20px;flex-shrink:0;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
+    hh+='<div style="flex:1;min-width:0">';
+    hh+='<div style="font-size:18px;font-weight:900;color:var(--sl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
+    if(p.diagnostico)hh+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+esc(p.diagnostico)+(p.cid?' · <span style="color:var(--g1);font-weight:700">'+esc(p.cid)+'</span>':'')+'</div>';
+    if(prox[0]){var isHj=prox[0].data===hj;hh+='<div style="font-size:12px;font-weight:600;color:'+(isHj?'var(--g1)':'var(--sl2)')+';margin-top:4px">'+(isHj?'🟢 Hoje':'📅')+' '+fmtD(prox[0].data)+' às '+esc(prox[0].hora)+'</div>';}
+    hh+='</div>';
+    hh+='<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">';
+    if(semEvo>0)hh+='<span class="badge bg-r">'+semEvo+' sem evo</span>';
+    if(pendSess.length>0)hh+='<span class="badge bg-a">R$'+totalPend.toFixed(0)+' pend.</span>';
+    if(pk2&&pk2.restantes===0)hh+='<span class="badge bg-r">Pacote fim</span>';
+    if(pk2&&pk2.restantes>0&&pk2.restantes<=3)hh+='<span class="badge bg-a">'+pk2.restantes+' rest.</span>';
+    hh+='</div></div>';
+    if(p.inativo)hh+='<div style="margin-top:10px;padding:8px 12px;background:var(--redbg);border-radius:8px;font-size:12px;font-weight:700;color:var(--red)">⚠️ Paciente inativo — '+esc(p.motivoInativo||'')+'</div>';
+    hh+='</div>';
+    return hh;
+  }
+
+  // ── Sidebar (desktop) ───────────────────────────────────────────
+  function buildSidebar(){
+    var hs='<div id="perfil-sidebar">';
+    hs+='<div class="card" style="margin-bottom:10px">';
+    hs+='<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0">';
+    hs+='<div class="av" style="width:72px;height:72px;font-size:26px;margin-bottom:12px;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
+    hs+='<div style="font-size:17px;font-weight:900;color:var(--sl);margin-bottom:4px">'+esc(p.nome)+'</div>';
+    if(p.diagnostico)hs+='<div style="font-size:12px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
+    if(p.cid)hs+='<div style="font-size:12px;color:var(--g1);font-weight:700;margin-top:2px">CID: '+esc(p.cid)+(p.cidNome?' — '+esc(p.cidNome):'')+'</div>';
+    if(p.cidLivre)hs+='<div style="font-size:11px;color:var(--sl3);margin-top:2px;font-style:italic">'+esc(p.cidLivre)+'</div>';
+    if(p.inativo)hs+='<div style="margin-top:8px;width:100%;padding:7px;background:var(--redbg);border-radius:8px;font-size:11px;font-weight:700;color:var(--red)">⚠️ Inativo — '+esc(p.motivoInativo||'')+'</div>';
+    hs+='</div>';
+    hs+='<div style="border-top:1px solid var(--borda);padding-top:12px;margin-top:4px;display:flex;flex-direction:column;gap:8px">';
+    if(prox[0]){var isHj=prox[0].data===hj;hs+='<div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">'+(isHj?'🟢':'📅')+'</span><div><div style="font-size:10px;font-weight:700;color:var(--sl3);text-transform:uppercase">Próxima sessão</div><div style="font-size:13px;font-weight:600;color:'+(isHj?'var(--g1)':'var(--sl)')+'">'+fmtD(prox[0].data)+' às '+esc(prox[0].hora)+'</div></div></div>';}
+    hs+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">';
+    hs+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:10px"><div style="font-size:20px;font-weight:900;color:var(--g1)">'+realTotal+'</div><div style="font-size:10px;color:var(--sl3);font-weight:600">Sessões</div></div>';
+    hs+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:10px"><div style="font-size:20px;font-weight:900;color:'+( semEvo>0?'var(--red)':'var(--g1)')+'">'+semEvo+'</div><div style="font-size:10px;color:var(--sl3);font-weight:600">Sem evo</div></div>';
+    if(totalPend>0)hs+='<div style="grid-column:span 2;text-align:center;padding:10px;background:var(--amberbg);border-radius:10px"><div style="font-size:18px;font-weight:900;color:var(--amber)">R$'+totalPend.toFixed(2)+'</div><div style="font-size:10px;color:var(--amber);font-weight:700">Pagamento pendente</div></div>';
+    hs+='</div>';
+    if(pk2){hs+='<div style="padding:8px;background:'+(pk2.restantes===0?'var(--redbg)':'var(--g4)')+';border-radius:8px;text-align:center"><div style="font-size:12px;font-weight:700;color:'+(pk2.restantes===0?'var(--red)':'var(--sl2)')+'">Pacote: '+pk2.realizadas+'/'+p.pacote+' sessões</div><div style="font-size:11px;color:var(--sl3)">'+pk2.restantes+' restantes</div></div>';}
+    if(p.telefone||p.celular){hs+='<div style="border-top:1px solid var(--borda);padding-top:10px;margin-top:4px">';if(p.telefone)hs+='<div style="font-size:12px;color:var(--sl3)">📞 '+esc(p.telefone)+'</div>';if(p.celular)hs+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">📱 '+esc(p.celular)+'</div>';hs+='</div>';}
+    hs+='</div></div>';
+    // Ações no sidebar
+    hs+='<div class="card" style="display:flex;flex-direction:column;gap:6px">';
+    hs+='<button class="btn btn-p btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,null,this.dataset.pid)">+ Nova sessão</button>';
+    hs+='<button class="btn btn-s btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Aplicar escala</button>';
+    hs+='<button class="btn btn-s btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar paciente</button>';
+    if((p.escalasDin||[]).length>0)hs+='<button class="btn btn-s btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico escalas</button>';
+    if(D.cfg.usarTermo)hs+='<button class="btn btn-s btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'✅ Termo assinado':'📝 Termo TCLE')+'</button>';
+    hs+='<div style="border-top:1px solid var(--borda);margin-top:2px;padding-top:6px">';
+    if(!p.inativo)hs+='<button class="btn btn-d btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="inativarPaciente(this.dataset.pid)">Inativar paciente</button>';
+    else hs+='<button class="btn btn-p btn-sm" style="width:100%;justify-content:center" data-pid="'+esc(p.id)+'" onclick="reativarPaciente(this.dataset.pid)">Reativar paciente</button>';
+    hs+='</div></div>';
+    hs+='</div>';
+    return hs;
+  }
+
+  // ── Área principal ──────────────────────────────────────────────
+  function buildMain(){
+    var hm='<div id="perfil-main">';
+    // Ações mobile (só aparece em telas pequenas)
+    hm+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center" class="perfil-acoes-mobile">';
+    hm+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="mSessao(null,null,null,this.dataset.pid)">+ Sessão</button>';
+    hm+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="abrirCatalogoEscalas(this.dataset.pid)">+ Escala</button>';
+    hm+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mPacienteEditar(this.dataset.pid)">✏️ Editar</button>';
+    if((p.escalasDin||[]).length>0)hm+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="verHistóricoEscalas(this.dataset.pid)">📊 Histórico</button>';
+    if(D.cfg.usarTermo)hm+='<button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="mTermoConsentimento(this.dataset.pid)">'+(p.termoAceito?'Termo ✅':'Termo')+'</button>';
+    hm+='<div style="margin-left:auto">';
+    if(!p.inativo)hm+='<button class="btn btn-d btn-sm" data-pid="'+esc(p.id)+'" onclick="inativarPaciente(this.dataset.pid)">Inativar</button>';
+    else hm+='<button class="btn btn-p btn-sm" data-pid="'+esc(p.id)+'" onclick="reativarPaciente(this.dataset.pid)">Reativar</button>';
+    hm+='</div></div>';
+    // Abas
+    hm+='<div class="ptab">';
+    abas.forEach(function(a){hm+='<div class="pt '+(PAC_ABA===a?'on':'')+'" data-a="'+a+'" onclick="trocarAba(this.dataset.a)">'+abaL[a]+'</div>';});
+    hm+='</div>';
+    // Conteúdo
+    if(PAC_ABA==='evo')hm+=rAbaEvo(p);
+    else if(PAC_ABA==='sessoes')hm+=rAbaSess(p);
+    else if(PAC_ABA==='grafico')hm+=rAbaGraf(p);
+    else if(PAC_ABA==='dados')hm+=rAbaDados(p);
+    else if(PAC_ABA==='anamnese')hm+=rAbaAnamnese(p);
+    else if(PAC_ABA==='avaliacoes')hm+=rAbaAvaliacoes(p);
+    else if(PAC_ABA==='resumo')hm+=rAbaResumo(p);
+    hm+='</div>';
+    return hm;
+  }
+
+  var h=buildHeader();
+  h+='<div id="perfil-layout">'+buildSidebar()+buildMain()+'</div>';
   el2.innerHTML=h;
+
+  // FAB e gráfico
   var fab2=el('fab');
   if(PAC_ABA==='evo'){fab2.style.display='flex';fab2.onclick=function(){mEvo(PAC_ID,'');};}
   else fab2.style.display='none';
   if(PAC_ABA==='grafico')setTimeout(function(){desenharGraf(p);},120);
+
+  // Esconder ações mobile no desktop
+  var style=document.createElement('style');
+  style.textContent='@media(min-width:900px){.perfil-acoes-mobile{display:none!important;}}';
+  document.head.appendChild(style);
 }
 function trocarAba(a){PAC_ABA=a;renderizar();}
 
 function rAbaEvo(p){
   var evos=(p.evolucoes||[]).slice().reverse();
-  if(!evos.length)return'<div style="text-align:center;padding:40px;color:var(--sl3);display:flex;flex-direction:column;align-items:center;gap:12px"><div style="font-size:40px">📋</div><div>Nenhuma evolução registrada.</div><div style="font-size:12px">Acesse Evoluções → Pendentes para evoluir as sessões.</div></div>';
+  if(!evos.length)return'<div style="text-align:center;padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:14px"><div style="font-size:48px">📋</div><div style="font-size:16px;font-weight:800;color:var(--sl2)">Nenhuma evolução registrada</div><div style="font-size:13px;color:var(--sl3);max-width:280px">Registre a evolução clínica após cada sessão realizada.</div><button class="btn btn-p" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">+ Registrar primeira evolução</button></div>';
   var h='';
   evos.forEach(function(e){
     var bloq1=(Date.now()-(e.ts||0))>86400000&&e.id;
