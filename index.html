@@ -208,7 +208,7 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
   #agenda-sidebar{width:130px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;background:var(--card);border-radius:var(--r);padding:10px;box-shadow:var(--sh1);}
   #agenda-main{flex:1;min-width:0;}
   .filtro-conv-row{flex-wrap:wrap;overflow-x:visible !important;}
-  #agenda-sidebar .btn{width:100%;justify-content:flex-start;font-size:11px;padding:6px 8px;}
+  #agenda-sidebar .btn{width:100%;justify-content:flex-start;font-size:11px;padding:6px 8px;white-space:normal;text-align:left;line-height:1.25;height:auto;}
   #agenda-sidebar .filtros-tipo{display:flex;flex-direction:column;gap:5px;}
   #filtros-tipo-mobile{display:none !important;}
   #agenda-acoes-mobile{display:none !important;}
@@ -661,9 +661,10 @@ function loginAcao(){
 function loginEsqueci(){
   var email=el('l-email').value.trim();
   if(!email){loginErr('Digite seu e-mail primeiro.');return;}
-  FBAuth.sendPasswordResetEmail(email).then(function(){toast('E-mail enviado!');}).catch(function(e){loginErr(fbErr(e.code));});
+  FBAuth.sendPasswordResetEmail(email).then(function(){loginInfo('<strong>E-mail enviado!</strong><br>Enviamos um link para redefinir sua senha para <strong>'+esc(email)+'</strong>.<br>Procure por uma mensagem de <strong>"noreply"</strong> (o assunto começa com "Redefinir a senha"). Se não estiver na caixa de entrada, veja a pasta de <strong>spam</strong>.');}).catch(function(e){loginErr(fbErr(e.code));});
 }
-function loginErr(m){var e=el('l-err');e.textContent=m;e.style.display='block';}
+function loginInfo(html){var e=el('l-err');e.innerHTML=html;e.style.color='var(--g1)';e.style.background='var(--g4)';e.style.display='block';}
+function loginErr(m){var e=el('l-err');e.textContent=m;e.style.color='';e.style.background='';e.style.display='block';}
 function fbErr(c){var m={'auth/user-not-found':'E-mail não cadastrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-email':'E-mail inválido.','auth/email-already-in-use':'E-mail já cadastrado.','auth/weak-password':'Senha fraca.','auth/invalid-credential':'E-mail ou senha incorretos.','auth/too-many-requests':'Muitas tentativas.','auth/network-request-failed':'Sem conexão.'};return m[c]||'Erro: '+c;}
 function sairConta(){if(!confirm('Sair da conta?'))return;FBAuth.signOut().then(function(){D.pacientes=[];D.sessoes=[];ir('inicio');});}
 function editarNome(){
@@ -3740,17 +3741,16 @@ function rMais(el2){
   // Sobre
   h+='<div class="card" style="border-color:var(--g3);background:var(--g4)">';
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
-  h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></div>';
+  h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.028 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.031 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
   h+='<div style="font-size:14px;font-weight:700;color:var(--sl)">Rafael Geraldo de Sá</div>';
-  h+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">Versão 1.028</div>';
   h+='<a href="mailto:fisioevolucao620@gmail.com" style="font-size:13px;color:var(--g1);font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;margin-top:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg> fisioevolucao620@gmail.com</a>';
   h+='</div>';
-  h+='<div style="border-top:1px solid var(--borda);padding-top:10px;margin-top:10px;font-size:11px;color:var(--sl3);text-align:center">Desenvolvido com <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg> usando Claude AI (Anthropic)</div>';
+  h+='<div style="border-top:1px solid var(--borda);padding-top:10px;margin-top:10px;font-size:11px;color:var(--sl3);text-align:center">Desenvolvido com <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg> usando Claude AI (Anthropic)</div>';
   h+='</div><div style="text-align:center;margin-top:16px"><button style="background:none;border:none;font-size:10px;color:var(--sl4);cursor:pointer" onclick="mExcluirConta()">Solicitar exclusão de conta</button></div>';
   el2.innerHTML=h;
 }
@@ -5357,7 +5357,7 @@ function rAjuda(el2){
     ['Resumo do dia','Cards com: sessões de hoje, valor recebido no mês e faltas do mês.'],
     ['Total a receber','Valor total de todas as sessões com pagamento pendente ou atrasado.'],
     ['Feriados próximos','Alerta automático dos feriados nos próximos 15 dias.'],
-    ['Sessões de hoje','Lista com horário e nome. Botões rápidos: A (Atendido), D (Desmarcado), F (Falta do Profissional).'],
+    ['Sessões de hoje','Lista com horário e nome. Botões rápidos: A (Atendido), D (Desmarcado), F (Falta do Profissional), R (Remarcado).'],
     ['Pendências','Se não houver nada em aberto, aparece "<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg> Nenhuma pendência". Se houver, aparece quantas sessões precisam de atualização.'],
     ['Sessões em aberto','Sessões de dias passados ainda como "Agendado" — atualize o status para manter o controle.'],
     ['Pacotes no limite','Alerta quando algum paciente tem pacote de sessões prestes a acabar. Toque em "Renovar" para iniciar um novo pacote.'],
@@ -5367,7 +5367,7 @@ function rAjuda(el2){
     ['Navegar semanas','Use os botões ‹ Ant e Próx › para avançar ou voltar semanas.'],
     ['Filtro por plano','Botões horizontais acima da grade — filtre para ver só os pacientes de um plano específico.'],
     ['Filtro por tipo','No PC: coluna lateral esquerda. No celular: abaixo da grade. Filtre por Domiciliar, Clínica ou Consultório.'],
-    ['Criar sessão','A partir do Perfil do Paciente: toque em "+ Sessão" no topo do perfil. A Agenda é só para visualizar e editar sessões já criadas.'],
+    ['Criar sessão','Duas formas: (1) na Agenda, toque num horário vazio para abrir a nova sessão já com data e hora preenchidas — é só escolher o paciente; (2) no Perfil do Paciente, toque em "+ Sessão" no topo.'],
     ['Editar sessão','Toque no nome do paciente dentro da grade para ver detalhes e editar.'],
     ['Tipo Clínica','Selecione o tipo Clínica → marque "Atendimento múltiplo" → informe a quantidade → o app calcula o valor total automaticamente.'],
     ['Recorrência semanal','Ao criar sessão, escolha "Por semanas" e informe quantas semanas repetir.'],
@@ -5375,6 +5375,7 @@ function rAjuda(el2){
     ['Remarcar','Mude o status para Adiado → aparece botão "Remarcar" que abre nova sessão pré-preenchida.'],
     ['Feriados','Clique em "Feriados" para cadastrar feriados locais. Os nacionais já aparecem automaticamente.'],
     ['Exportar semana','Clique em "Exportar semana" para baixar as sessões da semana atual em CSV. Para exportar financeiro, evoluções, faltas ou pacientes, acesse Mais → Relatórios.'],
+    ['Limpar semana / dia','Em Ações, "Limpar semana" apaga as sessões da semana visível. Para um dia só, toque no cabeçalho da coluna → "Limpar dia". Antes de apagar, o app mostra quantas serão excluídas. Sessões já realizadas (com evolução/pagamento) são protegidas e nunca apagadas.'],
     ['Repetir agenda','Nos primeiros 5 dias do mês, o app pergunta se deseja repetir a agenda do mês anterior, com opção de definir quantas sessões por paciente.'],
     ['Resumo do dia','Toque na data no cabeçalho da grade para ver o resumo daquele dia.'],
   ],'As cores na grade representam o tipo de atendimento. Personalize em Mais → Tipos de atendimento.');
