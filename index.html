@@ -220,6 +220,24 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 @media(max-width:767px){
   #agenda-sidebar{display:none !important;}
 }
+.sel-cust{position:relative;width:100%}
+.sel-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);border:1.5px solid var(--borda);border-radius:var(--rp);padding:11px 12px;font-size:14px;color:var(--sl);cursor:pointer;text-align:left;font-family:inherit;font-weight:500;line-height:1.3}
+.sel-btn:hover{border-color:var(--g2)}
+.sel-lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sel-arw{display:flex;color:var(--sl3);flex-shrink:0}
+.sel-pop-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99999;display:flex;align-items:flex-end;justify-content:center;animation:selfade .15s ease}
+@keyframes selfade{from{opacity:0}to{opacity:1}}
+@media(min-width:768px){.sel-pop-ov{align-items:center}}
+.sel-pop{background:var(--card);border-radius:18px 18px 0 0;width:100%;max-width:520px;max-height:72vh;overflow-y:auto;overscroll-behavior:contain;padding:6px 0 max(6px,env(safe-area-inset-bottom));box-shadow:0 -6px 34px rgba(0,0,0,.22)}
+@media(min-width:768px){.sel-pop{border-radius:16px;max-height:64vh}}
+.sel-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 20px;font-size:15px;color:var(--sl);cursor:pointer;border-bottom:1px solid var(--borda)}
+.sel-opt:last-child{border-bottom:none}
+.sel-opt:active,.sel-opt:hover{background:var(--g4)}
+.sel-opt.sel-on{color:var(--g1);font-weight:700;background:var(--g4)}
+.sel-opt.sel-dis{color:var(--sl4);cursor:default}
+.sel-opt-rad{width:20px;height:20px;border:2px solid var(--sl4);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.sel-opt.sel-on .sel-opt-rad{border-color:var(--g1)}
+.sel-opt.sel-on .sel-opt-rad::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--g1)}
 </style>
 </head>
 <body>
@@ -1033,6 +1051,71 @@ function boot(){
 function ir(aba){ABA=aba;PAC_ID=null;document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.a===aba);});renderizar();}
 function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
+function estilizarSelects(root){
+  try{
+    var sels=(root||document).querySelectorAll('select:not([data-enh])');
+    for(var i=0;i<sels.length;i++){(function(sel){
+      var orig=sel.style.cssText;
+      try{
+        sel.setAttribute('data-enh','1');
+        var wrap=document.createElement('div');wrap.className='sel-cust';
+        sel.parentNode.insertBefore(wrap,sel);wrap.appendChild(sel);
+        var btn=document.createElement('button');btn.type='button';btn.className='sel-btn';
+        btn.innerHTML='<span class="sel-lbl"></span><span class="sel-arw"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>';
+        wrap.appendChild(btn);
+        sel.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;pointer-events:none;margin:0;';
+        var lbl=btn.querySelector('.sel-lbl');
+        function sync(){var o=sel.options[sel.selectedIndex];if(lbl)lbl.textContent=o?o.text:'';btn.disabled=!!sel.disabled;btn.style.opacity=sel.disabled?'.55':'';}
+        sync();
+        sel.addEventListener('change',sync);
+        btn.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(sel.disabled)return;abrirSelPop(sel,lbl);});
+      }catch(err){try{sel.style.cssText=orig;sel.removeAttribute('data-enh');}catch(e){}}
+    })(sels[i]);}
+  }catch(e){}
+}
+var _selLockN=0,_selSaved=null;
+function selLock(){
+  if(_selLockN++>0)return;
+  _selSaved={b:document.body.style.overflow,h:document.documentElement.style.overflow};
+  document.body.style.overflow='hidden';document.documentElement.style.overflow='hidden';
+  ['mbody','conteudo'].forEach(function(id){var e=el(id);if(e){e.setAttribute('data-selov',e.style.overflow||'');e.style.overflow='hidden';}});
+}
+function selUnlock(){
+  if(--_selLockN>0)return;if(_selLockN<0)_selLockN=0;
+  if(_selSaved){document.body.style.overflow=_selSaved.b;document.documentElement.style.overflow=_selSaved.h;}
+  ['mbody','conteudo'].forEach(function(id){var e=el(id);if(e&&e.hasAttribute('data-selov')){e.style.overflow=e.getAttribute('data-selov');e.removeAttribute('data-selov');}});
+}
+function abrirSelPop(sel,lbl){
+  var ov=document.createElement('div');ov.className='sel-pop-ov';
+  var pop=document.createElement('div');pop.className='sel-pop';
+  var h='';
+  for(var i=0;i<sel.options.length;i++){
+    var o=sel.options[i];
+    var cls='sel-opt'+(i===sel.selectedIndex?' sel-on':'')+(o.disabled?' sel-dis':'');
+    h+='<div class="'+cls+'" data-i="'+i+'"><span>'+esc(o.text)+'</span><span class="sel-opt-rad"></span></div>';
+  }
+  pop.innerHTML=h;ov.appendChild(pop);document.body.appendChild(ov);selLock();
+  function fechar(){selUnlock();if(ov.parentNode)ov.parentNode.removeChild(ov);}
+  ov.addEventListener('click',function(e){if(e.target===ov)fechar();});
+  ov.addEventListener('touchmove',function(e){if(e.target===ov)e.preventDefault();},{passive:false});
+  pop.querySelectorAll('.sel-opt').forEach(function(el2){
+    el2.addEventListener('click',function(){
+      var idx=parseInt(el2.dataset.i);
+      var o=sel.options[idx];
+      if(o&&o.disabled)return;
+      sel.selectedIndex=idx;
+      try{sel.dispatchEvent(new Event('change',{bubbles:true}));}catch(e){sel.onchange&&sel.onchange();}
+      if(lbl&&o)lbl.textContent=o.text;
+      fechar();
+    });
+  });
+}
+try{
+  var _selObs=new MutationObserver(function(m){for(var i=0;i<m.length;i++){if(m[i].addedNodes&&m[i].addedNodes.length){estilizarSelects(document);return;}}});
+  _selObs.observe(document.body,{childList:true,subtree:true});
+}catch(e){}
+estilizarSelects(document);
+
 function renderizar(){
   atualizarBadge();
   var c=el('conteudo');c.innerHTML='';
@@ -1091,6 +1174,22 @@ function mConfirmarSaida(){
 }
 
 // ── INÍCIO ───────────────────────────────────────────────────────
+function aniversariantes(){
+  var hj=new Date();var dH=hj.getDate();var mH=hj.getMonth()+1;
+  var hojeRef=new Date(hj.getFullYear(),mH-1,dH);
+  var hoje=[],prox=[];
+  D.pacientes.forEach(function(p){
+    if(p.inativo||!p.dataNasc)return;
+    var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((p.dataNasc||'').trim());
+    if(!m)return;
+    var d=parseInt(m[1],10),mo=parseInt(m[2],10),ano=parseInt(m[3],10);
+    if(d<1||d>31||mo<1||mo>12)return;
+    if(d===dH&&mo===mH){var idade=hj.getFullYear()-ano;if(idade<0||idade>130)idade=0;hoje.push({nome:p.nome,idade:idade});}
+    else{var pr=new Date(hj.getFullYear(),mo-1,d);if(pr<hojeRef)pr=new Date(hj.getFullYear()+1,mo-1,d);var diff=Math.round((pr-hojeRef)/86400000);if(diff>=1&&diff<=7)prox.push({nome:p.nome,dias:diff});}
+  });
+  prox.sort(function(a,b){return a.dias-b.dias;});
+  return {hoje:hoje,prox:prox};
+}
 function rInicio(el2){
   var now=new Date();var hj=hoje();var hora=now.getHours();
   var primeiroNome=FBU&&FBU.displayName?', '+FBU.displayName.split(' ')[0]+'!':'';
@@ -1124,6 +1223,16 @@ function rInicio(el2){
     h+='<div class="card" style="border-color:#fcd34d;background:#fffbeb;margin-bottom:10px"><div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M5.8 11.3 2 22l10.7-3.8"/><path d="M4 3h.01"/><path d="M22 8h.01"/><path d="M15 2h.01"/><path d="M22 20h.01"/><path d="M22 2 11 13"/><path d="M11 13a4 4 0 0 0-4 4"/></svg> Feriados próximos</div>';
     ferProx.forEach(function(x){h+='<div style="font-size:12px;color:#92400e;margin-bottom:3px">'+esc(x.f.nome)+' — '+fmtD(x.f.data)+(x.dt===0?' (hoje)':' (em '+x.dt+' dias)')+'</div>';});
     h+='</div>';
+  }
+  var _av=aniversariantes();
+  if(_av.hoje.length){
+    h+='<div class="card" style="margin-bottom:10px;border-color:var(--g3);background:var(--g4);display:flex;align-items:center;gap:10px">';
+    h+='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);flex-shrink:0"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7a3.5 3.5 0 0 1-3.5-3.5A2.5 2.5 0 0 1 11 1c2 0 1 6 1 6"/><path d="M12 7a3.5 3.5 0 0 0 3.5-3.5A2.5 2.5 0 0 0 13 1c-2 0-1 6-1 6"/></svg>';
+    h+='<div style="min-width:0"><div style="font-size:14px;font-weight:800;color:var(--g1)">'+(_av.hoje.length>1?'Aniversários hoje!':'Aniversário hoje!')+'</div>';
+    h+='<div style="font-size:12px;color:var(--sl2)">'+_av.hoje.map(function(a){return esc(a.nome)+(a.idade?' ('+a.idade+' anos)':'');}).join(', ')+'</div></div></div>';
+  }
+  if(_av.prox.length){
+    h+='<div style="font-size:11px;color:var(--sl3);margin:-2px 0 12px;padding-left:2px">Próximos aniversários: '+_av.prox.map(function(a){return esc(a.nome.split(' ')[0])+' ('+a.dias+'d)';}).join(' · ')+'</div>';
   }
   if(sHj.length>0){
     h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:8px">Sessões de hoje</div>';
@@ -1190,7 +1299,7 @@ function rInicio(el2){
       var pk=_pacotesCache[p.id];
       h+='<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #fcd34d">';
       h+='<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(p.nome)+'</div>';
-      h+='<div style="font-size:11px;color:#92400e">'+(pk.restantes===0?'Pacote encerrado':'Apenas '+pk.restantes+' sessao(oes) restante(s)')+'</div></div>';
+      h+='<div style="font-size:11px;color:#92400e">'+(pk.restantes===0?'Pacote encerrado':'Apenas '+pk.restantes+' sessão(ões) restante(s)')+'</div></div>';
       h+='<span style="font-size:12px;font-weight:700">'+pk.realizadas+'/'+pk.total+'</span>';
       if(pk.restantes===0)h+='<button class="btn btn-a btn-sm" data-pid="'+esc(p.id)+'" onclick="mRenovarPacote(this.dataset.pid)">Renovar</button>';
       h+='</div>';
@@ -1900,7 +2009,7 @@ function voltarPac(){PAC_ID=null;ir('pacientes');}
 
 function rPerfil(el2){
   var p=D.pacientes.find(function(x){return x.id===PAC_ID;});if(!p){voltarPac();return;}
-  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← '+esc(p.nome.split(' ')[0]);
+  var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';
   BtnVolCb=function(){voltarPac();};
   document.querySelectorAll('.nb').forEach(function(b){b.classList.remove('on');});
   var abas=['resumo','anamnese','evo','sessoes','grafico','avaliacoes','dados'];
@@ -1922,7 +2031,7 @@ function rPerfil(el2){
     hh+='<div class="av" style="width:58px;height:58px;font-size:20px;flex-shrink:0;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     hh+='<div style="flex:1;min-width:0">';
     hh+='<div style="font-size:18px;font-weight:900;color:var(--sl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
-    if(p.diagnostico)hh+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+esc(p.diagnostico)+(p.cid?' · <span style="color:var(--g1);font-weight:700">'+esc(p.cid)+'</span>':'')+'</div>';
+    if(p.diagnostico)hh+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+esc(p.diagnostico)+(p.cid?' · <span style="color:var(--g1);font-weight:700">'+esc(p.cid)+'</span>'+((p.cidNome||cidDesc(p.cid))?' <span style="color:var(--sl3);font-weight:400">— '+esc(p.cidNome||cidDesc(p.cid))+'</span>':''):'')+'</div>';
     if(prox[0]){var isHj=prox[0].data===hj;hh+='<div style="font-size:12px;font-weight:600;color:'+(isHj?'var(--g1)':'var(--sl2)')+';margin-top:4px">'+(isHj?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/></svg> Hoje':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>')+' '+fmtD(prox[0].data)+' às '+esc(prox[0].hora)+'</div>';}
     hh+='</div>';
     hh+='<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;align-items:flex-end">';
@@ -1944,7 +2053,7 @@ function rPerfil(el2){
     hs+='<div class="av" style="width:72px;height:72px;font-size:26px;margin-bottom:12px;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     hs+='<div style="font-size:17px;font-weight:900;color:var(--sl);margin-bottom:4px">'+esc(p.nome)+'</div>';
     if(p.diagnostico)hs+='<div style="font-size:12px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
-    if(p.cid)hs+='<div style="font-size:12px;color:var(--g1);font-weight:700;margin-top:2px">CID: '+esc(p.cid)+(p.cidNome?' — '+esc(p.cidNome):'')+'</div>';
+    if(p.cid)hs+='<div style="font-size:12px;color:var(--g1);font-weight:700;margin-top:2px">CID: '+esc(p.cid)+((p.cidNome||cidDesc(p.cid))?' — '+esc(p.cidNome||cidDesc(p.cid)):'')+'</div>';
     if(p.cidLivre)hs+='<div style="font-size:11px;color:var(--sl3);margin-top:2px;font-style:italic">'+esc(p.cidLivre)+'</div>';
     if(p.inativo)hs+='<div style="margin-top:8px;width:100%;padding:7px;background:var(--redbg);border-radius:8px;font-size:11px;font-weight:700;color:var(--red)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--amber);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Inativo — '+esc(p.motivoInativo||'')+'</div>';
     hs+='</div>';
@@ -2033,7 +2142,7 @@ function exportarEvoPDF(pid){
     c+='<div id="pdf-cabecalho" style="border-bottom:3px solid var(--g1);padding-bottom:14px;margin-bottom:18px">';
     c+='<div style="font-size:18px;font-weight:900;color:var(--g1);margin-bottom:8px">FisioEvolução</div>';
     c+='<div style="font-size:17px;font-weight:800;color:var(--sl)">'+esc(p.nome)+'</div>';
-    if(p.diagnostico)c+='<div style="font-size:13px;color:var(--sl3);margin-top:3px">'+esc(p.diagnostico)+(p.cid?' · <strong style="color:var(--g1)">'+esc(p.cid)+'</strong>':'')+'</div>';
+    if(p.diagnostico)c+='<div style="font-size:13px;color:var(--sl3);margin-top:3px">'+esc(p.diagnostico)+(p.cid?' · <strong style="color:var(--g1)">'+esc(p.cid)+'</strong>'+((p.cidNome||cidDesc(p.cid))?' — '+esc(p.cidNome||cidDesc(p.cid)):''):'')+'</div>';
     if(p.dataNasc)c+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">Nasc: '+esc(p.dataNasc)+'</div>';
     c+='<div style="font-size:11px;color:var(--sl3);margin-top:6px">'+evos.length+' evolução(ões) · Gerado em '+dtGer+'</div>';
     c+='</div>';
@@ -2217,9 +2326,9 @@ function mPaciente(pac){
   h+='</select></div>';
   h+='<div class="fr"><div class="fg"><label>Nascimento</label><input class="fi" type="text" id="mp-nasc" value="'+esc(p.dataNasc)+'" placeholder="DD/MM/AAAA" maxlength="10" oninput="mData(this)"/></div>';
   h+='<div class="fg"><label>Diagnóstico</label><input class="fi" type="text" id="mp-diag" value="'+esc(p.diagnostico)+'"/></div></div>';
-  h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="mp-cid" value="'+esc(p.cid||'')+'" placeholder="Ex: M54.5 — digite para buscar" oninput="buscarCid(this.value)"/>';
+  h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="mp-cid" value="'+esc(p.cid?(p.cid+((p.cidNome||cidDesc(p.cid))?' — '+(p.cidNome||cidDesc(p.cid)):'')):'')+'" placeholder="Ex: M54.5 — digite para buscar" oninput="buscarCid(this.value)"/>';
   h+='<div id="cid-sugest" style="display:none;background:var(--card);border:1px solid var(--borda);border-radius:8px;max-height:180px;overflow-y:auto;position:relative;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>';
-  h+='<div id="cid-nome" style="font-size:12px;color:var(--g1);font-weight:600;margin-top:3px">'+esc(p.cidNome||'')+'</div></div>';
+  h+='</div>';
   h+='<div class="fg"><label>Descrição diagnóstica livre</label><input class="fi" type="text" id="mp-cid-livre" value="'+esc(p.cidLivre||'')+'" placeholder="Para diagnósticos não listados no CID ou complemento"/></div>';
   h+='<div class="fr"><div class="fg"><label>Telefone</label><input class="fi" type="tel" id="mp-tel" value="'+esc(p.telefone)+'" placeholder="(00) 0000-0000" maxlength="15" oninput="mTel(this)"/></div>';
   h+='<div class="fg"><label>Celular</label><input class="fi" type="tel" id="mp-cel" value="'+esc(p.celular||'')+'" placeholder="(00) 00000-0000" maxlength="15" oninput="mTel(this)"/></div></div>';
@@ -2236,9 +2345,9 @@ function mPaciente(pac){
   h+='<button type="button" class="btn btn-sm '+(p.pacote?'btn-s':'btn-p')+'" id="pac-nao" onclick="togglePacote(false)">Não</button>';
   h+='</div></div>';
   h+='<div id="pac-wrap" style="display:'+(p.pacote?'block':'none')+'">';
-  h+='<div class="fg"><label>Total de sessoes vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
+  h+='<div class="fg"><label>Total de sessões vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
   h+='<div class="fg"><label>Data de inicio</label>'+criarCampoData('mp-pacote-ini', p.pacoteIni||'', 'Selecionar data')+'</div>';
-  h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessoes realizadas sao contadas automaticamente pela agenda.</div>';
+  h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessões realizadas são contadas automaticamente pela agenda.</div>';
   h+='</div></div>';
 
   if(D.cfg.usarAnamnese&&p.id){h+='<div class="card" style="border-color:var(--g3);background:var(--g4);margin-bottom:10px"><div style="font-size:12px;color:var(--sl2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg> Para preencher a <strong>Anamnese completa</strong> (queixa, medicamentos, exames, avaliação física), salve e acesse a aba <strong>Anamnese</strong> no perfil do paciente.</div></div>';}
@@ -2253,8 +2362,7 @@ function salvarPaciente(){
   // Verificar duplicado (apenas no cadastro novo)
   if(!pid){var dup=D.pacientes.find(function(p){return p.nome.toLowerCase().trim()===nome.toLowerCase().trim();});if(dup){if(!confirm('Já existe um paciente com o nome "'+dup.nome+'". Deseja cadastrar mesmo assim?'))return;}}
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
-  var cidCod=el('mp-cid')?el('mp-cid').value.trim():'';
-  var cidNome=el('cid-nome')?el('cid-nome').textContent.trim():'';
+  var _pc=parseCid(el('mp-cid')?el('mp-cid').value:'');var cidCod=_pc.cod;var cidNome=_pc.nome;
   var cidLivre=el('mp-cid-livre')?el('mp-cid-livre').value.trim():'';
   var dados={nome:nome,dataNasc:el('mp-nasc').value,telefone:el('mp-tel').value,celular:el('mp-cel').value,diagnostico:el('mp-diag').value,obs:el('mp-obs').value,rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade').value,bairro:el('mp-bairro').value,numero:el('mp-numero').value,tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,cidLivre:cidLivre,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
@@ -2277,119 +2385,130 @@ function delPaciente(pid){
 // ── Evolução ─────────────────────────────────────────────────────
 var CID10=[
   // Coluna e dor
-  {c:'M54.5',n:'Dor lombar inespecifica'},{c:'M54.4',n:'Lumbago com ciatica'},
-  {c:'M54.3',n:'Ciatica'},{c:'M54.2',n:'Cervicalgia'},{c:'M54.1',n:'Radiculopatia'},
-  {c:'M54.6',n:'Dor na coluna toracica'},{c:'M54.0',n:'Paniculite afetando pescoco e dorso'},
-  {c:'M51.1',n:'Hernia de disco lombar com radiculopatia'},{c:'M51.0',n:'Hernia de disco lombar com mielopatia'},
-  {c:'M50.0',n:'Hernia de disco cervical com mielopatia'},{c:'M50.1',n:'Hernia de disco cervical com radiculopatia'},
+  {c:'M54.5',n:'Dor lombar inespecífica'},{c:'M54.4',n:'Lumbago com ciática'},
+  {c:'M54.3',n:'Ciática'},{c:'M54.2',n:'Cervicalgia'},{c:'M54.1',n:'Radiculopatia'},
+  {c:'M54.6',n:'Dor na coluna torácica'},{c:'M54.0',n:'Paniculite afetando pescoço e dorso'},
+  {c:'M51.1',n:'Hérnia de disco lombar com radiculopatia'},{c:'M51.0',n:'Hérnia de disco lombar com mielopatia'},
+  {c:'M50.0',n:'Hérnia de disco cervical com mielopatia'},{c:'M50.1',n:'Hérnia de disco cervical com radiculopatia'},
   {c:'M47.8',n:'Espondilose com radiculopatia'},{c:'M47.1',n:'Espondilose com mielopatia'},
-  {c:'M48.0',n:'Estenose espinal'},{c:'M43.1',n:'Espondilolistese'},{c:'M43.0',n:'Espondilolise'},
+  {c:'M48.0',n:'Estenose espinal'},{c:'M43.1',n:'Espondilolistese'},{c:'M43.0',n:'Espondilólise'},
   {c:'M41',n:'Escoliose'},{c:'M40.0',n:'Cifose postural'},{c:'M40.4',n:'Lordose'},
   // Ombro
-  {c:'M75.0',n:'Capsulite adesiva do ombro (ombro congelado)'},{c:'M75.1',n:'Sindrome do manguito rotador / impacto'},
+  {c:'M75.0',n:'Capsulite adesiva do ombro (ombro congelado)'},{c:'M75.1',n:'Síndrome do manguito rotador / impacto'},
   {c:'M75.2',n:'Tendinite bicipital'},{c:'M75.3',n:'Tendinite calcificante do ombro'},
-  {c:'M75.5',n:'Bursite do ombro'},{c:'M75.8',n:'Outras lesoes do ombro'},
+  {c:'M75.5',n:'Bursite do ombro'},{c:'M75.8',n:'Outras lesões do ombro'},
   // Cotovelo
   {c:'M77.0',n:'Epicondilite medial (cotovelo do golfista)'},{c:'M77.1',n:'Epicondilite lateral (cotovelo do tenista)'},
-  {c:'M70.2',n:'Bursite do olecrano'},
+  {c:'M70.2',n:'Bursite do olécrano'},
   // Punho e mao
-  {c:'G56.0',n:'Sindrome do tunel do carpo'},{c:'G56.2',n:'Lesao do nervo ulnar no punho'},
+  {c:'G56.0',n:'Síndrome do túnel do carpo'},{c:'G56.2',n:'Lesão do nervo ulnar no punho'},
   {c:'M65.3',n:'Dedo em gatilho (tenossinovite estenosante)'},{c:'M65.4',n:'Tenossinovite de De Quervain'},
   {c:'M18',n:'Osteoartrose carpometacarpal'},
   // Quadril
   {c:'M16.0',n:'Coxartrose bilateral'},{c:'M16.1',n:'Coxartrose unilateral'},
-  {c:'M70.6',n:'Bursite trocanterica'},{c:'M76.1',n:'Tendinite do iliopsoas'},{c:'M76.0',n:'Tendinite glutea'},
+  {c:'M70.6',n:'Bursite trocantérica'},{c:'M76.1',n:'Tendinite do iliopsoas'},{c:'M76.0',n:'Tendinite glútea'},
   // Joelho
   {c:'M17.0',n:'Gonartrose bilateral'},{c:'M17.1',n:'Gonartrose unilateral'},
-  {c:'M22.2',n:'Condromalacia patelar'},{c:'M22.0',n:'Deslocamento recidivante da patela'},
-  {c:'M76.5',n:'Tendinite patelar (joelho do saltador)'},{c:'M76.3',n:'Sindrome da banda iliotibial'},
-  {c:'M70.4',n:'Bursite pre-patelar'},{c:'M70.5',n:'Outras bursites do joelho'},
-  {c:'M23.2',n:'Lesao meniscal por laceracao'},{c:'M23.6',n:'Outros desarranjos do joelho'},
+  {c:'M22.2',n:'Condromalácia patelar'},{c:'M22.0',n:'Deslocamento recidivante da patela'},
+  {c:'M76.5',n:'Tendinite patelar (joelho do saltador)'},{c:'M76.3',n:'Síndrome da banda iliotibial'},
+  {c:'M70.4',n:'Bursite pré-patelar'},{c:'M70.5',n:'Outras bursites do joelho'},
+  {c:'M23.2',n:'Lesão meniscal por laceração'},{c:'M23.6',n:'Outros desarranjos do joelho'},
   // Tornozelo e pe
-  {c:'M79.3',n:'Fascite plantar'},{c:'M76.6',n:'Tendinopatia do calcaneo (Aquiles)'},
-  {c:'M77.5',n:'Esporao calcaneo'},{c:'M20.1',n:'Hallux valgus (joanete)'},{c:'M20.2',n:'Hallux rigidus'},
+  {c:'M79.3',n:'Fascite plantar'},{c:'M76.6',n:'Tendinopatia do calcâneo (Aquiles)'},
+  {c:'M77.5',n:'Esporão calcâneo'},{c:'M20.1',n:'Hallux valgus (joanete)'},{c:'M20.2',n:'Hallux rigidus'},
   // Articulacoes e artrites
   {c:'M05',n:'Artrite reumatoide soropositiva'},{c:'M06.0',n:'Artrite reumatoide soronegativa'},
-  {c:'M08',n:'Artrite juvenil'},{c:'M10.0',n:'Gota primaria'},{c:'M15',n:'Poliartrose'},
-  {c:'M19.0',n:'Osteoartrose primaria'},{c:'M25.5',n:'Dor articular'},{c:'M25.3',n:'Instabilidade articular'},
+  {c:'M08',n:'Artrite juvenil'},{c:'M10.0',n:'Gota primária'},{c:'M15',n:'Poliartrose'},
+  {c:'M19.0',n:'Osteoartrose primária'},{c:'M25.5',n:'Dor articular'},{c:'M25.3',n:'Instabilidade articular'},
   // Tecidos moles
   {c:'M60.9',n:'Miosite'},{c:'M62.5',n:'Atrofia e desgaste muscular'},{c:'M62.4',n:'Contratura muscular'},
-  {c:'M62.0',n:'Diastase muscular'},{c:'M65.9',n:'Sinovite e tenossinovite'},
-  {c:'M66',n:'Ruptura de sinovio e tendao'},{c:'M71.3',n:'Cisto de Baker'},
-  {c:'M72.2',n:'Fibromatose da fascia plantar'},{c:'M79.0',n:'Reumatismo nao especificado'},
+  {c:'M62.0',n:'Diástase muscular'},{c:'M65.9',n:'Sinovite e tenossinovite'},
+  {c:'M66',n:'Ruptura de sinóvia e tendão'},{c:'M71.3',n:'Cisto de Baker'},
+  {c:'M72.2',n:'Fibromatose da fáscia plantar'},{c:'M79.0',n:'Reumatismo não especificado'},
   {c:'M79.1',n:'Mialgia e dor miofascial'},{c:'M79.2',n:'Nevralgia e neurite'},{c:'M79.7',n:'Fibromialgia'},
   // Ossos e osteoporose
-  {c:'M80.0',n:'Osteoporose pos-menopausa com fratura'},{c:'M81.0',n:'Osteoporose pos-menopausa'},
-  {c:'M81.5',n:'Osteoporose idiopatica'},{c:'M85.8',n:'Osteopenia'},{c:'M84.4',n:'Fratura por estresse'},
+  {c:'M80.0',n:'Osteoporose pós-menopausa com fratura'},{c:'M81.0',n:'Osteoporose pós-menopausa'},
+  {c:'M81.5',n:'Osteoporose idiopática'},{c:'M85.8',n:'Osteopenia'},{c:'M84.4',n:'Fratura por estresse'},
   // Fraturas
-  {c:'S12',n:'Fratura da coluna cervical'},{c:'S22',n:'Fratura de costela e coluna toracica'},
+  {c:'S12',n:'Fratura da coluna cervical'},{c:'S22',n:'Fratura de costela e coluna torácica'},
   {c:'S32',n:'Fratura da coluna lombar e pelve'},
-  {c:'S42.0',n:'Fratura da clavicula'},{c:'S42.2',n:'Fratura proximal do umero'},{c:'S42.3',n:'Fratura da diafise do umero'},
-  {c:'S52.0',n:'Fratura da cabeca do radio'},{c:'S52.5',n:'Fratura do radio distal (Colles)'},
-  {c:'S62',n:'Fratura do punho e mao'},
-  {c:'S72.0',n:'Fratura do colo do femur'},{c:'S72.1',n:'Fratura pertrocanterica'},{c:'S72.3',n:'Fratura da diafise do femur'},
+  {c:'S42.0',n:'Fratura da clavícula'},{c:'S42.2',n:'Fratura proximal do úmero'},{c:'S42.3',n:'Fratura da diáfise do úmero'},
+  {c:'S52.0',n:'Fratura da cabeça do rádio'},{c:'S52.5',n:'Fratura do rádio distal (Colles)'},
+  {c:'S62',n:'Fratura do punho e mão'},
+  {c:'S72.0',n:'Fratura do colo do fêmur'},{c:'S72.1',n:'Fratura pertrocantérica'},{c:'S72.3',n:'Fratura da diáfise do fêmur'},
   {c:'S82.0',n:'Fratura da patela'},{c:'S82.1',n:'Fratura do platô tibial'},{c:'S82.6',n:'Fratura do maléolo lateral'},
-  {c:'S92.0',n:'Fratura do calcaneo'},
+  {c:'S92.0',n:'Fratura do calcâneo'},
   // Entorses e luxacoes
-  {c:'S43.0',n:'Luxacao do ombro'},{c:'S53.0',n:'Luxacao do cotovelo'},{c:'S73.0',n:'Luxacao do quadril'},
-  {c:'S83.0',n:'Luxacao da patela'},{c:'S83.2',n:'Lesao meniscal traumatica'},
-  {c:'S83.5',n:'Lesao do ligamento cruzado anterior (LCA)'},
-  {c:'S83.4',n:'Lesao do ligamento colateral do joelho'},
-  {c:'S93.0',n:'Luxacao do tornozelo'},{c:'S93.4',n:'Entorse do tornozelo'},
+  {c:'S43.0',n:'Luxação do ombro'},{c:'S53.0',n:'Luxação do cotovelo'},{c:'S73.0',n:'Luxação do quadril'},
+  {c:'S83.0',n:'Luxação da patela'},{c:'S83.2',n:'Lesão meniscal traumática'},
+  {c:'S83.5',n:'Lesão do ligamento cruzado anterior (LCA)'},
+  {c:'S83.4',n:'Lesão do ligamento colateral do joelho'},
+  {c:'S93.0',n:'Luxação do tornozelo'},{c:'S93.4',n:'Entorse do tornozelo'},
   // Neurologico
-  {c:'G20',n:'Doenca de Parkinson'},{c:'G21',n:'Parkinsonismo secundario'},
-  {c:'G35',n:'Esclerose multipla'},{c:'G10',n:'Doenca de Huntington'},
-  {c:'G11',n:'Ataxia hereditaria'},{c:'G12.2',n:'Doenca do neurônio motor (ELA)'},
-  {c:'G30',n:'Doenca de Alzheimer'},{c:'G40',n:'Epilepsia'},
-  {c:'G50.0',n:'Neuralgia do trigemeo'},{c:'G51.0',n:'Paralisia de Bell (facial)'},
-  {c:'G54.2',n:'Lesao das raizes cervicais'},{c:'G54.4',n:'Lesao das raizes lombossacrais'},
-  {c:'G56.1',n:'Lesao do nervo mediano'},{c:'G56.3',n:'Lesao do nervo radial'},
-  {c:'G57.0',n:'Lesao do nervo ciatico'},{c:'G57.1',n:'Meralgia parestesica'},
-  {c:'G57.2',n:'Lesao do nervo femoral'},{c:'G57.5',n:'Sindrome do tunel do tarso'},
-  {c:'G58',n:'Outras mononeuropatias'},{c:'G60',n:'Neuropatia hereditaria e idiopatica'},
-  {c:'G61.0',n:'Sindrome de Guillain-Barre'},{c:'G70.0',n:'Miastenia gravis'},
-  {c:'G71.0',n:'Distrofia muscular'},{c:'G71.2',n:'Miopatias congenitas'},
-  {c:'G80.0',n:'Paralisia cerebral espastica quadriplegica'},{c:'G80.1',n:'Paralisia cerebral espastica diplegica'},
-  {c:'G80.2',n:'Paralisia cerebral espastica hemiplegica'},{c:'G80.3',n:'Paralisia cerebral discinética'},
-  {c:'G81.0',n:'Hemiplegia flacida'},{c:'G81.1',n:'Hemiplegia espastica'},
-  {c:'G82.0',n:'Paraplegia flacida'},{c:'G82.1',n:'Paraplegia espastica'},
-  {c:'G82.3',n:'Tetraplegia flacida'},{c:'G82.4',n:'Tetraplegia espastica'},
-  {c:'G83.2',n:'Diplegia dos membros superiores'},{c:'G89.2',n:'Dor cronica'},
+  {c:'G20',n:'Doença de Parkinson'},{c:'G21',n:'Parkinsonismo secundário'},
+  {c:'G35',n:'Esclerose múltipla'},{c:'G10',n:'Doença de Huntington'},
+  {c:'G11',n:'Ataxia hereditária'},{c:'G12.2',n:'Doença do neurônio motor (ELA)'},
+  {c:'G30',n:'Doença de Alzheimer'},{c:'G40',n:'Epilepsia'},
+  {c:'G50.0',n:'Neuralgia do trigêmeo'},{c:'G51.0',n:'Paralisia de Bell (facial)'},
+  {c:'G54.2',n:'Lesão das raízes cervicais'},{c:'G54.4',n:'Lesão das raízes lombossacrais'},
+  {c:'G56.1',n:'Lesão do nervo mediano'},{c:'G56.3',n:'Lesão do nervo radial'},
+  {c:'G57.0',n:'Lesão do nervo ciático'},{c:'G57.1',n:'Meralgia parestésica'},
+  {c:'G57.2',n:'Lesão do nervo femoral'},{c:'G57.5',n:'Síndrome do túnel do tarso'},
+  {c:'G58',n:'Outras mononeuropatias'},{c:'G60',n:'Neuropatia hereditária e idiopática'},
+  {c:'G61.0',n:'Síndrome de Guillain-Barré'},{c:'G70.0',n:'Miastenia gravis'},
+  {c:'G71.0',n:'Distrofia muscular'},{c:'G71.2',n:'Miopatias congênitas'},
+  {c:'G80.0',n:'Paralisia cerebral espástica quadriplégica'},{c:'G80.1',n:'Paralisia cerebral espástica diplégica'},
+  {c:'G80.2',n:'Paralisia cerebral espástica hemiplégica'},{c:'G80.3',n:'Paralisia cerebral discinética'},
+  {c:'G81.0',n:'Hemiplegia flácida'},{c:'G81.1',n:'Hemiplegia espástica'},
+  {c:'G82.0',n:'Paraplegia flácida'},{c:'G82.1',n:'Paraplegia espástica'},
+  {c:'G82.3',n:'Tetraplegia flácida'},{c:'G82.4',n:'Tetraplegia espástica'},
+  {c:'G83.2',n:'Diplegia dos membros superiores'},{c:'G89.2',n:'Dor crônica'},
   // AVC e cardiovascular
-  {c:'I60',n:'Hemorragia subaracnoidea'},{c:'I61',n:'Hemorragia intracerebral'},
-  {c:'I63',n:'Infarto cerebral (AVC isquemico)'},{c:'I64',n:'AVC nao especificado'},
-  {c:'I69.3',n:'Sequelas de infarto cerebral'},{c:'I73.9',n:'Doenca vascular periferica'},
+  {c:'I60',n:'Hemorragia subaracnóidea'},{c:'I61',n:'Hemorragia intracerebral'},
+  {c:'I63',n:'Infarto cerebral (AVC isquêmico)'},{c:'I64',n:'AVC não especificado'},
+  {c:'I69.3',n:'Sequelas de infarto cerebral'},{c:'I73.9',n:'Doença vascular periférica'},
   // Respiratorio
-  {c:'J43',n:'Enfisema pulmonar'},{c:'J44.0',n:'DPOC com infeccao'},{c:'J44.1',n:'DPOC com exacerbacao'},
-  {c:'J45.0',n:'Asma alergica'},{c:'J45.1',n:'Asma nao alergica'},
-  {c:'J96',n:'Insuficiencia respiratoria'},{c:'J98.1',n:'Atelectasia'},
+  {c:'J43',n:'Enfisema pulmonar'},{c:'J44.0',n:'DPOC com infecção'},{c:'J44.1',n:'DPOC com exacerbação'},
+  {c:'J45.0',n:'Asma alérgica'},{c:'J45.1',n:'Asma não alérgica'},
+  {c:'J96',n:'Insuficiência respiratória'},{c:'J98.1',n:'Atelectasia'},
   // Pediatrico e desenvolvimento
-  {c:'F80',n:'Transtorno do desenvolvimento da fala'},{c:'F82',n:'Transtorno especifico do desenvolvimento motor'},
-  {c:'F84.0',n:'Autismo infantil'},{c:'F84.5',n:'Sindrome de Asperger'},
-  {c:'F90.0',n:'TDAH'},{c:'Q05.9',n:'Espinha bifida'},
-  {c:'Q66.0',n:'Pe torto equinovaro congenito'},{c:'Q66.5',n:'Pe plano congenito'},
-  {c:'Q71',n:'Defeitos por reducao do membro superior'},{c:'Q72',n:'Defeitos por reducao do membro inferior'},
-  {c:'P11.5',n:'Lesao do plexo braquial ao nascer (Erb-Duchenne)'},
+  {c:'F80',n:'Transtorno do desenvolvimento da fala'},{c:'F82',n:'Transtorno específico do desenvolvimento motor'},
+  {c:'F84.0',n:'Autismo infantil'},{c:'F84.5',n:'Síndrome de Asperger'},
+  {c:'F90.0',n:'TDAH'},{c:'Q05.9',n:'Espinha bífida'},
+  {c:'Q66.0',n:'Pé torto equinovaro congênito'},{c:'Q66.5',n:'Pé plano congênito'},
+  {c:'Q71',n:'Defeitos por redução do membro superior'},{c:'Q72',n:'Defeitos por redução do membro inferior'},
+  {c:'P11.5',n:'Lesão do plexo braquial ao nascer (Erb-Duchenne)'},
   // Oncologico e pos-cirurgico
-  {c:'C79.5',n:'Metastase ossea'},{c:'C41',n:'Neoplasia maligna dos ossos'},
-  {c:'Z96.6',n:'Presenca de protese ortopedica (joelho/quadril)'},
-  {c:'Z47.0',n:'Acompanhamento apos retirada de fixador externo'},
-  {c:'T84.0',n:'Complicacao mecanica de protese articular'},
+  {c:'C79.5',n:'Metástase óssea'},{c:'C41',n:'Neoplasia maligna dos ossos'},
+  {c:'Z96.6',n:'Presença de prótese ortopédica (joelho/quadril)'},
+  {c:'Z47.0',n:'Acompanhamento após retirada de fixador externo'},
+  {c:'T84.0',n:'Complicação mecânica de prótese articular'},
   // Sintomas e outros
-  {c:'R51',n:'Cefaleia'},{c:'R25.2',n:'Caimbra e espasmo muscular'},
-  {c:'R26.0',n:'Marcha ataxica'},{c:'R26.1',n:'Marcha paralitica'},{c:'R26.8',n:'Anormalidades da marcha'},
-  {c:'R29.3',n:'Postura anormal'},{c:'H81.1',n:'VPPB (vertigem posicional paroxistica benigna)'},
-  {c:'H81.3',n:'Labirintite / outras vertigens perifericas'},
-  {c:'M96.1',n:'Sindrome pos-laminectomia'},{c:'G54.6',n:'Sindrome do membro fantasma com dor'},
+  {c:'R51',n:'Cefaleia'},{c:'R25.2',n:'Cãibra e espasmo muscular'},
+  {c:'R26.0',n:'Marcha atáxica'},{c:'R26.1',n:'Marcha paralítica'},{c:'R26.8',n:'Anormalidades da marcha'},
+  {c:'R29.3',n:'Postura anormal'},{c:'H81.1',n:'VPPB (vertigem posicional paroxística benigna)'},
+  {c:'H81.3',n:'Labirintite / outras vertigens periféricas'},
+  {c:'M96.1',n:'Síndrome pós-laminectomia'},{c:'G54.6',n:'Síndrome do membro fantasma com dor'},
   {c:'M81',n:'Osteoporose'},{c:'M06',n:'Artrite reumatoide'},
-  {c:'M62.5',n:'Atrofia muscular'},{c:'R26',n:'Disturbio da marcha'},
+  {c:'R26',n:'Distúrbio da marcha'},
+  // --- Expansao fisioterapia (v1.035) ---
+  {c:'M17',n:'Gonartrose (artrose do joelho)'},{c:'M16',n:'Coxartrose (artrose do quadril)'},{c:'M19',n:'Artrose de outras articulações'},{c:'M23',n:'Transtorno interno do joelho (lesão meniscal)'},{c:'M22.4',n:'Condromalácia da patela'},{c:'M25.6',n:'Rigidez articular NCOP'},{c:'M24.5',n:'Contratura articular'},{c:'M62.8',n:'Encurtamento/outros transtornos musculares'},{c:'M79.6',n:'Dor em membro'},{c:'M65',n:'Sinovite e tenossinovite'},{c:'M67.4',n:'Cisto sinovial (gânglio)'},{c:'M77.3',n:'Esporão do calcâneo'},{c:'M75.4',n:'Síndrome do impacto do ombro'},{c:'M53',n:'Outras dorsopatias'},{c:'M53.1',n:'Síndrome cervicobraquial'},{c:'M99',n:'Lesões biomecânicas NCOP'},{c:'M10',n:'Gota'},{c:'M45',n:'Espondilite anquilosante'},{c:'M21',n:'Deformidade adquirida de membro'},{c:'M96',n:'Transtorno pós-procedimento (pós-operatório)'},{c:'M62.84',n:'Sarcopenia'},{c:'G80',n:'Paralisia cerebral'},{c:'G82',n:'Paraplegia e tetraplegia'},{c:'G70',n:'Miastenia gravis'},{c:'G54',n:'Transtornos de raízes e plexos nervosos'},{c:'G62',n:'Polineuropatia'},{c:'G62.9',n:'Polineuropatia NE'},{c:'G57',n:'Mononeuropatia de membro inferior'},{c:'I69',n:'Sequelas de doença cerebrovascular'},{c:'I73',n:'Doença vascular periférica'},{c:'I89.0',n:'Linfedema NCOP'},{c:'J44',n:'DPOC'},{c:'J45',n:'Asma'},{c:'J18',n:'Pneumonia'},{c:'J47',n:'Bronquiectasia'},{c:'J84',n:'Doença pulmonar intersticial'},{c:'S72',n:'Fratura do fêmur'},{c:'S82',n:'Fratura da perna/tornozelo'},{c:'S52',n:'Fratura do antebraço'},{c:'S42',n:'Fratura do ombro e braço'},{c:'S46',n:'Lesão de tendão do manguito rotador'},{c:'S06',n:'Traumatismo cranioencefálico'},{c:'S13',n:'Entorse cervical'},{c:'S33',n:'Entorse lombar'},{c:'T84',n:'Complicação de prótese ortopédica interna'},{c:'T92',n:'Sequelas de trauma de membro superior'},{c:'T93',n:'Sequelas de trauma de membro inferior'},{c:'R26.2',n:'Dificuldade para andar NCOP'},{c:'R29.6',n:'Tendência a quedas'},{c:'R54',n:'Senilidade'},{c:'Q65',n:'Deformidade congênita do quadril'},{c:'Q66',n:'Deformidade congênita do pé (pé torto)'},{c:'P14',n:'Lesão do plexo braquial no nascimento (Erb)'},{c:'N39.3',n:'Incontinência urinária de esforço'},{c:'N39.4',n:'Outra incontinência urinária'},{c:'R32',n:'Incontinência urinária NE'},{c:'N81',n:'Prolapso genital feminino'},{c:'Z98.8',n:'Outros estados pós-cirúrgicos'},{c:'Z89',n:'Ausência adquirida de membro (amputação)'},{c:'Z50.1',n:'Outra fisioterapia'},{c:'E11',n:'Diabetes mellitus tipo 2'},{c:'M14.6',n:'Artropatia neuropática'},
+
 ];
+function normCid(t){return (t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 function buscarCid(q){
   var sugest=el('cid-sugest');if(!sugest)return;
   q=(q||'').trim();
   if(!q){sugest.style.display='none';return;}
-  var qu=q.toUpperCase();var ql=q.toLowerCase();
-  var res=CID10.filter(function(c){return c.c.indexOf(qu)>-1||c.n.toLowerCase().indexOf(ql)>-1;}).slice(0,8);
+  var qn=normCid(q);
+  var res=CID10.filter(function(c){return normCid(c.c).indexOf(qn)>-1||normCid(c.n).indexOf(qn)>-1;});
+  res.sort(function(a,b){
+    var ap=(normCid(a.c).indexOf(qn)===0||normCid(a.n).indexOf(qn)===0)?0:1;
+    var bp=(normCid(b.c).indexOf(qn)===0||normCid(b.n).indexOf(qn)===0)?0:1;
+    if(ap!==bp)return ap-bp;
+    return a.n.localeCompare(b.n,'pt');
+  });
+  res=res.slice(0,12);
   if(!res.length){sugest.style.display='none';return;}
   sugest.innerHTML='';sugest.style.display='block';
   res.forEach(function(c){
@@ -2400,9 +2519,10 @@ function buscarCid(q){
     sugest.appendChild(div);
   });
 }
+function cidDesc(cod){if(!cod)return '';var f=CID10.find(function(x){return x.c===cod;});return f?f.n:'';}
+function parseCid(val){val=(val||'').trim();var i=val.indexOf(' — ');if(i>=0){return {cod:val.slice(0,i).trim(),nome:val.slice(i+3).trim()};}return {cod:val,nome:cidDesc(val)};}
 function selecionarCid(cod,nome){
-  var inp=el('mp-cid')||el('ed-cid');if(inp)inp.value=cod;
-  var nm=el('cid-nome');if(nm)nm.textContent=nome;
+  var inp=el('mp-cid')||el('ed-cid');if(inp)inp.value=cod+' — '+nome;
   var sugest=el('cid-sugest');if(sugest)sugest.style.display='none';
 }
 
@@ -2411,18 +2531,18 @@ var ESCALAS_DB={
   fragilidade:[
     {
       id:'cfs',nome:'Clinical Frailty Scale (CFS)',cat:'Frágilidade e Geriatria',
-      descricao:'Escala rapida de 1 a 9 para avaliação de fragilidade em idosos.',
+      descricao:'Escala rápida de 1 a 9 para avaliação de fragilidade em idosos.',
       aplicacao:'Observe o paciente e selecione a categoria que melhor descreve seu estado atual. Leva menos de 2 minutos.',
-      campos:[{tipo:'radio',id:'cfs',label:'Nivel de fragilidade',ops:[
-        {v:1,l:'1 — Muito ativo: robusto, ativo, energico e motivado'},
-        {v:2,l:'2 — Bem: sem doença ativa, menos ativo que nivel 1'},
+      campos:[{tipo:'radio',id:'cfs',label:'Nível de fragilidade',ops:[
+        {v:1,l:'1 — Muito ativo: robusto, ativo, enérgico e motivado'},
+        {v:2,l:'2 — Bem: sem doença ativa, menos ativo que nível 1'},
         {v:3,l:'3 — Bem com doença tratada: doença bem controlada'},
-        {v:4,l:'4 — Vulneravel: lento ou cansado, sem dependencia'},
-        {v:5,l:'5 — Levemente fragil: dependencia leve em atividades instrumentais'},
-        {v:6,l:'6 — Moderadamente fragil: necessita ajuda em atividades basicas'},
-        {v:7,l:'7 — Gravemente fragil: completamente dependente'},
-        {v:8,l:'8 — Muito gravemente fragil: dependente, doença terminal'},
-        {v:9,l:'9 — Terminalidade: esperanca de vida < 6 meses'},
+        {v:4,l:'4 — Vulnerável: lento ou cansado, sem dependência'},
+        {v:5,l:'5 — Levemente frágil: dependência leve em atividades instrumentais'},
+        {v:6,l:'6 — Moderadamente frágil: necessita ajuda em atividades básicas'},
+        {v:7,l:'7 — Gravemente frágil: completamente dependente'},
+        {v:8,l:'8 — Muito gravemente frágil: dependente, doença terminal'},
+        {v:9,l:'9 — Terminalidade: esperança de vida < 6 meses'},
       ]}],
       refs:[
         {faixa:'1-2',interp:'Sem fragilidade'},
@@ -2438,7 +2558,7 @@ var ESCALAS_DB={
       aplicacao:'Faca as 5 perguntas ao paciente. Cada resposta positiva soma 1 ponto.',
       campos:[
         {tipo:'check',id:'f_fadiga',label:'Fadiga: você se sentiu cansado na maioria dos dias?'},
-        {tipo:'check',id:'f_resiste',label:'Resistencia: tem dificuldade em subir um lance de escadas?'},
+        {tipo:'check',id:'f_resiste',label:'Resistência: tem dificuldade em subir um lance de escadas?'},
         {tipo:'check',id:'f_aerobio',label:'Deambulacao: tem dificuldade em caminhar um quarteirão?'},
         {tipo:'check',id:'f_doenças',label:'Doenças: tem 5 ou mais das seguintes doenças? (HAS, DM, cancer, doença pulmonar, IAM, IC, AVC, artrite, doença renal)'},
         {tipo:'check',id:'f_perda',label:'Perda de peso: perdeu mais de 5% do peso no último ano?'},
@@ -2451,7 +2571,7 @@ var ESCALAS_DB={
     },
     {
       id:'sarcf',nome:'SARC-F',cat:'Frágilidade e Geriatria',
-      descricao:'Triagem de sarcopenia. Muito simples e otima para idosos. Pontuacao 0-10.',
+      descricao:'Triagem de sarcopenia. Muito simples e ótima para idosos. Pontuação 0-10.',
       aplicacao:'Faca as 5 perguntas ao paciente. Cada item pontua de 0 a 2.',
       campos:[
         {tipo:'radio3',id:'sf_forca',label:'Força: dificuldade em levantar ou carregar 4-5 kg?',ops:[{v:0,l:'Nenhuma'},{v:1,l:'Alguma'},{v:2,l:'Muita ou incapaz'}]},
@@ -2470,13 +2590,13 @@ var ESCALAS_DB={
     {
       id:'morse',nome:'Morse Fall Scale',cat:'Risco de Quedas',
       descricao:'Bastante utilizada em hospitais. Avalia 6 fatores de risco.',
-      aplicacao:'Avalie cada item e some os pontos. Aplicar na admissao e sempre que houver mudanca clinica.',
+      aplicacao:'Avalie cada item e some os pontos. Aplicar na admissão e sempre que houver mudança clínica.',
       campos:[
         {tipo:'radio',id:'ms_hist',label:'Histórico de quedas nos últimos 3 meses',ops:[{v:0,l:'0 — Não'},{v:25,l:'25 — Sim'}]},
         {tipo:'radio',id:'ms_diag',label:'Diagnóstico secundário',ops:[{v:0,l:'0 — Não'},{v:15,l:'15 — Sim'}]},
         {tipo:'radio',id:'ms_ambu',label:'Auxílio para deambulação',ops:[{v:0,l:'0 — Nenhum/acamado/cadeira de rodas'},{v:15,l:'15 — Muletas/bengala/andador'},{v:30,l:'30 — Apoia em mobiliário'}]},
         {tipo:'radio',id:'ms_iv',label:'Terapia intravenosa/heparina',ops:[{v:0,l:'0 — Não'},{v:20,l:'20 — Sim'}]},
-        {tipo:'radio',id:'ms_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal/acamado/imobil'},{v:10,l:'10 — Débil'},{v:20,l:'20 — Prejudicada'}]},
+        {tipo:'radio',id:'ms_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal/acamado/imóvel'},{v:10,l:'10 — Débil'},{v:20,l:'20 — Prejudicada'}]},
         {tipo:'radio',id:'ms_mental',label:'Estado mental',ops:[{v:0,l:'0 — Orientado'},{v:15,l:'15 — Superestima capacidade'}]},
       ],
       refs:[
@@ -2487,19 +2607,19 @@ var ESCALAS_DB={
     },
     {
       id:'downton',nome:'Downton Fall Risk Index',cat:'Risco de Quedas',
-      descricao:'Facil aplicacao. Avalia quedas previas, medicamentos, deficits e marcha.',
-      aplicacao:'Pontue cada item (0 ou 1). Pontuacao maxima = 11.',
+      descricao:'Fácil aplicação. Avalia quedas prévias, medicamentos, déficits e marcha.',
+      aplicacao:'Pontue cada item (0 ou 1). Pontuação máxima = 11.',
       campos:[
         {tipo:'check',id:'dt_queda',label:'Quedas prévias'},
         {tipo:'check',id:'dt_trans',label:'Uso de tranquilizantes/sedativos'},
         {tipo:'check',id:'dt_diur',label:'Uso de diuréticos'},
         {tipo:'check',id:'dt_anti',label:'Uso de anti-hipertensivos'},
         {tipo:'check',id:'dt_anal',label:'Uso de analgesicos'},
-        {tipo:'check',id:'dt_vision',label:'Deficit visual'},
-        {tipo:'check',id:'dt_audicao',label:'Deficit auditivo'},
-        {tipo:'check',id:'dt_membros',label:'Deficit de membros'},
+        {tipo:'check',id:'dt_vision',label:'Déficit visual'},
+        {tipo:'check',id:'dt_audicao',label:'Déficit auditivo'},
+        {tipo:'check',id:'dt_membros',label:'Déficit de membros'},
         {tipo:'check',id:'dt_mental',label:'Estado mental alterado'},
-        {tipo:'radio',id:'dt_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal'},{v:1,l:'1 — Com auxilio'},{v:1,l:'1 — Independente mas insegura'}]},
+        {tipo:'radio',id:'dt_marcha',label:'Marcha',ops:[{v:0,l:'0 — Normal'},{v:1,l:'1 — Com auxílio'},{v:1,l:'1 — Independente mas insegura'}]},
       ],
       refs:[
         {faixa:'0-2',interp:'Baixo risco'},
@@ -2510,10 +2630,10 @@ var ESCALAS_DB={
   mobilidade:[
     {
       id:'sppb',nome:'Short Physical Performance Battery (SPPB)',cat:'Mobilidade',
-      descricao:'Avalia equilibrio, marcha e sentar-levantar. Pontuacao 0-12.',
+      descricao:'Avalia equilíbrio, marcha e sentar-levantar. Pontuação 0-12.',
       aplicacao:'3 testes: 1) Equilibrio em 3 posicoes (tandem, semi-tandem, pes juntos) — 0-4 pts. 2) Velocidade da marcha em 4 metros — 0-4 pts. 3) Sentar e levantar 5x sem usar os bracos — 0-4 pts.',
       campos:[
-        {tipo:'radio',id:'sppb_eq',label:'Equilibrio (0-4)',ops:[{v:0,l:'0 — Incapaz de manter 10s em pes juntos'},{v:1,l:'1 — Pes juntos 10s, semi-tandem <10s'},{v:2,l:'2 — Semi-tandem 10s, tandem <3s'},{v:3,l:'3 — Tandem 3-9.99s'},{v:4,l:'4 — Tandem 10s'}]},
+        {tipo:'radio',id:'sppb_eq',label:'Equilíbrio (0-4)',ops:[{v:0,l:'0 — Incapaz de manter 10s em pés juntos'},{v:1,l:'1 — Pés juntos 10s, semi-tandem <10s'},{v:2,l:'2 — Semi-tandem 10s, tandem <3s'},{v:3,l:'3 — Tandem 3-9.99s'},{v:4,l:'4 — Tandem 10s'}]},
         {tipo:'radio',id:'sppb_marcha',label:'Velocidade da marcha 4m (0-4)',ops:[{v:0,l:'0 — Incapaz'},{v:1,l:'1 — >8.70s'},{v:2,l:'2 — 6.21-8.70s'},{v:3,l:'3 — 4.82-6.20s'},{v:4,l:'4 — <4.82s'}]},
         {tipo:'radio',id:'sppb_cadeira',label:'Sentar/levantar 5x (0-4)',ops:[{v:0,l:'0 — Incapaz ou >60s'},{v:1,l:'1 — 16.70-60s'},{v:2,l:'2 — 13.70-16.69s'},{v:3,l:'3 — 11.20-13.69s'},{v:4,l:'4 — <11.19s'}]},
       ],
@@ -2528,7 +2648,7 @@ var ESCALAS_DB={
       id:'frt',nome:'Functional Reach Test',cat:'Mobilidade',
       descricao:'Extremamente simples. Mede o alcance funcional anterior em cm.',
       aplicacao:'Posicione o paciente em pe ao lado de uma parede. Peca para elevar o braco a 90 graus e alcançar o maximo possivel para frente sem mover os pes. Meca a distancia em cm.',
-      campos:[{tipo:'numero',id:'frt_cm',label:'Distancia alcancada (cm)',min:0,max:60,placeholder:'Ex: 25'}],
+      campos:[{tipo:'numero',id:'frt_cm',label:'Distância alcançada (cm)',min:0,max:60,placeholder:'Ex: 25'}],
       refs:[
         {faixa:'<15 cm',interp:'Alto risco de queda'},
         {faixa:'15-25 cm',interp:'Moderado risco de queda'},
@@ -2539,15 +2659,15 @@ var ESCALAS_DB={
   qualidade:[
     {
       id:'eq5d',nome:'EQ-5D',cat:'Qualidade de Vida',
-      descricao:'Muito curto. 5 dimensoes + escala visual analogica de saude.',
-      aplicacao:'Avalie cada uma das 5 dimensoes. Depois peca ao paciente para marcar sua saude atual na escala 0-100.',
+      descricao:'Muito curto. 5 dimensões + escala visual analógica de saúde.',
+      aplicacao:'Avalie cada uma das 5 dimensões. Depois peça ao paciente para marcar sua saúde atual na escala 0-100.',
       campos:[
         {tipo:'radio3',id:'eq_mob',label:'Mobilidade',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Confinado ao leito'}]},
         {tipo:'radio3',id:'eq_auto',label:'Autocuidado',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Incapaz de lavar/vestir'}]},
         {tipo:'radio3',id:'eq_atv',label:'Atividades habituais',ops:[{v:1,l:'Sem problemas'},{v:2,l:'Problemas moderados'},{v:3,l:'Incapaz de realizar'}]},
         {tipo:'radio3',id:'eq_dor',label:'Dor/desconforto',ops:[{v:1,l:'Sem dor'},{v:2,l:'Dor/desconforto moderado'},{v:3,l:'Dor/desconforto extremo'}]},
-        {tipo:'radio3',id:'eq_anx',label:'Ansiedade/depressao',ops:[{v:1,l:'Sem ansiedade'},{v:2,l:'Ansiedade/depressao moderada'},{v:3,l:'Ansiedade/depressao extrema'}]},
-        {tipo:'range',id:'eq_eva',label:'Estado de saude hoje (0=pior, 100=melhor)',min:0,max:100,val:50},
+        {tipo:'radio3',id:'eq_anx',label:'Ansiedade/depressão',ops:[{v:1,l:'Sem ansiedade'},{v:2,l:'Ansiedade/depressão moderada'},{v:3,l:'Ansiedade/depressão extrema'}]},
+        {tipo:'range',id:'eq_eva',label:'Estado de saúde hoje (0=pior, 100=melhor)',min:0,max:100,val:50},
       ],
       refs:[
         {faixa:'EVA 80-100',interp:'Excelente qualidade de vida'},
@@ -2560,16 +2680,16 @@ var ESCALAS_DB={
   neurologico:[
     {
       id:'rankin',nome:'Modified Rankin Scale (mRS)',cat:'Neurologico',
-      descricao:'Muito utilizada por neurologistas. Avalia incapacidade apos AVC. Pontuacao 0-6.',
-      aplicacao:'Observe e entreviste o paciente. Selecione o nivel que melhor descreve o estado atual.',
-      campos:[{tipo:'radio',id:'mrs',label:'Nivel de incapacidade',ops:[
+      descricao:'Muito utilizada por neurologistas. Avalia incapacidade após AVC. Pontuação 0-6.',
+      aplicacao:'Observe e entreviste o paciente. Selecione o nível que melhor descreve o estado atual.',
+      campos:[{tipo:'radio',id:'mrs',label:'Nível de incapacidade',ops:[
         {v:0,l:'0 — Sem sintomas'},
         {v:1,l:'1 — Sem incapacidade significativa — atividades habituais preservadas'},
         {v:2,l:'2 — Incapacidade leve — incapaz de algumas atividades, independente'},
-        {v:3,l:'3 — Incapacidade moderada — necessita alguma ajuda, anda sem auxilio'},
-        {v:4,l:'4 — Incapacidade moderada a grave — incapaz de andar sem auxilio'},
+        {v:3,l:'3 — Incapacidade moderada — necessita alguma ajuda, anda sem auxílio'},
+        {v:4,l:'4 — Incapacidade moderada a grave — incapaz de andar sem auxílio'},
         {v:5,l:'5 — Incapacidade grave — acamado, incontinente, necessita cuidados'},
-        {v:6,l:'6 — Obito'},
+        {v:6,l:'6 — Óbito'},
       ]}],
       refs:[
         {faixa:'0-1',interp:'Sem incapacidade funcional relevante'},
@@ -2580,16 +2700,16 @@ var ESCALAS_DB={
     },
     {
       id:'rivermead',nome:'Rivermead Mobility Index',cat:'Neurologico',
-      descricao:'Facil aplicacao. Avalia mobilidade funcional. 15 itens (0-15).',
-      aplicacao:'Pergunte ou observe cada atividade. 1 ponto para cada item realizado. Item 5 requer observacao direta.',
+      descricao:'Fácil aplicação. Avalia mobilidade funcional. 15 itens (0-15).',
+      aplicacao:'Pergunte ou observe cada atividade. 1 ponto para cada item realizado. Item 5 requer observação direta.',
       campos:[
         {tipo:'check',id:'rv_virar',label:'Virar na cama'},
         {tipo:'check',id:'rv_dec',label:'Da deitado para sentado'},
-        {tipo:'check',id:'rv_eq_sent',label:'Equilibrio sentado (10s sem apoio)'},
-        {tipo:'check',id:'rv_sent_pe',label:'De sentado para em pe (<15s, pode usar as maos)'},
-        {tipo:'check',id:'rv_pe_obs',label:'Em pe (10s sem apoio) — OBSERVACAO DIRETA'},
-        {tipo:'check',id:'rv_tranf',label:'Transferencia cama-cadeira'},
-        {tipo:'check',id:'rv_andar_in',label:'Andar dentro de casa (com auxilio)'},
+        {tipo:'check',id:'rv_eq_sent',label:'Equilíbrio sentado (10s sem apoio)'},
+        {tipo:'check',id:'rv_sent_pe',label:'De sentado para em pé (<15s, pode usar as mãos)'},
+        {tipo:'check',id:'rv_pe_obs',label:'Em pé (10s sem apoio) — OBSERVAÇÃO DIRETA'},
+        {tipo:'check',id:'rv_tranf',label:'Transferência cama-cadeira'},
+        {tipo:'check',id:'rv_andar_in',label:'Andar dentro de casa (com auxílio)'},
         {tipo:'check',id:'rv_escadas',label:'Subir escadas'},
         {tipo:'check',id:'rv_andar_fo',label:'Andar fora de casa (terreno plano)'},
         {tipo:'check',id:'rv_banho',label:'Tomar banho (sem supervisao)'},
@@ -2609,17 +2729,17 @@ var ESCALAS_DB={
   qualidadeExtra:[
     {
       id:'whoqol',nome:'WHOQOL-BREF',cat:'Qualidade de Vida',
-      descricao:'Bastante conhecido. 26 questoes avaliando 4 dominios: fisico, psicologico, relacoes sociais e meio ambiente.',
-      aplicacao:'Peca ao paciente para avaliar cada questao de 1 a 5 considerando as ultimas 2 semanas. Quanto maior o escore, melhor a qualidade de vida.',
+      descricao:'Bastante conhecido. 26 questões avaliando 4 domínios: físico, psicológico, relações sociais e meio ambiente.',
+      aplicacao:'Peça ao paciente para avaliar cada questão de 1 a 5 considerando as últimas 2 semanas. Quanto maior o escore, melhor a qualidade de vida.',
       campos:[
-        {tipo:'radio3',id:'wq_saude',label:'Como voce avaliaria sua qualidade de vida?',ops:[{v:1,l:'Muito ruim'},{v:2,l:'Ruim'},{v:3,l:'Nem ruim nem boa'},{v:4,l:'Boa'},{v:5,l:'Muito boa'}]},
-        {tipo:'radio3',id:'wq_satisf',label:'Quao satisfeito(a) voce esta com a sua saude?',ops:[{v:1,l:'Muito insatisfeito'},{v:2,l:'Insatisfeito'},{v:3,l:'Nem satisfeito nem insatisfeito'},{v:4,l:'Satisfeito'},{v:5,l:'Muito satisfeito'}]},
+        {tipo:'radio3',id:'wq_saude',label:'Como você avaliaria sua qualidade de vida?',ops:[{v:1,l:'Muito ruim'},{v:2,l:'Ruim'},{v:3,l:'Nem ruim nem boa'},{v:4,l:'Boa'},{v:5,l:'Muito boa'}]},
+        {tipo:'radio3',id:'wq_satisf',label:'Quão satisfeito(a) você está com a sua saúde?',ops:[{v:1,l:'Muito insatisfeito'},{v:2,l:'Insatisfeito'},{v:3,l:'Nem satisfeito nem insatisfeito'},{v:4,l:'Satisfeito'},{v:5,l:'Muito satisfeito'}]},
         {tipo:'radio3',id:'wq_dor',label:'Em que medida sua dor impede suas atividades?',ops:[{v:5,l:'Nada'},{v:4,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:2,l:'Bastante'},{v:1,l:'Extremamente'}]},
-        {tipo:'radio3',id:'wq_trat',label:'O quanto precisa de tratamento medico para funcionar?',ops:[{v:5,l:'Nada'},{v:4,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:2,l:'Bastante'},{v:1,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_trat',label:'O quanto precisa de tratamento médico para funcionar?',ops:[{v:5,l:'Nada'},{v:4,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:2,l:'Bastante'},{v:1,l:'Extremamente'}]},
         {tipo:'radio3',id:'wq_vida',label:'O quanto aproveita a vida?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
         {tipo:'radio3',id:'wq_sentido',label:'Em que medida sente que sua vida tem sentido?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
         {tipo:'radio3',id:'wq_concentr',label:'O quanto consegue se concentrar?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
-        {tipo:'radio3',id:'wq_segur',label:'Quao seguro(a) se sente em sua vida diaria?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
+        {tipo:'radio3',id:'wq_segur',label:'Quão seguro(a) se sente em sua vida diária?',ops:[{v:1,l:'Nada'},{v:2,l:'Muito pouco'},{v:3,l:'Mais ou menos'},{v:4,l:'Bastante'},{v:5,l:'Extremamente'}]},
       ],
       refs:[
         {faixa:'> 75',interp:'Qualidade de vida boa a excelente'},
@@ -2631,17 +2751,17 @@ var ESCALAS_DB={
   neurologicoExtra:[
     {
       id:'glasgow',nome:'Escala de Glasgow (GCS)',cat:'Neurologico',
-      descricao:'Avalia nivel de consciencia em 3 dominios. Total 3-15 pontos.',
-      aplicacao:'Avalie abertura ocular, resposta verbal e resposta motora. Some os pontos. Quanto maior, melhor o nivel de consciencia.',
+      descricao:'Avalia nível de consciência em 3 domínios. Total 3-15 pontos.',
+      aplicacao:'Avalie abertura ocular, resposta verbal e resposta motora. Some os pontos. Quanto maior, melhor o nível de consciência.',
       campos:[
         {tipo:'radio',id:'gc_ocular',label:'Abertura Ocular',ops:[
-          {v:4,l:'4 — Espontanea'},{v:3,l:'3 — A voz'},{v:2,l:'2 — A dor'},{v:1,l:'1 — Ausente'}
+          {v:4,l:'4 — Espontânea'},{v:3,l:'3 — A voz'},{v:2,l:'2 — A dor'},{v:1,l:'1 — Ausente'}
         ]},
         {tipo:'radio',id:'gc_verbal',label:'Resposta Verbal',ops:[
-          {v:5,l:'5 — Orientado'},{v:4,l:'4 — Confuso'},{v:3,l:'3 — Palavras inapropriadas'},{v:2,l:'2 — Sons incompreensiveis'},{v:1,l:'1 — Ausente'}
+          {v:5,l:'5 — Orientado'},{v:4,l:'4 — Confuso'},{v:3,l:'3 — Palavras inapropriadas'},{v:2,l:'2 — Sons incompreensíveis'},{v:1,l:'1 — Ausente'}
         ]},
         {tipo:'radio',id:'gc_motor',label:'Resposta Motora',ops:[
-          {v:6,l:'6 — Obedece comandos'},{v:5,l:'5 — Localiza dor'},{v:4,l:'4 — Retirada'},{v:3,l:'3 — Flexao anormal'},{v:2,l:'2 — Extensao anormal'},{v:1,l:'1 — Ausente'}
+          {v:6,l:'6 — Obedece comandos'},{v:5,l:'5 — Localiza dor'},{v:4,l:'4 — Retirada'},{v:3,l:'3 — Flexão anormal'},{v:2,l:'2 — Extensão anormal'},{v:1,l:'1 — Ausente'}
         ]},
       ],
       refs:[
@@ -2654,18 +2774,18 @@ var ESCALAS_DB={
   fragilidadeExtra:[
     {
       id:'edmonton',nome:'Edmonton Frail Scale',cat:'Frágilidade e Geriatria',
-      descricao:'Avalia 9 dominios: cognicao, estado de saude geral, independencia funcional, suporte social, uso de medicamentos, nutricao, humor, continencia e desempenho funcional.',
-      aplicacao:'Avalie cada dominio. Pontuacao maxima = 17. Quanto maior, mais fragil.',
+      descricao:'Avalia 9 domínios: cognição, estado de saúde geral, independência funcional, suporte social, uso de medicamentos, nutrição, humor, continência e desempenho funcional.',
+      aplicacao:'Avalie cada domínio. Pontuação máxima = 17. Quanto maior, mais frágil.',
       campos:[
-        {tipo:'radio',id:'ef_cog',label:'Cognicao: desenhe um relogio marcando 11h10',ops:[{v:0,l:'0 — Correto'},{v:1,l:'1 — Erros minimos'},{v:2,l:'2 — Dificuldade significativa'}]},
-        {tipo:'radio',id:'ef_saude',label:'Estado de saude geral',ops:[{v:0,l:'0 — Excelente/muito bom'},{v:1,l:'1 — Bom'},{v:2,l:'2 — Regular/ruim'}]},
-        {tipo:'radio',id:'ef_hosp',label:'Hospitalizacoes nos ultimos 12 meses',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_func',label:'Dependencia funcional (atividades instrumentais)',ops:[{v:0,l:'0 — Independente'},{v:1,l:'1 — Precisa de ajuda'}]},
-        {tipo:'radio',id:'ef_social',label:'Suporte social: alguem que o ajuda quando precisa?',ops:[{v:0,l:'0 — Sempre'},{v:1,l:'1 — As vezes'},{v:2,l:'2 — Nunca'}]},
+        {tipo:'radio',id:'ef_cog',label:'Cognição: desenhe um relógio marcando 11h10',ops:[{v:0,l:'0 — Correto'},{v:1,l:'1 — Erros mínimos'},{v:2,l:'2 — Dificuldade significativa'}]},
+        {tipo:'radio',id:'ef_saude',label:'Estado de saúde geral',ops:[{v:0,l:'0 — Excelente/muito bom'},{v:1,l:'1 — Bom'},{v:2,l:'2 — Regular/ruim'}]},
+        {tipo:'radio',id:'ef_hosp',label:'Hospitalizações nos últimos 12 meses',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_func',label:'Dependência funcional (atividades instrumentais)',ops:[{v:0,l:'0 — Independente'},{v:1,l:'1 — Precisa de ajuda'}]},
+        {tipo:'radio',id:'ef_social',label:'Suporte social: alguem que o ajuda quando precisa?',ops:[{v:0,l:'0 — Sempre'},{v:1,l:'1 — Às vezes'},{v:2,l:'2 — Nunca'}]},
         {tipo:'radio',id:'ef_meds',label:'Uso de 5 ou mais medicamentos diferentes',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
         {tipo:'radio',id:'ef_nutri',label:'Perdeu peso recentemente sem querer?',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_humor',label:'Humor: se sente triste ou deprimido(a) com frequencia?',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
-        {tipo:'radio',id:'ef_cont',label:'Incontinencia urinaria',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_humor',label:'Humor: se sente triste ou deprimido(a) com frequência?',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
+        {tipo:'radio',id:'ef_cont',label:'Incontinência urinária',ops:[{v:0,l:'0 — Não'},{v:1,l:'1 — Sim'}]},
         {tipo:'radio',id:'ef_tug',label:'Desempenho (TUG): levantar, andar 3m, voltar e sentar',ops:[{v:0,l:'0 — Menos de 10 segundos'},{v:1,l:'1 — 10 a 20 segundos'},{v:2,l:'2 — Mais de 20 segundos'}]},
       ],
       refs:[
@@ -2680,15 +2800,15 @@ var ESCALAS_DB={
   neuromuscular:[
     {
       id:'vignos',nome:'Vignos Scale',cat:'Doencas Neuromusculares',
-      descricao:'Simples e rapida. Avalia função motora em doenças neuromusculares. Pontuacao 1-10.',
-      aplicacao:'Observe e entreviste. Selecione o nivel que melhor descreve a função atual do paciente.',
-      campos:[{tipo:'radio',id:'vg',label:'Nivel funcional',ops:[
-        {v:1,l:'1 — Anda e sobe escadas sem auxilio'},
-        {v:2,l:'2 — Anda e sobe escadas com corrimao'},
-        {v:3,l:'3 — Anda e sobe escadas lentamente com corrimao'},
+      descricao:'Simples e rápida. Avalia função motora em doenças neuromusculares. Pontuação 1-10.',
+      aplicacao:'Observe e entreviste. Selecione o nível que melhor descreve a função atual do paciente.',
+      campos:[{tipo:'radio',id:'vg',label:'Nível funcional',ops:[
+        {v:1,l:'1 — Anda e sobe escadas sem auxílio'},
+        {v:2,l:'2 — Anda e sobe escadas com corrimão'},
+        {v:3,l:'3 — Anda e sobe escadas lentamente com corrimão'},
         {v:4,l:'4 — Anda mas não consegue subir escadas'},
-        {v:5,l:'5 — Anda sem auxilio mas com grande dificuldade'},
-        {v:6,l:'6 — Anda somente com auxilio ou andador'},
+        {v:5,l:'5 — Anda sem auxílio mas com grande dificuldade'},
+        {v:6,l:'6 — Anda somente com auxílio ou andador'},
         {v:7,l:'7 — Cadeira de rodas — sentado ereto, realiza AVDs'},
         {v:8,l:'8 — Cadeira de rodas — sentado ereto, dificuldade em AVDs'},
         {v:9,l:'9 — Cadeira de rodas — sentado com suporte, AVDs limitadas'},
@@ -2702,15 +2822,15 @@ var ESCALAS_DB={
     },
     {
       id:'brooke',nome:'Brooke Upper Extremity Scale',cat:'Doencas Neuromusculares',
-      descricao:'Muito usada em doenças neuromusculares. Avalia membros superiores. Pontuacao 1-6.',
-      aplicacao:'Observe o paciente realizar movimentos com os membros superiores. Selecione o nivel adequado.',
-      campos:[{tipo:'radio',id:'bk',label:'Funcao de membros superiores',ops:[
-        {v:1,l:'1 — Abduz os bracos em angulo reto, cotovel estendido'},
-        {v:2,l:'2 — Pode abduzir acima da linha dos ombros, cotovel fletido'},
+      descricao:'Muito usada em doenças neuromusculares. Avalia membros superiores. Pontuação 1-6.',
+      aplicacao:'Observe o paciente realizar movimentos com os membros superiores. Selecione o nível adequado.',
+      campos:[{tipo:'radio',id:'bk',label:'Função de membros superiores',ops:[
+        {v:1,l:'1 — Abduz os braços em ângulo reto, cotovelo estendido'},
+        {v:2,l:'2 — Pode abduzir acima da linha dos ombros, cotovelo fletido'},
         {v:3,l:'3 — Não consegue abduzir acima do ombro, mas levanta um copo'},
-        {v:4,l:'4 — Pode levar a mao a boca, mas não levanta um copo'},
-        {v:5,l:'5 — Não pode levar a mao a boca, mas usa as maos'},
-        {v:6,l:'6 — Não usa as maos'},
+        {v:4,l:'4 — Pode levar a mão à boca, mas não levanta um copo'},
+        {v:5,l:'5 — Não pode levar a mão à boca, mas usa as mãos'},
+        {v:6,l:'6 — Não usa as mãos'},
       ]}],
       refs:[
         {faixa:'1-2',interp:'Funcao preservada'},
@@ -2723,7 +2843,7 @@ var ESCALAS_DB={
     {
       id:'roland_morris',nome:'Questionário Roland Morris',cat:'Coluna e Dor Lombar',
       descricao:'Muito utilizado em lombalgia. 24 afirmações sobre limitações causadas pela dor nas costas. Pontuação 0-24.',
-      aplicacao:'Peca ao paciente para marcar apenas as afirmações que descrevem como ele se sente HOJE por causa das suas dores nas costas.',
+      aplicacao:'Peça ao paciente para marcar apenas as afirmações que descrevem como ele se sente HOJE por causa das suas dores nas costas.',
       campos:[
         {tipo:'check',id:'rm01',label:'Fico em casa a maior parte do tempo por causa das minhas costas'},
         {tipo:'check',id:'rm02',label:'Mudo de posição frequentemente tentando deixar as costas mais confortáveis'},
@@ -2761,11 +2881,11 @@ var ESCALAS_DB={
   dor:[
     {
       id:'pdi',nome:'Pain Disability Index (PDI)',cat:'Dor e Impacto Funcional',
-      descricao:'Facil compreensao para pacientes. Avalia o impacto da dor em 7 areas da vida. Cada area 0-10.',
-      aplicacao:'Peca ao paciente para avaliar o quanto a dor interfere em cada area da vida, de 0 (sem interferencia) a 10 (interferencia total).',
+      descricao:'Fácil compreensão para pacientes. Avalia o impacto da dor em 7 áreas da vida. Cada área 0-10.',
+      aplicacao:'Peça ao paciente para avaliar o quanto a dor interfere em cada área da vida, de 0 (sem interferência) a 10 (interferência total).',
       campos:[
         {tipo:'range',id:'pdi_fam',label:'Responsabilidades familiares',min:0,max:10,val:0},
-        {tipo:'range',id:'pdi_rec',label:'Recreacao e lazer',min:0,max:10,val:0},
+        {tipo:'range',id:'pdi_rec',label:'Recreação e lazer',min:0,max:10,val:0},
         {tipo:'range',id:'pdi_social',label:'Atividades sociais',min:0,max:10,val:0},
         {tipo:'range',id:'pdi_trab',label:'Trabalho (remunerado e voluntario)',min:0,max:10,val:0},
         {tipo:'range',id:'pdi_sexual',label:'Comportamento sexual',min:0,max:10,val:0},
@@ -3743,7 +3863,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.031 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.049 — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -4059,9 +4179,9 @@ function exportarIR(ano){
   var sAno=D.sessoes.filter(function(s){return new Date(s.data+'T12:00:00').getFullYear()===ano&&s.statusPag==='pago';});
   var total=sAno.reduce(function(a,s){return a+(s.valor||0);},0);
   var mF=['Janeiro','Fevereiro','Marco','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  var linhas=[['Relatorio IR '+ano],['Total recebido','R$ '+total.toFixed(2)],[''],['PLANO','Sessoes','Valor','%']];
+  var linhas=[['Relatório IR '+ano],['Total recebido','R$ '+total.toFixed(2)],[''],['PLANO','Sessões','Valor','%']];
   D.planos.forEach(function(pl){var s2=sAno.filter(function(s){return s.planoId===pl.id;});var v=s2.reduce(function(a,s){return a+(s.valor||0);},0);if(v)linhas.push([pl.nome,s2.length,'R$ '+v.toFixed(2),Math.round(v/total*100)+'%']);});
-  linhas.push([''],['MES','Sessoes','Valor']);
+  linhas.push([''],['MÊS','Sessões','Valor']);
   mF.forEach(function(nm,i){var ss=sAno.filter(function(s){return new Date(s.data+'T12:00:00').getMonth()===i;});var v=ss.reduce(function(a,s){return a+(s.valor||0);},0);linhas.push([nm,ss.length,'R$ '+v.toFixed(2)]);});
   linhas.push([''],['Data','Paciente','Plano','Valor']);
   sAno.forEach(function(s){linhas.push([fmtD(s.data),nomePac(s.pacienteId),plNome(s.planoId),(s.valor||0).toFixed(2)]);});
@@ -4438,7 +4558,7 @@ function rAbaResumo(p){
     h+='<div style="display:flex;justify-content:space-between;align-items:flex-start">';
     h+='<div style="flex:1">';
     if(p.diagnostico)h+='<div style="font-size:13px;font-weight:600">'+esc(p.diagnostico)+'</div>';
-    if(p.cid)h+='<div style="font-size:12px;color:var(--sl3)">CID: '+esc(p.cid)+(p.cidNome?' — '+esc(p.cidNome):'')+'</div>';
+    if(p.cid)h+='<div style="font-size:12px;color:var(--sl3)">CID: '+esc(p.cid)+((p.cidNome||cidDesc(p.cid))?' — '+esc(p.cidNome||cidDesc(p.cid)):'')+'</div>';
     h+='</div><button class="btn btn-s btn-sm" data-pid="'+esc(p.id)+'" onclick="editarDiagnostico(this.dataset.pid)" style="padding:4px 8px;font-size:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button></div>';
   } else {
     h+='<div style="font-size:12px;color:var(--sl3)">Não informado</div>';
@@ -5027,7 +5147,7 @@ function confirmarRenovacao(pid){
   // Novo pacote
   p.pacote=qtd;p.pacoteValor=val;p.pacoteIni=new Date().toISOString().slice(0,10);
   if(obs)p.pacoteObs=obs;
-  registrarHistóricoAlteracao('Pacote renovado — '+p.nome+' ('+qtd+' sessoes)');
+  registrarHistóricoAlteracao('Pacote renovado — '+p.nome+' ('+qtd+' sessões)');
   salvar();fecharM();renderizar();toast('Pacote renovado!');
 }
 
@@ -5054,9 +5174,9 @@ function setFiltroAgenda(tipo){
 
 function inativarPaciente(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  var motivos=['Alta clinica','Obito','Desistencia','Troca de profissional','Pausa temporaria','Outro'];
+  var motivos=['Alta clínica','Obito','Desistencia','Troca de profissional','Pausa temporaria','Outro'];
   var h='<div class="mh"><h3>Inativar Paciente</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">O paciente ficara na lista de inativos. Todo o historico sera preservado.</p>';
+  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">O paciente ficara na lista de inativos. Todo o histórico será preservado.</p>';
   h+='<div class="fg"><label>Motivo</label><select class="fi" id="mot-inat">';
   motivos.forEach(function(m){h+='<option value="'+m+'">'+m+'</option>';});
   h+='</select></div>';
@@ -5088,9 +5208,9 @@ function editarDiagnostico(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var h='<div class="mh"><h3>Editar Diagnóstico</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div class="fg"><label>Diagnostico</label><input class="fi" type="text" id="ed-diag" value="'+esc(p.diagnostico||'')+'"/></div>';
-  h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="ed-cid" value="'+esc(p.cid||'')+'" placeholder="Ex: M54.5" oninput="buscarCid(this.value)"/>';
+  h+='<div class="fg"><label>CID-10</label><input class="fi" type="text" id="ed-cid" value="'+esc(p.cid?(p.cid+((p.cidNome||cidDesc(p.cid))?' — '+(p.cidNome||cidDesc(p.cid)):'')):'')+'" placeholder="Ex: M54.5" oninput="buscarCid(this.value)"/>';
   h+='<div id="cid-sugest" style="display:none"></div>';
-  h+='<div id="cid-nome" style="font-size:12px;color:var(--g1);margin-top:3px">'+esc(p.cidNome||'')+'</div></div>';
+  h+='</div>';
   h+='<input type="hidden" id="ed-pid" value="'+esc(pid)+'"/>';
   h+='<button class="btn btn-p btn-bl" onclick="salvarDiagnostico()">Salvar</button>';
   abrirM(h);
@@ -5099,8 +5219,7 @@ function salvarDiagnostico(){
   var pid=el('ed-pid')?el('ed-pid').value:'';
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   p.diagnostico=el('ed-diag')?el('ed-diag').value:'';
-  p.cid=el('ed-cid')?el('ed-cid').value:'';
-  p.cidNome=el('cid-nome')?el('cid-nome').textContent:'';
+  var _pc=parseCid(el('ed-cid')?el('ed-cid').value:'');p.cid=_pc.cod;p.cidNome=_pc.nome;
   registrarHistóricoAlteracao('Diagnostico editado — '+p.nome);
   salvar();fecharM();PAC_ABA='resumo';renderizar();toast('Diagnóstico atualizado!');
 }
@@ -5121,7 +5240,7 @@ function mPagamentoLote(planoId){
   var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&(s.statusPag==='pendente'||s.statusPag==='atrasado')&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
   var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
   h+='<div id="lot-preview" style="padding:10px;background:var(--g4);border-radius:8px;margin-bottom:12px">';
-  h+='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>';
+  h+='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessão(ões) pendentes</div>';
   h+='<div style="font-size:18px;font-weight:800;color:var(--g1)">Total: R$'+total.toFixed(2)+'</div>';
   h+='</div>';
   h+='<input type="hidden" id="lot-plano" value="'+esc(planoId)+'"/>';
@@ -5133,11 +5252,11 @@ function confirmarLote(){
   var mes=parseInt(el('lot-mes')?el('lot-mes').value:0);
   var ano=parseInt(el('lot-ano')?el('lot-ano').value:0);
   var sessoes=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&(s.statusPag==='pendente'||s.statusPag==='atrasado')&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
-  if(!sessoes.length){toast('Nenhuma sessao pendente no periodo.');return;}
+  if(!sessoes.length){toast('Nenhuma sessão pendente no período.');return;}
   sessoes.forEach(function(s){s.statusPag='pago';s.dtPagamento=hoje();});
   var pl=D.planos.find(function(x){return x.id===planoId;});
-  registrarHistóricoAlteracao('Pagamento em lote: '+(pl?pl.nome:planoId)+' '+mes+'/'+ano+' ('+sessoes.length+' sessoes)');
-  salvar();fecharM();renderizar();toast(sessoes.length+' sessao(oes) quitada(s)!');
+  registrarHistóricoAlteracao('Pagamento em lote: '+(pl?pl.nome:planoId)+' '+mes+'/'+ano+' ('+sessoes.length+' sessões)');
+  salvar();fecharM();renderizar();toast(sessoes.length+' sessão(ões) quitada(s)!');
 }
 
 function atualizarPreviewLote(){
@@ -5148,7 +5267,7 @@ function atualizarPreviewLote(){
   var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&(s.statusPag==='pendente'||s.statusPag==='atrasado')&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
   var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
   var corTotal=sessPend.length===0?'var(--sl3)':'var(--g1)';
-  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>'
+  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessão(ões) pendentes</div>'
     +'<div style="font-size:18px;font-weight:800;color:'+corTotal+'">Total: R$'+total.toFixed(2)+'</div>'
     +(sessPend.length===0?'<div style="font-size:12px;color:var(--sl3);margin-top:4px">Nenhuma sessão pendente neste período.</div>':'');
 }
@@ -5161,7 +5280,7 @@ function atualizarPreviewLote(){
   var sessPend=D.sessoes.filter(function(s){var d=new Date(s.data+'T12:00:00');return s.planoId===planoId&&(s.statusPag==='pendente'||s.statusPag==='atrasado')&&d.getMonth()+1===mes&&d.getFullYear()===ano;});
   var total=sessPend.reduce(function(a,s){return a+(s.valor||0);},0);
   var corTotal=sessPend.length===0?'var(--sl3)':'var(--g1)';
-  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessao(oes) pendentes</div>'
+  preview.innerHTML='<div style="font-size:13px;font-weight:700">'+sessPend.length+' sessão(ões) pendentes</div>'
     +'<div style="font-size:18px;font-weight:800;color:'+corTotal+'">Total: R$'+total.toFixed(2)+'</div>'
     +(sessPend.length===0?'<div style="font-size:12px;color:var(--sl3);margin-top:4px">Nenhuma sessão pendente neste período.</div>':'');
 }
@@ -5332,16 +5451,41 @@ function exportarBkp(){var d={pacientes:D.pacientes,sessoes:D.sessoes,feriados:D
 function importarBkp(){var inp=document.createElement('input');inp.type='file';inp.accept='.json';inp.onchange=function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){try{var d=JSON.parse(ev.target.result);if(!confirm('Restaurar? Os dados atuais serão substituídos.'))return;if(d.pacientes)D.pacientes=d.pacientes;if(d.sessoes)D.sessoes=d.sessoes;if(d.feriados)D.feriados=d.feriados;if(d.planos)D.planos=d.planos;if(d.tipos)D.tipos=d.tipos;if(d.notas!=null)D.notas=d.notas;if(d.cfg)Object.assign(D.cfg,d.cfg);salvar();ir('inicio');toast('Backup restaurado!');}catch(err){toast('Arquivo inválido.');}};r.readAsText(f);};inp.click();}
 
 // ── MANUAL ───────────────────────────────────────────────────────
+function _manScore(it,terms){
+  var tit=it.getAttribute('data-tit')||'';var txt=it.getAttribute('data-txt')||'';var sc=0;
+  for(var i=0;i<terms.length;i++){var t=terms[i];if(!t)continue;
+    if(tit.indexOf(t)===0)sc+=10;else if(tit.indexOf(t)>=0)sc+=6;
+    var idx=txt.indexOf(t),cnt=0;while(idx>=0){cnt++;idx=txt.indexOf(t,idx+t.length);}
+    sc+=Math.min(cnt,4);
+  }
+  return sc;
+}
+function buscarManual(q){
+  q=normCid(q||'').trim();
+  var body=el('manual-body');if(!body)return;
+  var secs=body.querySelectorAll('.man-sec,.man-dica');
+  var items=body.querySelectorAll('.man-item');
+  var vazio=el('manual-vazio');
+  if(!q){for(var i=0;i<secs.length;i++)secs[i].style.display='';for(var j=0;j<items.length;j++){items[j].style.display='';items[j].style.order='';}if(vazio)vazio.style.display='none';return;}
+  var terms=q.split(/\s+/);
+  for(var i=0;i<secs.length;i++)secs[i].style.display='none';
+  var qtd=0;
+  for(var j=0;j<items.length;j++){var sc=_manScore(items[j],terms);if(sc>0){items[j].style.display='';items[j].style.order=String(2000-sc);qtd++;}else{items[j].style.display='none';}}
+  if(vazio)vazio.style.display=qtd?'none':'block';
+}
 function rAjuda(el2){
   var bv=el('btn-vol');bv.style.display='block';bv.textContent='← Voltar';BtnVolCb=function(){ir('mais');};
   function sec(e,t,ps,dica){
-    var s='<div style="margin-bottom:20px"><div style="font-size:14px;font-weight:800;color:var(--g1);margin-bottom:10px;border-bottom:2px solid var(--g3);padding-bottom:6px">'+e+' '+t+'</div>';
-    ps.forEach(function(p,i){s+='<div style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start"><div style="min-width:22px;height:22px;border-radius:50%;background:var(--g1);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div><div style="font-size:13px;color:var(--sl2);line-height:1.55"><strong>'+p[0]+':</strong> '+p[1]+'</div></div>';});
-    if(dica)s+='<div style="background:var(--g4);border-left:3px solid var(--g1);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--sl2);margin-top:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> '+dica+'</div>';
-    return s+'</div>';
+    var s='<div class="man-sec" style="font-size:14px;font-weight:800;color:var(--g1);margin:16px 0 8px;border-bottom:2px solid var(--g3);padding-bottom:6px">'+e+' '+t+'</div>';
+    ps.forEach(function(p,i){s+='<div class="man-item" data-tit="'+esc(normCid(p[0]))+'" data-txt="'+esc(normCid(p[0]+' '+p[1]))+'" style="display:flex;gap:10px;margin-bottom:8px;align-items:flex-start"><div style="min-width:22px;height:22px;border-radius:50%;background:var(--g1);color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(i+1)+'</div><div style="font-size:13px;color:var(--sl2);line-height:1.55"><strong>'+p[0]+':</strong> '+p[1]+'</div></div>';});
+    if(dica)s+='<div class="man-dica" style="background:var(--g4);border-left:3px solid var(--g1);padding:9px 12px;border-radius:0 8px 8px 0;font-size:12px;color:var(--sl2);margin:2px 0 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg> '+dica+'</div>';
+    return s;
   }
   var h='<div style="font-size:18px;font-weight:800;margin-bottom:4px">Manual de Uso</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:20px">Guia completo do FisioEvolução — todas as funcionalidades explicadas</div>';
+  h+='<div style="position:relative;margin-bottom:14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--sl3);pointer-events:none"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input class="fi" id="manual-busca" placeholder="Buscar no manual..." oninput="buscarManual(this.value)" autocomplete="off" style="padding-left:40px"/></div>';
+  h+='<div id="manual-vazio" style="display:none;text-align:center;color:var(--sl3);padding:24px;font-size:13px">Nenhum tópico encontrado para essa busca.</div>';
+  h+='<div id="manual-body" style="display:flex;flex-direction:column">';
 
   h+=sec('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>','Primeiro acesso e login',[
     ['Cadastro','Toque em "Não tem conta? Cadastre-se", preencha seu nome, e-mail e senha (mínimo 6 caracteres).'],
@@ -5474,6 +5618,7 @@ function rAjuda(el2){
     ['Restaurar backup','Importe um arquivo JSON em Mais → Importar JSON para restaurar dados salvos anteriormente.'],
   ],'Seus dados nunca são perdidos ao atualizar o app — apenas o código muda, os dados ficam na nuvem.');
 
+  h+='</div>';
   el2.innerHTML=h;
 }
 
