@@ -39,7 +39,7 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
   --g1:#00875A;--g2:#00A86B;--g3:#DCFCEE;--g4:#F0FBF6;
-  --sl:#111827;--sl2:#374151;--sl3:#6B7280;--sl4:#D1D5DB;
+  --sl:#111827;--sl2:#374151;--sl3:#5B6472;--sl4:#D1D5DB;
   --bg:#F3F6F4;--card:#FFFFFF;--borda:#E5EAE7;
   --red:#E11D48;--redbg:#FFF1F2;
   --amber:#D97706;--amberbg:#FFFBEB;
@@ -51,7 +51,7 @@
   --sh3:0 12px 40px rgba(0,0,0,.13);
   --r:14px;--rs:8px;--rp:100px;
 }
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-optical-sizing:auto}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--sl);min-height:100vh;overscroll-behavior:none;font-optical-sizing:auto;text-rendering:optimizeLegibility}
 @media print{
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:#fff;color:#000}
@@ -70,13 +70,31 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helv
   .btn{display:none}
 }
 button,input,select,textarea{font-family:inherit}
+@media (-webkit-min-device-pixel-ratio:2),(min-resolution:192dpi){
+  body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+}
 
 #app{padding-bottom:72px;min-height:100vh}
-#topo{background:linear-gradient(135deg,#00875A 0%,#006644 100%);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,80,50,.25)}
+#topo{background:linear-gradient(135deg,#00875A 0%,#006644 100%);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:50;box-shadow:0 2px 16px rgba(0,80,50,.25)}
+#splash{position:fixed;inset:0;z-index:400;background:linear-gradient(135deg,#00875A 0%,#006644 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .35s}
+#splash.saindo{opacity:0;pointer-events:none}
+#splash-logo{height:88px;width:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,.18));animation:splash-in .5s cubic-bezier(.2,.7,.3,1) both}
+#splash-spin{width:26px;height:26px;border:2.5px solid rgba(255,255,255,.22);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;margin-top:6px}
+#splash-txt{color:rgba(255,255,255,.8);font-size:13px;font-weight:600;letter-spacing:.01em;animation:splash-in .5s .12s cubic-bezier(.2,.7,.3,1) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes splash-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  #splash-spin{animation-duration:2s}
+  #splash-logo,#splash-txt{animation:none}
+}
 #btn-vol:hover,#btn-fullscreen:hover{background:rgba(255,255,255,.3)!important;border-color:rgba(255,255,255,.5)!important}
 #btn-vol:active,#btn-fullscreen:active{background:rgba(255,255,255,.15)!important}
 #topo-logo{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
-#topo-logo svg{height:54px;width:auto;flex-shrink:0}
+#topo-logo svg{height:38px;width:auto;flex-shrink:0}
+.hdr-btn{background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:50%;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;position:relative;transition:background .18s}
+.hdr-btn:hover{background:rgba(255,255,255,.26)}
+.hdr-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.hdr-btn svg{width:18px;height:18px}
 #topo-titulo{display:none}
 #topo-titulo span{color:#6EE7B7}
 #btn-vol{background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:var(--rp);padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;display:none;white-space:nowrap;flex-shrink:0;backdrop-filter:blur(4px);letter-spacing:.02em}
@@ -196,7 +214,7 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 
 #sino-btn{position:relative;background:rgba(255,255,255,.12);border:none;cursor:pointer;color:#fff;padding:7px 9px;font-size:20px;display:flex;align-items:center;border-radius:var(--rp);transition:.2s}
 #sino-btn:hover{background:rgba(255,255,255,.22)}
-#sino-badge{position:absolute;top:-3px;right:-2px;background:#EF4444;color:#fff;border-radius:10px;padding:1px 5px;font-size:10px;font-weight:800;min-width:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--g1)}
+#sino-badge{position:absolute;top:-1px;right:-1px;background:#EF4444;color:#fff;border-radius:10px;padding:1px 4px;font-size:9px;font-weight:800;min-width:15px;line-height:1.4;text-align:center;display:none;box-shadow:0 0 0 2px #00875A}
 #sino-painel{position:fixed;top:62px;right:8px;width:320px;max-width:calc(100vw - 16px);background:var(--card);border:none;border-radius:18px;box-shadow:var(--sh3);z-index:200;display:none;max-height:70vh;overflow-y:auto}
 
 #cal-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
@@ -244,10 +262,11 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 }
 @media(min-width:768px){
   body{zoom:1.15;}
-  #topo-logo svg{height:64px;}
-  #sino-btn svg{width:28px;height:28px;}
-  #topo{padding:8px 28px;}
+  #topo{padding:10px 28px;}
   #topo-logo{gap:14px;}
+  #topo-logo svg{height:42px;}
+  .hdr-btn{width:36px;height:36px;}
+  .hdr-btn svg{width:19px;height:19px;}
   #conteudo{max-width:1280px;padding:16px 24px;margin:0 auto;}
   #agenda-layout{display:flex;gap:10px;align-items:flex-start;}
   #agenda-sidebar{width:130px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:70px;background:var(--card);border-radius:var(--r);padding:10px;box-shadow:var(--sh1);}
@@ -286,18 +305,23 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 </style>
 </head>
 <body>
+<div id="splash" role="status" aria-live="polite">
+  <svg viewBox="-1 0 67 68" fill="#fff" fill-rule="evenodd" id="splash-logo" role="img" aria-label="FisioEvolução"><path d="M28.38 42.94 L26.94 42.50 L26.44 37.88 L26.94 31.00 L28.19 28.00 L31.50 24.19 L43.00 16.81 L45.44 14.25 L44.75 14.19 L33.25 21.06 L27.25 26.19 L24.94 21.50 L17.94 14.38 L15.06 10.38 L13.06 6.50 L11.69 1.12 L12.81 1.12 L18.06 8.75 L22.75 12.81 L29.25 15.69 L34.25 16.06 L40.50 14.81 L45.62 11.69 L49.69 7.50 L53.81 1.25 L54.62 0.81 L55.06 1.88 L53.81 5.75 L50.69 11.62 L46.81 16.50 L37.94 25.62 L34.94 29.62 L32.06 35.62 L30.94 42.25 L30.25 42.81 L28.38 42.94 Z M50.12 67.19 L49.44 67.00 L49.81 65.38 L47.25 62.44 L46.50 64.69 L42.62 64.81 L41.69 63.12 L41.81 59.12 L42.62 58.81 L43.06 59.25 L43.06 62.75 L44.12 63.69 L45.19 62.38 L45.19 59.50 L45.62 58.94 L46.81 59.25 L47.12 61.19 L49.25 58.81 L51.75 58.94 L51.94 59.88 L49.62 60.19 L48.81 61.88 L49.88 63.56 L52.06 63.62 L51.19 65.38 L51.19 66.62 L50.12 67.19 Z M26.25 64.94 L22.88 64.94 L21.81 64.38 L21.69 57.62 L22.38 56.06 L25.88 55.94 L26.81 56.62 L26.12 57.56 L23.62 57.56 L23.06 58.25 L23.50 59.56 L25.25 59.56 L26.06 60.25 L25.62 61.06 L23.38 61.19 L23.19 62.88 L23.75 63.44 L26.38 63.44 L26.81 64.50 L26.25 64.94 Z M10.75 51.19 L10.56 50.38 L13.38 48.06 L20.12 45.06 L25.75 44.06 L35.75 43.94 L43.88 42.81 L49.62 40.81 L55.25 36.94 L56.06 36.88 L54.94 38.88 L50.38 42.69 L43.38 45.69 L38.12 46.69 L26.25 46.94 L19.12 47.94 L14.75 49.19 L10.75 51.19 Z M36.38 64.94 L34.25 64.81 L32.94 63.75 L32.44 62.38 L32.81 60.25 L34.38 58.81 L36.12 58.69 L37.56 59.50 L38.75 61.31 L39.06 56.38 L40.38 55.81 L40.81 56.38 L40.69 64.38 L40.25 64.81 L39.25 64.44 L38.62 62.31 L36.38 64.94 Z M1.25 64.81 L-0.06 64.50 L-0.06 56.50 L3.62 55.94 L5.25 56.44 L6.75 56.19 L7.19 56.88 L6.75 57.81 L5.25 57.06 L1.94 58.00 L2.25 59.56 L4.38 59.69 L4.81 60.50 L1.94 61.38 L1.94 64.00 L1.25 64.81 Z M10.00 65.06 L8.06 64.25 L8.25 63.31 L10.12 63.69 L10.56 63.12 L8.06 61.25 L7.81 60.12 L9.25 58.81 L10.75 58.69 L11.69 59.75 L10.00 59.94 L9.44 60.50 L11.94 62.12 L12.19 63.38 L10.00 65.06 Z M55.38 64.94 L54.00 64.94 L52.44 63.62 L53.25 61.94 L55.94 60.62 L55.50 59.94 L53.38 60.06 L53.19 59.38 L53.75 58.94 L56.38 58.94 L57.69 60.50 L57.69 64.38 L55.38 64.94 Z M36.88 49.81 L23.69 49.38 L27.12 48.19 L39.25 47.94 L44.62 46.94 L48.62 45.56 L54.25 42.19 L54.94 42.25 L51.50 45.81 L47.88 47.69 L43.88 48.94 L36.88 49.81 Z M29.88 64.81 L28.94 64.38 L28.06 62.62 L26.94 59.88 L27.38 58.81 L28.56 59.38 L29.38 61.94 L30.31 61.12 L31.25 58.94 L32.31 59.25 L32.06 61.12 L29.88 64.81 Z M62.38 64.94 L59.88 64.56 L58.19 61.88 L59.19 59.62 L60.25 58.81 L63.38 59.19 L64.56 61.00 L64.69 62.25 L63.94 63.75 L62.38 64.94 Z M33.75 13.81 L30.62 12.81 L29.06 10.38 L29.06 8.38 L30.06 6.62 L32.88 5.06 L35.75 5.94 L37.56 8.88 L36.81 11.88 L33.75 13.81 Z M17.88 65.06 L16.25 64.56 L14.69 62.25 L15.31 60.00 L17.25 58.69 L19.38 58.94 L21.06 61.38 L20.56 63.38 L19.25 64.69 L17.88 65.06 Z M61.81 63.62 L63.06 62.25 L62.94 61.12 L62.12 60.06 L60.88 60.06 L60.06 60.88 L59.94 62.38 L60.75 63.44 L61.81 63.62 Z M35.81 63.62 L36.94 62.50 L36.94 61.25 L36.12 60.06 L34.88 60.06 L34.19 60.62 L33.94 62.38 L34.75 63.44 L35.81 63.62 Z M35.25 42.56 L33.19 42.12 L34.19 34.62 L36.19 30.25 L39.06 26.12 L40.38 25.31 L38.31 41.38 L37.25 42.31 L35.25 42.56 Z M6.62 64.81 L6.12 64.81 L5.69 63.88 L5.69 59.62 L6.25 58.94 L7.19 59.50 L7.19 64.00 L6.62 64.81 Z M18.31 63.62 L19.56 61.50 L18.50 60.06 L17.62 59.94 L16.31 61.12 L16.19 62.25 L17.50 63.69 L18.31 63.62 Z M56.88 57.94 L53.38 57.69 L53.19 57.12 L54.88 56.06 L57.38 56.69 L57.56 57.50 L56.88 57.94 Z M55.31 63.75 L55.94 63.12 L55.75 62.06 L55.00 62.06 L54.31 63.00 L54.62 63.69 L55.31 63.75 Z M13.75 64.81 L12.69 63.88 L12.69 59.75 L13.25 58.94 L14.19 59.38 L13.75 64.81 Z M13.75 57.81 L12.69 57.25 L13.12 56.19 L14.06 56.50 L13.75 57.81 Z"/></svg>
+  <div id="splash-spin"></div>
+  <div id="splash-txt">Sincronizando seus dados…</div>
+</div>
 <div id="app">
   <div id="topo">
-    <div id="topo-logo" style="display:flex;align-items:center;gap:10px"><svg viewBox="0 0 81 88" fill="currentColor" fill-rule="evenodd" style="color:#fff;filter:drop-shadow(0 1px 3px rgba(0,0,0,.15))" role="img" aria-label="FisioEvolução"><path d="M28.38 42.94 L26.94 42.50 L26.44 37.88 L26.94 31.00 L28.19 28.00 L31.50 24.19 L43.00 16.81 L45.44 14.25 L44.75 14.19 L33.25 21.06 L27.25 26.19 L24.94 21.50 L17.94 14.38 L15.06 10.38 L13.06 6.50 L11.69 1.12 L12.81 1.12 L18.06 8.75 L22.75 12.81 L29.25 15.69 L34.25 16.06 L40.50 14.81 L45.62 11.69 L49.69 7.50 L53.81 1.25 L54.62 0.81 L55.06 1.88 L53.81 5.75 L50.69 11.62 L46.81 16.50 L37.94 25.62 L34.94 29.62 L32.06 35.62 L30.94 42.25 L30.25 42.81 L28.38 42.94 Z M50.12 67.19 L49.44 67.00 L49.81 65.38 L47.25 62.44 L46.50 64.69 L42.62 64.81 L41.69 63.12 L41.81 59.12 L42.62 58.81 L43.06 59.25 L43.06 62.75 L44.12 63.69 L45.19 62.38 L45.19 59.50 L45.62 58.94 L46.81 59.25 L47.12 61.19 L49.25 58.81 L51.75 58.94 L51.94 59.88 L49.62 60.19 L48.81 61.88 L49.88 63.56 L52.06 63.62 L51.19 65.38 L51.19 66.62 L50.12 67.19 Z M26.25 64.94 L22.88 64.94 L21.81 64.38 L21.69 57.62 L22.38 56.06 L25.88 55.94 L26.81 56.62 L26.12 57.56 L23.62 57.56 L23.06 58.25 L23.50 59.56 L25.25 59.56 L26.06 60.25 L25.62 61.06 L23.38 61.19 L23.19 62.88 L23.75 63.44 L26.38 63.44 L26.81 64.50 L26.25 64.94 Z M10.75 51.19 L10.56 50.38 L13.38 48.06 L20.12 45.06 L25.75 44.06 L35.75 43.94 L43.88 42.81 L49.62 40.81 L55.25 36.94 L56.06 36.88 L54.94 38.88 L50.38 42.69 L43.38 45.69 L38.12 46.69 L26.25 46.94 L19.12 47.94 L14.75 49.19 L10.75 51.19 Z M36.38 64.94 L34.25 64.81 L32.94 63.75 L32.44 62.38 L32.81 60.25 L34.38 58.81 L36.12 58.69 L37.56 59.50 L38.75 61.31 L39.06 56.38 L40.38 55.81 L40.81 56.38 L40.69 64.38 L40.25 64.81 L39.25 64.44 L38.62 62.31 L36.38 64.94 Z M1.25 64.81 L-0.06 64.50 L-0.06 56.50 L3.62 55.94 L5.25 56.44 L6.75 56.19 L7.19 56.88 L6.75 57.81 L5.25 57.06 L1.94 58.00 L2.25 59.56 L4.38 59.69 L4.81 60.50 L1.94 61.38 L1.94 64.00 L1.25 64.81 Z M10.00 65.06 L8.06 64.25 L8.25 63.31 L10.12 63.69 L10.56 63.12 L8.06 61.25 L7.81 60.12 L9.25 58.81 L10.75 58.69 L11.69 59.75 L10.00 59.94 L9.44 60.50 L11.94 62.12 L12.19 63.38 L10.00 65.06 Z M55.38 64.94 L54.00 64.94 L52.44 63.62 L53.25 61.94 L55.94 60.62 L55.50 59.94 L53.38 60.06 L53.19 59.38 L53.75 58.94 L56.38 58.94 L57.69 60.50 L57.69 64.38 L55.38 64.94 Z M36.88 49.81 L23.69 49.38 L27.12 48.19 L39.25 47.94 L44.62 46.94 L48.62 45.56 L54.25 42.19 L54.94 42.25 L51.50 45.81 L47.88 47.69 L43.88 48.94 L36.88 49.81 Z M29.88 64.81 L28.94 64.38 L28.06 62.62 L26.94 59.88 L27.38 58.81 L28.56 59.38 L29.38 61.94 L30.31 61.12 L31.25 58.94 L32.31 59.25 L32.06 61.12 L29.88 64.81 Z M62.38 64.94 L59.88 64.56 L58.19 61.88 L59.19 59.62 L60.25 58.81 L63.38 59.19 L64.56 61.00 L64.69 62.25 L63.94 63.75 L62.38 64.94 Z M33.75 13.81 L30.62 12.81 L29.06 10.38 L29.06 8.38 L30.06 6.62 L32.88 5.06 L35.75 5.94 L37.56 8.88 L36.81 11.88 L33.75 13.81 Z M17.88 65.06 L16.25 64.56 L14.69 62.25 L15.31 60.00 L17.25 58.69 L19.38 58.94 L21.06 61.38 L20.56 63.38 L19.25 64.69 L17.88 65.06 Z M61.81 63.62 L63.06 62.25 L62.94 61.12 L62.12 60.06 L60.88 60.06 L60.06 60.88 L59.94 62.38 L60.75 63.44 L61.81 63.62 Z M35.81 63.62 L36.94 62.50 L36.94 61.25 L36.12 60.06 L34.88 60.06 L34.19 60.62 L33.94 62.38 L34.75 63.44 L35.81 63.62 Z M35.25 42.56 L33.19 42.12 L34.19 34.62 L36.19 30.25 L39.06 26.12 L40.38 25.31 L38.31 41.38 L37.25 42.31 L35.25 42.56 Z M6.62 64.81 L6.12 64.81 L5.69 63.88 L5.69 59.62 L6.25 58.94 L7.19 59.50 L7.19 64.00 L6.62 64.81 Z M18.31 63.62 L19.56 61.50 L18.50 60.06 L17.62 59.94 L16.31 61.12 L16.19 62.25 L17.50 63.69 L18.31 63.62 Z M56.88 57.94 L53.38 57.69 L53.19 57.12 L54.88 56.06 L57.38 56.69 L57.56 57.50 L56.88 57.94 Z M55.31 63.75 L55.94 63.12 L55.75 62.06 L55.00 62.06 L54.31 63.00 L54.62 63.69 L55.31 63.75 Z M13.75 64.81 L12.69 63.88 L12.69 59.75 L13.25 58.94 L14.19 59.38 L13.75 64.81 Z M13.75 57.81 L12.69 57.25 L13.12 56.19 L14.06 56.50 L13.75 57.81 Z"/></svg></div>
+    <div id="topo-logo" style="display:flex;align-items:center;gap:10px"><svg viewBox="-1 0 67 68" fill="currentColor" fill-rule="evenodd" style="color:#fff;filter:drop-shadow(0 1px 2px rgba(0,0,0,.18))" role="img" aria-label="FisioEvolução"><path d="M28.38 42.94 L26.94 42.50 L26.44 37.88 L26.94 31.00 L28.19 28.00 L31.50 24.19 L43.00 16.81 L45.44 14.25 L44.75 14.19 L33.25 21.06 L27.25 26.19 L24.94 21.50 L17.94 14.38 L15.06 10.38 L13.06 6.50 L11.69 1.12 L12.81 1.12 L18.06 8.75 L22.75 12.81 L29.25 15.69 L34.25 16.06 L40.50 14.81 L45.62 11.69 L49.69 7.50 L53.81 1.25 L54.62 0.81 L55.06 1.88 L53.81 5.75 L50.69 11.62 L46.81 16.50 L37.94 25.62 L34.94 29.62 L32.06 35.62 L30.94 42.25 L30.25 42.81 L28.38 42.94 Z M50.12 67.19 L49.44 67.00 L49.81 65.38 L47.25 62.44 L46.50 64.69 L42.62 64.81 L41.69 63.12 L41.81 59.12 L42.62 58.81 L43.06 59.25 L43.06 62.75 L44.12 63.69 L45.19 62.38 L45.19 59.50 L45.62 58.94 L46.81 59.25 L47.12 61.19 L49.25 58.81 L51.75 58.94 L51.94 59.88 L49.62 60.19 L48.81 61.88 L49.88 63.56 L52.06 63.62 L51.19 65.38 L51.19 66.62 L50.12 67.19 Z M26.25 64.94 L22.88 64.94 L21.81 64.38 L21.69 57.62 L22.38 56.06 L25.88 55.94 L26.81 56.62 L26.12 57.56 L23.62 57.56 L23.06 58.25 L23.50 59.56 L25.25 59.56 L26.06 60.25 L25.62 61.06 L23.38 61.19 L23.19 62.88 L23.75 63.44 L26.38 63.44 L26.81 64.50 L26.25 64.94 Z M10.75 51.19 L10.56 50.38 L13.38 48.06 L20.12 45.06 L25.75 44.06 L35.75 43.94 L43.88 42.81 L49.62 40.81 L55.25 36.94 L56.06 36.88 L54.94 38.88 L50.38 42.69 L43.38 45.69 L38.12 46.69 L26.25 46.94 L19.12 47.94 L14.75 49.19 L10.75 51.19 Z M36.38 64.94 L34.25 64.81 L32.94 63.75 L32.44 62.38 L32.81 60.25 L34.38 58.81 L36.12 58.69 L37.56 59.50 L38.75 61.31 L39.06 56.38 L40.38 55.81 L40.81 56.38 L40.69 64.38 L40.25 64.81 L39.25 64.44 L38.62 62.31 L36.38 64.94 Z M1.25 64.81 L-0.06 64.50 L-0.06 56.50 L3.62 55.94 L5.25 56.44 L6.75 56.19 L7.19 56.88 L6.75 57.81 L5.25 57.06 L1.94 58.00 L2.25 59.56 L4.38 59.69 L4.81 60.50 L1.94 61.38 L1.94 64.00 L1.25 64.81 Z M10.00 65.06 L8.06 64.25 L8.25 63.31 L10.12 63.69 L10.56 63.12 L8.06 61.25 L7.81 60.12 L9.25 58.81 L10.75 58.69 L11.69 59.75 L10.00 59.94 L9.44 60.50 L11.94 62.12 L12.19 63.38 L10.00 65.06 Z M55.38 64.94 L54.00 64.94 L52.44 63.62 L53.25 61.94 L55.94 60.62 L55.50 59.94 L53.38 60.06 L53.19 59.38 L53.75 58.94 L56.38 58.94 L57.69 60.50 L57.69 64.38 L55.38 64.94 Z M36.88 49.81 L23.69 49.38 L27.12 48.19 L39.25 47.94 L44.62 46.94 L48.62 45.56 L54.25 42.19 L54.94 42.25 L51.50 45.81 L47.88 47.69 L43.88 48.94 L36.88 49.81 Z M29.88 64.81 L28.94 64.38 L28.06 62.62 L26.94 59.88 L27.38 58.81 L28.56 59.38 L29.38 61.94 L30.31 61.12 L31.25 58.94 L32.31 59.25 L32.06 61.12 L29.88 64.81 Z M62.38 64.94 L59.88 64.56 L58.19 61.88 L59.19 59.62 L60.25 58.81 L63.38 59.19 L64.56 61.00 L64.69 62.25 L63.94 63.75 L62.38 64.94 Z M33.75 13.81 L30.62 12.81 L29.06 10.38 L29.06 8.38 L30.06 6.62 L32.88 5.06 L35.75 5.94 L37.56 8.88 L36.81 11.88 L33.75 13.81 Z M17.88 65.06 L16.25 64.56 L14.69 62.25 L15.31 60.00 L17.25 58.69 L19.38 58.94 L21.06 61.38 L20.56 63.38 L19.25 64.69 L17.88 65.06 Z M61.81 63.62 L63.06 62.25 L62.94 61.12 L62.12 60.06 L60.88 60.06 L60.06 60.88 L59.94 62.38 L60.75 63.44 L61.81 63.62 Z M35.81 63.62 L36.94 62.50 L36.94 61.25 L36.12 60.06 L34.88 60.06 L34.19 60.62 L33.94 62.38 L34.75 63.44 L35.81 63.62 Z M35.25 42.56 L33.19 42.12 L34.19 34.62 L36.19 30.25 L39.06 26.12 L40.38 25.31 L38.31 41.38 L37.25 42.31 L35.25 42.56 Z M6.62 64.81 L6.12 64.81 L5.69 63.88 L5.69 59.62 L6.25 58.94 L7.19 59.50 L7.19 64.00 L6.62 64.81 Z M18.31 63.62 L19.56 61.50 L18.50 60.06 L17.62 59.94 L16.31 61.12 L16.19 62.25 L17.50 63.69 L18.31 63.62 Z M56.88 57.94 L53.38 57.69 L53.19 57.12 L54.88 56.06 L57.38 56.69 L57.56 57.50 L56.88 57.94 Z M55.31 63.75 L55.94 63.12 L55.75 62.06 L55.00 62.06 L54.31 63.00 L54.62 63.69 L55.31 63.75 Z M13.75 64.81 L12.69 63.88 L12.69 59.75 L13.25 58.94 L14.19 59.38 L13.75 64.81 Z M13.75 57.81 L12.69 57.25 L13.12 56.19 L14.06 56.50 L13.75 57.81 Z"/></svg></div>
     <div style="flex:1"></div>
     <button id="btn-vol" onclick="btnVolAcao()" title="Voltar" style="background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:100px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;display:none;backdrop-filter:blur(4px);flex-shrink:0">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;margin-right:4px"><polyline points="15 18 9 12 15 6"></polyline></svg>Voltar
     </button>
-    <button id="btn-fullscreen" onclick="toggleFullscreen()" title="Tela cheia" style="background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.35);border-radius:50%;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:0;flex-shrink:0;margin:0 4px">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+    <button id="btn-fullscreen" class="hdr-btn" onclick="toggleFullscreen()" title="Tela cheia" aria-label="Tela cheia">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
     </button>
-    <button id="sino-btn" onclick="toggleSino()" title="Notificações" style="background:none;border:none;cursor:pointer;padding:6px;position:relative;display:flex;align-items:center;justify-content:center">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <button id="sino-btn" class="hdr-btn" onclick="toggleSino()" title="Notificações" aria-label="Notificações">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
       </svg>
@@ -502,6 +526,28 @@ function sanitizarDados(){
   if(typeof D.notas!=='string')D.notas=D.notas||'';
 }
 
+// ── Splash / carregamento inicial ─────────────────────────────────
+// O app so desenhava a tela depois que o Firebase respondia. Ate la, tela branca.
+// Agora: mostra "Carregando", e se o Firebase nao responder em 6s, entra em modo
+// offline com os dados do localStorage (que ja foram lidos por carregar()).
+var _appPronto=false,_splashTimer=null;
+function esconderSplash(){
+  _appPronto=true;
+  if(_splashTimer){clearTimeout(_splashTimer);_splashTimer=null;}
+  var s=el('splash');
+  if(!s)return;
+  s.classList.add('saindo');
+  setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},320);
+}
+function iniciarTimeoutOffline(){
+  _splashTimer=setTimeout(function(){
+    if(_appPronto)return;
+    esconderSplash();
+    boot(); // usa os dados ja carregados do localStorage
+    // Se o Firebase chegar depois, fbCarregar() atualiza sem resetar a tela.
+  },3000);
+}
+
 // ── Firebase ──────────────────────────────────────────────────────
 var FBAuth=null,FBD=null,FBU=null,LMODO='entrar';
 function fbInit(){
@@ -513,9 +559,28 @@ function fbInit(){
     firebase.initializeApp({"apiKey": "AIzaSyAhlFWV_yKj5Zze8ArMeFZrGjtcAsgtdpI", "authDomain": "fisioevolu.firebaseapp.com", "databaseURL": "https://fisioevolu-default-rtdb.firebaseio.com", "projectId": "fisioevolu", "storageBucket": "fisioevolu.firebasestorage.app", "messagingSenderId": "667764708177", "appId": "1:667764708177:web:694a184f750c767ccf7970"});
     FBAuth=firebase.auth();FBD=firebase.database();
     FBAuth.onAuthStateChanged(function(u){
-      if(u){FBU=u;fecharLogin();fbCarregar();setTimeout(backupAutomatico,3000);}
-      else{FBU=null;mostrarLogin();}
+      if(u){
+        FBU=u;
+        try{localStorage.setItem('fe_sessao_ativa','1');}catch(e){}
+        fecharLogin();
+        // Se o app ja foi desenhado (arranque local-first), atualiza os dados
+        // sem jogar o usuario de volta para o Inicio.
+        fbCarregar(_appPronto);
+        setTimeout(backupAutomatico,3000);
+      }
+      else{
+        FBU=null;
+        try{localStorage.removeItem('fe_sessao_ativa');}catch(e){}
+        esconderSplash();
+        mostrarLogin();
+      }
     });
+  }).catch(function(e){
+    // SDK do Firebase nao carregou (sem internet, CDN bloqueada...). Nao deixa a tela branca.
+    console.error('Falha ao carregar o Firebase:',e);
+    esconderSplash();
+    boot();
+    toast('Sem conexão. Usando os dados salvos neste aparelho.');
   });
 }
 function fbPath(){return FBD.ref('u/'+FBU.uid);}
@@ -528,18 +593,24 @@ document.addEventListener('visibilitychange',function(){
   if(document.hidden||!FBU||!FBD)return;
   if(el('ov')&&el('ov').style.display!=='none')return;
   if(Date.now()-(window._ultimoSave||0)<4000)return;
-  fbCarregar();
+  fbCarregar(true); // true = manter a tela atual, não voltar para Início
 });
-function fbCarregar(){
+function fbCarregar(manterTela){
   if(!FBU||!FBD){carregar();boot();return;}
   fbPath().once('value').then(function(s){
     var d=s.val();
     if(d){if(d.pacientes)D.pacientes=d.pacientes;if(d.sessoes)D.sessoes=d.sessoes;if(d.feriados)D.feriados=d.feriados;if(d.planos)D.planos=d.planos;if(d.tipos)D.tipos=d.tipos;if(d.cfg)D.cfg=Object.assign({},D.cfg,d.cfg);if(d.notas!=null)D.notas=d.notas;}
     else carregar();
     sanitizarDados();
-    boot();
+    if(manterTela&&typeof ABA!=='undefined'&&ABA){
+      // Apenas re-renderiza a tela atual, sem resetar navegação
+      if(!verificarVencimento())return;
+      renderizar();
+    }else{
+      boot();
+    }
     registrarUsuarioPublico();
-  }).catch(function(){carregar();boot();});
+  }).catch(function(){carregar();if(!manterTela)boot();});
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────────
@@ -683,8 +754,8 @@ function mostrarTermos(){
   div.style.cssText='position:fixed;inset:0;background:#f1f5f2;z-index:500;overflow-y:auto;padding:20px;';
   var h='<div style="max-width:640px;margin:0 auto">';
   h+='<div style="text-align:center;margin-bottom:20px">';
-  h+='<div style="font-size:24px;font-weight:900;color:#1e6b3f">Fisio<span style=\"color:#4ade80\">Evolução</span></div>';
-  h+='<div style="font-size:13px;color:#94a3b8">Leia e aceite os termos para continuar</div></div>';
+  h+='<svg viewBox="-1 0 67 68" fill="#1e6b3f" fill-rule="evenodd" style="height:72px;width:auto;margin-bottom:6px" role="img" aria-label="FisioEvolução"><path d="M28.38 42.94 L26.94 42.50 L26.44 37.88 L26.94 31.00 L28.19 28.00 L31.50 24.19 L43.00 16.81 L45.44 14.25 L44.75 14.19 L33.25 21.06 L27.25 26.19 L24.94 21.50 L17.94 14.38 L15.06 10.38 L13.06 6.50 L11.69 1.12 L12.81 1.12 L18.06 8.75 L22.75 12.81 L29.25 15.69 L34.25 16.06 L40.50 14.81 L45.62 11.69 L49.69 7.50 L53.81 1.25 L54.62 0.81 L55.06 1.88 L53.81 5.75 L50.69 11.62 L46.81 16.50 L37.94 25.62 L34.94 29.62 L32.06 35.62 L30.94 42.25 L30.25 42.81 L28.38 42.94 Z M50.12 67.19 L49.44 67.00 L49.81 65.38 L47.25 62.44 L46.50 64.69 L42.62 64.81 L41.69 63.12 L41.81 59.12 L42.62 58.81 L43.06 59.25 L43.06 62.75 L44.12 63.69 L45.19 62.38 L45.19 59.50 L45.62 58.94 L46.81 59.25 L47.12 61.19 L49.25 58.81 L51.75 58.94 L51.94 59.88 L49.62 60.19 L48.81 61.88 L49.88 63.56 L52.06 63.62 L51.19 65.38 L51.19 66.62 L50.12 67.19 Z M26.25 64.94 L22.88 64.94 L21.81 64.38 L21.69 57.62 L22.38 56.06 L25.88 55.94 L26.81 56.62 L26.12 57.56 L23.62 57.56 L23.06 58.25 L23.50 59.56 L25.25 59.56 L26.06 60.25 L25.62 61.06 L23.38 61.19 L23.19 62.88 L23.75 63.44 L26.38 63.44 L26.81 64.50 L26.25 64.94 Z M10.75 51.19 L10.56 50.38 L13.38 48.06 L20.12 45.06 L25.75 44.06 L35.75 43.94 L43.88 42.81 L49.62 40.81 L55.25 36.94 L56.06 36.88 L54.94 38.88 L50.38 42.69 L43.38 45.69 L38.12 46.69 L26.25 46.94 L19.12 47.94 L14.75 49.19 L10.75 51.19 Z M36.38 64.94 L34.25 64.81 L32.94 63.75 L32.44 62.38 L32.81 60.25 L34.38 58.81 L36.12 58.69 L37.56 59.50 L38.75 61.31 L39.06 56.38 L40.38 55.81 L40.81 56.38 L40.69 64.38 L40.25 64.81 L39.25 64.44 L38.62 62.31 L36.38 64.94 Z M1.25 64.81 L-0.06 64.50 L-0.06 56.50 L3.62 55.94 L5.25 56.44 L6.75 56.19 L7.19 56.88 L6.75 57.81 L5.25 57.06 L1.94 58.00 L2.25 59.56 L4.38 59.69 L4.81 60.50 L1.94 61.38 L1.94 64.00 L1.25 64.81 Z M10.00 65.06 L8.06 64.25 L8.25 63.31 L10.12 63.69 L10.56 63.12 L8.06 61.25 L7.81 60.12 L9.25 58.81 L10.75 58.69 L11.69 59.75 L10.00 59.94 L9.44 60.50 L11.94 62.12 L12.19 63.38 L10.00 65.06 Z M55.38 64.94 L54.00 64.94 L52.44 63.62 L53.25 61.94 L55.94 60.62 L55.50 59.94 L53.38 60.06 L53.19 59.38 L53.75 58.94 L56.38 58.94 L57.69 60.50 L57.69 64.38 L55.38 64.94 Z M36.88 49.81 L23.69 49.38 L27.12 48.19 L39.25 47.94 L44.62 46.94 L48.62 45.56 L54.25 42.19 L54.94 42.25 L51.50 45.81 L47.88 47.69 L43.88 48.94 L36.88 49.81 Z M29.88 64.81 L28.94 64.38 L28.06 62.62 L26.94 59.88 L27.38 58.81 L28.56 59.38 L29.38 61.94 L30.31 61.12 L31.25 58.94 L32.31 59.25 L32.06 61.12 L29.88 64.81 Z M62.38 64.94 L59.88 64.56 L58.19 61.88 L59.19 59.62 L60.25 58.81 L63.38 59.19 L64.56 61.00 L64.69 62.25 L63.94 63.75 L62.38 64.94 Z M33.75 13.81 L30.62 12.81 L29.06 10.38 L29.06 8.38 L30.06 6.62 L32.88 5.06 L35.75 5.94 L37.56 8.88 L36.81 11.88 L33.75 13.81 Z M17.88 65.06 L16.25 64.56 L14.69 62.25 L15.31 60.00 L17.25 58.69 L19.38 58.94 L21.06 61.38 L20.56 63.38 L19.25 64.69 L17.88 65.06 Z M61.81 63.62 L63.06 62.25 L62.94 61.12 L62.12 60.06 L60.88 60.06 L60.06 60.88 L59.94 62.38 L60.75 63.44 L61.81 63.62 Z M35.81 63.62 L36.94 62.50 L36.94 61.25 L36.12 60.06 L34.88 60.06 L34.19 60.62 L33.94 62.38 L34.75 63.44 L35.81 63.62 Z M35.25 42.56 L33.19 42.12 L34.19 34.62 L36.19 30.25 L39.06 26.12 L40.38 25.31 L38.31 41.38 L37.25 42.31 L35.25 42.56 Z M6.62 64.81 L6.12 64.81 L5.69 63.88 L5.69 59.62 L6.25 58.94 L7.19 59.50 L7.19 64.00 L6.62 64.81 Z M18.31 63.62 L19.56 61.50 L18.50 60.06 L17.62 59.94 L16.31 61.12 L16.19 62.25 L17.50 63.69 L18.31 63.62 Z M56.88 57.94 L53.38 57.69 L53.19 57.12 L54.88 56.06 L57.38 56.69 L57.56 57.50 L56.88 57.94 Z M55.31 63.75 L55.94 63.12 L55.75 62.06 L55.00 62.06 L54.31 63.00 L54.62 63.69 L55.31 63.75 Z M13.75 64.81 L12.69 63.88 L12.69 59.75 L13.25 58.94 L14.19 59.38 L13.75 64.81 Z M13.75 57.81 L12.69 57.25 L13.12 56.19 L14.06 56.50 L13.75 57.81 Z"/></svg>';
+  h+='<div style="font-size:13px;color:#5B6472">Leia e aceite os termos para continuar</div></div>';
   h+='<div style="background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #e2e8e4">';
   h+='<div style="font-size:14px;font-weight:800;color:#1e6b3f;margin-bottom:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5Z"/><path d="M14 2v6h6"/></svg> Termos de Uso e Responsabilidade</div>';
   h+='<pre style="font-size:11px;color:#475569;line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:inherit">'+esc(TERMO_TXT)+'</pre></div>';
@@ -869,6 +940,10 @@ function fmtISO(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMont
 function fmtD(d){if(!d)return'';if(d.includes('/'))return d;var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function isoD(d){if(!d)return'';if(!d.includes('/'))return d;var p=d.split('/');if(p.length===3&&p[2].length===4)return p[2]+'-'+p[1]+'-'+p[0];return d;}
 function fmtDH(ts){var d=new Date(ts);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+// Em pt-BR, dias da semana e meses sao minusculos por regra ("nos vemos no domingo").
+// Mas quando abrem uma frase, levam maiuscula. toLocaleDateString sempre devolve minusculo,
+// entao capitalizamos manualmente nesses casos.
+function capitalizar(s){return s?s.charAt(0).toUpperCase()+s.slice(1):s;}
 function ini(n){if(!n)return'?';var p=n.trim().split(' ');return(p[0][0]+(p[1]?p[1][0]:'')).toUpperCase();}
 function nomePac(id){var p=D.pacientes.find(function(x){return x.id===id;});return p?p.nome:'';}
 function plNome(id){var p=D.planos.find(function(x){return x.id===id;});return p?p.nome:'';}
@@ -1242,13 +1317,20 @@ function mostrarBloqueio(venc){
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────
+var _bootEfeitos=false;
 function boot(){
+  esconderSplash();
   aplicarTema();
   iniciarFeriadosNacionais();
   localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
   atualizarBadge();
-  setTimeout(gerarNotificacoes,2000);
-  setTimeout(verificarExclusaoAgendada,3000);
+  // Com o arranque local-first, boot() pode rodar de novo quando o Firebase responde.
+  // Estes agendamentos so devem acontecer uma vez por sessao.
+  if(!_bootEfeitos){
+    _bootEfeitos=true;
+    setTimeout(gerarNotificacoes,2000);
+    setTimeout(verificarExclusaoAgendada,3000);
+  }
   if(!D.cfg.termosAceitos){mostrarTermos();return;}
   if(!verificarVencimento())return;
   if(!D.cfg.onboardingConcluido&&D.pacientes.length===0){verificarOnboarding();return;}
@@ -1448,7 +1530,7 @@ function rInicio(el2){
   var ferProx=D.feriados.map(function(f){return{f:f,dt:Math.ceil((new Date(f.data+'T12:00:00')-_hjMs)/(864e5))};}).filter(function(x){return x.dt>=0&&x.dt<=15;}).sort(function(a,b){return a.f.data.localeCompare(b.f.data);});
 
   var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+'</div>';
-  h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+'</div></div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+capitalizar(now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))+'</div></div>';
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer" onclick="ir(\'agenda\')"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sHj.length+'</div><div style="font-size:11px;color:var(--sl3)">Hoje</div></div>';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer;border-color:var(--g3)" onclick="ir(\'financeiro\')"><div style="font-size:15px;font-weight:800;color:var(--green)">R$'+recMes.toFixed(2)+'</div><div style="font-size:11px;color:var(--sl3)">Recebido/mês</div><div style="font-size:9px;color:var(--g1);font-weight:700;margin-top:3px">Ver detalhes →</div></div>';
@@ -2629,7 +2711,7 @@ function mPaciente(pac){
   h+='</div></div>';
   h+='<div id="pac-wrap" style="display:'+(p.pacote?'block':'none')+'">';
   h+='<div class="fg"><label>Total de sessões vendidas</label><input class="fi" type="number" id="mp-pacote-qtd" min="1" max="500" value="'+(p.pacote||'')+'"/></div>';
-  h+='<div class="fg"><label>Data de inicio</label>'+criarCampoData('mp-pacote-ini', p.pacoteIni||'', 'Selecionar data')+'</div>';
+  h+='<div class="fg"><label>Data de início</label>'+criarCampoData('mp-pacote-ini', p.pacoteIni||'', 'Selecionar data')+'</div>';
   h+='<div style="padding:8px;background:#f0fdf4;border-radius:8px;font-size:12px;color:#166534">As sessões realizadas são contadas automaticamente pela agenda.</div>';
   h+='</div></div>';
 
@@ -3209,11 +3291,11 @@ var ESCALAS_DB={
 
 
 var MODELOS_DEFAULT=['Paciente relata melhora do quadro álgico. Sessão realizada sem intercorrências.','Melhora da amplitude de movimento. Exercícios realizados conforme protocolo.','Boa tolerância à sessão. Paciente refere dor residual ao final.','Evolução satisfatória. Aumentada carga dos exercícios progressivos.'];
-function mEvo(pid,eid){
+function mEvo(pid,eid,dataSessao){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var e=eid?(p.evolucoes||[]).find(function(x){return x.id===eid;}):null;
   e=e||{id:'',texto:'',dor:undefined,mob:undefined};
-  var dataEvo=e.dataEvo||hoje();
+  var dataEvo=e.dataEvo||dataSessao||hoje();
   var h='<div class="mh"><h3>'+(e.id?'Editar':'Nova')+' Evolução — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="me-pid" value="'+esc(pid)+'"/><input type="hidden" id="me-eid" value="'+esc(e.id)+'"/>';
   if(!e.id){
@@ -3229,7 +3311,7 @@ function mEvo(pid,eid){
   var minDt=new Date();minDt.setFullYear(minDt.getFullYear()-1);
   var minDtStr=fmtISO(minDt);
   h+='<div class="fg"><label>Data do atendimento</label>'+criarCampoData('me-data-evo',dataEvo,'Selecionar data');
-  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Pode registrar atendimentos de qualquer data passada.</div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">'+(dataSessao&&!e.id?'Preenchida com a data da sessão. Pode alterar se necessário.':'Pode registrar atendimentos de qualquer data passada.')+'</div></div>';
   h+='<div class="fsec" style="margin-bottom:10px"><div class="fsec-t">Dados vitais (opcional)</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
   h+='<div class="fg" style="margin:0"><label>PA (mmHg)</label><input class="fi" type="text" id="me-pa" value="'+esc(e.pa||'')+'" placeholder="120 x 80" oninput="mascaraPA(this)" maxlength="9"/></div>';
   h+='<div class="fg" style="margin:0"><label>Saturação (%)</label><div style="position:relative"><input class="fi" type="number" id="me-sat" min="0" max="100" value="'+(e.sat!=null?e.sat:'')+'" placeholder="98" style="padding-right:28px"/><span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--sl3);font-size:13px;pointer-events:none">%</span></div></div>';
@@ -3460,14 +3542,16 @@ function rEvolucoes(el2){
   h+='<button class="btn btn-sm btn-s" id="evo-ft-per" onclick="setFiltroEvo(\'per\')">Personalizado</button>';
   h+='</div>';
   h+='<div id="evo-per-wrap" style="display:none;margin-bottom:10px"><div class="fr">';
-  h+='<div class="fg"><label>De</label><input class="fi" type="date" id="evo-dt-ini" value="'+mes0+'" min="'+anoAtrasStr+'"/></div>';
-  h+='<div class="fg"><label>Até</label><input class="fi" type="date" id="evo-dt-fim" value="'+hj+'"/></div>';
+  h+='<div class="fg"><label>De</label>'+criarCampoData('evo-dt-ini',mes0,'Data inicial')+'</div>';
+  h+='<div class="fg"><label>Até</label>'+criarCampoData('evo-dt-fim',hj,'Data final')+'</div>';
   h+='</div><button class="btn btn-p btn-sm" onclick="filtrarEvo()">Filtrar</button></div>';
   h+='<input type="hidden" id="evo-ft-ativo" value="hj"/>';
   h+='</div>';
   h+='<div id="evo-lista"></div>';
   el2.innerHTML=h;
-  setModoEvo('pend');
+  // O div ainda não está no DOM neste ponto (renderizar() só faz appendChild depois).
+  // setTimeout garante que renderPendentes() encontre o #evo-lista.
+  setTimeout(function(){setModoEvo('pend');},0);
 }
 function setModoEvo(modo){
   var mEl=el('evo-modo-ativo');if(mEl)mEl.value=modo;
@@ -3508,7 +3592,7 @@ function renderPendentes(){
   pendentes.forEach(function(item){
     var p=item.pac;var s=item.sess;
     var tpNm=s.tipoId?(D.tipos.find(function(t){return t.id===s.tipoId;})||{}).nome||'':'';
-    h+='<div class="card" style="margin-bottom:8px;cursor:pointer;border-left:3px solid var(--amber)" data-pid="'+esc(p.id)+'" onclick="mEvo(this.dataset.pid,\'\')">';
+    h+='<div class="card" style="margin-bottom:8px;cursor:pointer;border-left:3px solid var(--amber)" data-pid="'+esc(p.id)+'" data-dts="'+esc(s.data)+'" onclick="mEvo(this.dataset.pid,\'\',this.dataset.dts)">';
     h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
     h+='<span style="font-size:13px;font-weight:700">'+esc(p.nome)+'</span>';
     h+='<span style="font-size:11px;color:var(--amber);font-weight:700"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.2a2 2 0 0 0-.6-1.4L12 12l-4.4 4.4a2 2 0 0 0-.6 1.4V22"/><path d="M7 2v4.2a2 2 0 0 0 .6 1.4L12 12l4.4-4.4a2 2 0 0 0 .6-1.4V2"/></svg> '+fmtD(s.data)+'</span>';
@@ -3818,7 +3902,7 @@ function mConfirmarCofre(btn){
   h+='<div id="cofre-preview-rest" style="font-size:16px;font-weight:800;color:var(--amber)">R$ '+total.toFixed(2)+'</div></div>';
   h+='</div>';
   h+='<div class="fg"><label>Data prevista para receber o restante</label>';
-  h+='<input class="fi" type="date" id="cofre-data-rest"/></div>';
+  h+=criarCampoData('cofre-data-rest','','Selecionar data')+'</div>';
   h+='<button class="btn btn-p btn-bl" data-plids="'+esc(plids.join(','))+'" data-total="'+total+'" onclick="confirmarCofreParcial(this)">Confirmar parcial</button>';
   h+='</div>';
   h+='<input type="hidden" id="cofre-plids" value="'+esc(plids.join(','))+'"/>';
@@ -4369,7 +4453,7 @@ function agendarExclusaoConta(){
   fecharM();
   // Notificação no sino
   addNotif('conta_exclusao','crefito',
-    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Conta agendada para exclusão em 7 dias',
+    'Conta agendada para exclusão em 7 dias',
     'Faça login antes de '+new Date(dtExclusao).toLocaleDateString('pt-BR')+' para cancelar. Caso contrário, todos os dados serão apagados.');
   atualizarBadgeSino();
   toast('Exclusão agendada. Faça login nos próximos 7 dias para cancelar.');
@@ -4401,7 +4485,7 @@ function verificarExclusaoAgendada(){
     // Mostrar banner de cancelamento
     var diasRestantes=Math.ceil((dtExclusao-Date.now())/(864e5));
     addNotif('conta_exclusao','crefito',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Conta será excluída em '+diasRestantes+' dia(s)',
+      'Conta será excluída em '+diasRestantes+' dia(s)',
       'Acesse Mais → Solicitar exclusão para cancelar.');
     atualizarBadgeSino();
   }
@@ -4588,8 +4672,8 @@ function rBuscaReceita(el2){
   var now=new Date();var ano=now.getFullYear();var mes=now.getMonth();
   var h='<div style="font-size:16px;font-weight:800;margin-bottom:14px">Busca de Recebimentos</div>';
   h+='<div class="card"><div style="font-size:12px;font-weight:700;margin-bottom:8px">Filtros</div>';
-  h+='<div class="fr"><div class="fg"><label>Data inicial</label><input class="fi" type="date" id="br-ini" value="'+ano+'-01-01"/></div>';
-  h+='<div class="fg"><label>Data final</label><input class="fi" type="date" id="br-fim" value="'+ano+'-12-31"/></div></div>';
+  h+='<div class="fr"><div class="fg"><label>Data inicial</label>'+criarCampoData('br-ini',ano+'-01-01','Data inicial')+'</div>';
+  h+='<div class="fg"><label>Data final</label>'+criarCampoData('br-fim',ano+'-12-31','Data final')+'</div></div>';
   h+='<div class="fg"><label>Plano</label><select class="fi" id="br-plano"><option value="">Todos os planos</option>';
   D.planos.forEach(function(pl){h+='<option value="'+esc(pl.id)+'">'+esc(pl.nome)+'</option>';});
   h+='</select></div>';
@@ -5674,7 +5758,7 @@ function mPagamentoLote(planoId){
   var now=new Date();var mes=now.getMonth()+1;var ano=now.getFullYear();
   var h='<div class="mh"><h3>Recebimento em Lote — '+esc(pl.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:12px">Quitar todas as sessoes pendentes deste plano de uma vez.</p>';
-  h+='<div class="fr"><div class="fg"><label>Mes</label><select class="fi" id="lot-mes" onchange="atualizarPreviewLote()">';
+  h+='<div class="fr"><div class="fg"><label>Mês</label><select class="fi" id="lot-mes" onchange="atualizarPreviewLote()">';
   var mNm=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   mNm.forEach(function(m,i){h+='<option value="'+(i+1)+'"'+((i+1===mes)?' selected':'')+'>'+m+'</option>';});
   h+='</select></div><div class="fg"><label>Ano</label><select class="fi" id="lot-ano" onchange="atualizarPreviewLote()">';
@@ -5738,7 +5822,7 @@ function resumoDia(ds){
   var valPrev=sessDia.reduce(function(a,s){return a+(s.valor||0);},0);
   var valRec=sessDia.filter(function(s){return s.statusPag==='pago';}).reduce(function(a,s){return a+(s.valor||0);},0);
   var dt=new Date(ds+'T12:00:00');
-  var h='<div class="mh"><h3>'+dt.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  var h='<div class="mh"><h3>'+capitalizar(dt.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'}))+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
   h+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:8px"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sessDia.length+'</div><div style="font-size:11px;color:var(--sl3)">Total</div></div>';
   h+='<div style="text-align:center;padding:10px;background:var(--g4);border-radius:8px"><div style="font-size:22px;font-weight:800;color:#16a34a">'+realizadas+'</div><div style="font-size:11px;color:var(--sl3)">Realizados</div></div>';
@@ -6316,7 +6400,7 @@ function gerarNotificacoes(){
   // 0. CREFITO não preenchido
   if(!D.cfg.crefito||!D.cfg.crefito.trim()){
     addNotif('crefito_pendente','crefito',
-      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/></svg> Complete seu perfil profissional',
+      'Complete seu perfil profissional',
       'CREFITO não preenchido. Obrigatório pela Lei nº 6.316/1975. Toque para preencher.');
   }
 
@@ -6534,7 +6618,15 @@ function iniciarFeriadosNacionais(){
   });
 }
 
-carregar();fbInit();
+carregar();
+// Arranque local-first: se a pessoa ja estava logada, desenha na hora com os dados
+// deste aparelho, sem esperar a rede. O Firebase sincroniza logo em seguida.
+if(localStorage.getItem('fe_sessao_ativa')){
+  boot();
+}else{
+  iniciarTimeoutOffline();
+}
+fbInit();
 </script>
 </body>
 </html>
