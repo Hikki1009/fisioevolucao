@@ -3189,7 +3189,7 @@ function exportarEvoPDF(pid){
   var dtGer=new Date().toLocaleDateString('pt-BR')+' às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
   // Conteúdo do relatório
-  function buildConteudo(){
+  function buildConteudo(incluirAval){
     var c='';
     // Cabeçalho
     c+='<div id="pdf-cabecalho" style="border-bottom:3px solid var(--g1);padding-bottom:14px;margin-bottom:18px">';
@@ -3205,6 +3205,17 @@ function exportarEvoPDF(pid){
     if(_idt.length)c+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+_idt.join(' · ')+'</div>';
     c+='<div style="font-size:11px;color:var(--sl3);margin-top:6px">'+plural(evos.length,'evolução','evoluções')+' · Gerado em '+dtGer+'</div>';
     c+='</div>';
+    // Avaliação / Anamnese (opcional) — vem antes das evoluções
+    if(incluirAval && typeof _htmlAnamnese==='function'){
+      var an=p.anamnese||{};
+      var temAnamnese=!!(an.queixa||an.hma||an.hmp||an.doencas||an.doenças||an.medicamentos||an.objetivos);
+      if(temAnamnese){
+        c+='<div style="margin-bottom:18px"><div style="font-size:13px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;border-bottom:1px solid var(--borda);padding-bottom:6px">Avaliação / Anamnese</div>';
+        c+=_htmlAnamnese(p);
+        c+='</div>';
+        c+='<div style="font-size:13px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;border-bottom:1px solid var(--borda);padding-bottom:6px">Evoluções</div>';
+      }
+    }
     // Evoluções
     evos.forEach(function(e){
       var dt=e.dataEvo?fmtD(e.dataEvo):(e.ts?new Date(e.ts).toLocaleDateString('pt-BR'):'—');
@@ -3256,13 +3267,20 @@ function exportarEvoPDF(pid){
   }
 
   // Modal
-  var conteudo=buildConteudo();
+  var temAnamnese=!!(p.anamnese&&(p.anamnese.queixa||p.anamnese.hma||p.anamnese.hmp||p.anamnese.doencas||p.anamnese.doenças||p.anamnese.medicamentos||p.anamnese.objetivos));
+  var conteudo=buildConteudo(false);
+  // Guarda o gerador para o checkbox poder regenerar com/sem avaliação
+  window._pdfBuild=buildConteudo;
   var h='<div id="pdf-modal" style="position:fixed;inset:0;z-index:300;background:var(--bg);display:flex;flex-direction:column">';
   // Header do modal
   h+='<div style="background:var(--g1);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0">';
   h+='<button onclick="fecharPdfModal()" style="background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>';
   h+='<div style="flex:1"><div style="font-size:15px;font-weight:800">Relatório de Evoluções</div><div style="font-size:11px;opacity:.8">'+esc(p.nome)+'</div></div>';
   h+='</div>';
+  // Opção de incluir a avaliação (só aparece se houver anamnese preenchida)
+  if(temAnamnese){
+    h+='<div style="padding:10px 16px;background:var(--card);border-bottom:1px solid var(--borda);flex-shrink:0"><label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer"><input type="checkbox" id="pdf-incluir-aval" onchange="atualizarPdfConteudo()" style="width:18px;height:18px"/> Incluir a avaliação/anamnese no relatório</label></div>';
+  }
   // Conteúdo scrollável
   h+='<div id="pdf-conteudo" style="flex:1;overflow-y:auto;padding:16px;-webkit-overflow-scrolling:touch">'+conteudo+'</div>';
   // Botões de ação
@@ -3284,6 +3302,16 @@ function exportarEvoPDF(pid){
 function fecharPdfModal(){
   var m=document.getElementById('pdf-modal');if(m)m.remove();
   var p=document.getElementById('pdf-print-area');if(p)p.remove();
+}
+// Regenera o conteúdo do PDF quando o usuário marca/desmarca "incluir avaliação".
+function atualizarPdfConteudo(){
+  if(typeof window._pdfBuild!=='function')return;
+  var incluir=el('pdf-incluir-aval')?el('pdf-incluir-aval').checked:false;
+  var novo=window._pdfBuild(incluir);
+  var vis=document.getElementById('pdf-conteudo');
+  var print=document.getElementById('pdf-print-area');
+  if(vis)vis.innerHTML=novo;
+  if(print)print.innerHTML=novo;
 }
 
 
@@ -3333,55 +3361,57 @@ function confirmarEnvioEvoEmail(){
     +'?subject='+encodeURIComponent(assunto)
     +'&body='+encodeURIComponent(corpo);
 
-  // Abre a previa com DOIS botoes: imprimir/salvar e enviar por e-mail.
-  // O usuario ve o documento, salva o PDF, e so entao envia — sem popups competindo.
+  // Passo 1: gera o PDF (impressão via iframe — o usuário salva/imprime).
   var area=document.getElementById('pdf-print-area');
   var conteudo=area?area.innerHTML:(window._pdfHtml||'');
-  var abriu=abrirDocumentoParaImpressao('Evoluções — '+nome, conteudo, link);
-  if(!abriu){
-    // Popup bloqueado: cai para o mailto direto.
-    window.location.href=link;
-    toast('Anexe o PDF ao e-mail.',4000);
-  }
+  abrirDocumentoParaImpressao('Evoluções — '+nome, conteudo);
+
+  // Passo 2: depois de um instante, abre o e-mail já preenchido para anexar.
+  toast('Salve o PDF e depois anexe ao e-mail que vai abrir.',5000);
+  setTimeout(function(){ window.location.href=link; },1600);
 }
 
-// Abre o documento numa janela nova, ja formatado como folha A4, com um
-// botao de imprimir bem visivel. Isso resolve dois problemas do celular:
-//  - window.print() na propria pagina muitas vezes nao abre nada (WebView);
-//  - o usuario passa a VER o documento exatamente como sera impresso/salvo.
+// Imprime/salva um documento como PDF usando um IFRAME OCULTO.
+// Essa técnica é muito mais confiável que window.open no celular e em PWAs
+// (instalados na tela inicial), onde abrir aba nova costuma ser bloqueado
+// silenciosamente e "não acontece nada". O iframe imprime a folha A4
+// diretamente, sem depender de popup.
 function abrirDocumentoParaImpressao(titulo, corpoHtml, emailHref){
-  var estilo='<style>'
-    +'*{box-sizing:border-box}'
-    +'body{font-family:Inter,-apple-system,Arial,sans-serif;margin:0;background:#e5e7eb;color:#111}'
-    +'.barra{position:sticky;top:0;background:#00875A;color:#fff;padding:12px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between}'
-    +'.barra b{font-size:15px}'
-    +'.barra button{background:#fff;color:#00875A;border:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer}'
-    +'.folha{background:#fff;max-width:780px;margin:16px auto;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.12);border-radius:4px}'
-    +'@media print{.barra{display:none}.folha{box-shadow:none;margin:0;max-width:none;padding:0}body{background:#fff}@page{size:A4;margin:1.5cm}}'
-    +'</style>';
-  var botaoEmail=emailHref
-    ?'<button style="background:#fff;color:#00875A" onclick="location.href=\''+emailHref.replace(/'/g,"\\'")+'\'">Enviar por e-mail</button>'
-    :'';
-  var doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">'
-    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
-    +'<title>'+titulo+'</title>'+estilo+'</head><body>'
-    +'<div class="barra"><b>'+titulo+'</b><div style="display:flex;gap:8px">'
-    +'<button onclick="window.print()">Imprimir / Salvar PDF</button>'
-    +botaoEmail
-    +'</div></div>'
-    +(emailHref?'<div style="background:#fef3c7;color:#92400e;font-size:13px;padding:10px 16px;text-align:center;border-bottom:1px solid #fcd34d">Salve o PDF pelo botão acima e depois toque em <b>Enviar por e-mail</b> para anexá-lo.</div>':'')
-    +'<div class="folha">'+corpoHtml+'</div>'
-    +'</body></html>';
-
-  var w=window.open('','_blank');
-  if(!w){
-    // Popup bloqueado (comum no celular). Cai para impressao na propria pagina.
+  try{
+    var estilo='<style>'
+      +'*{box-sizing:border-box}'
+      +'body{font-family:Inter,-apple-system,Arial,sans-serif;margin:0;background:#fff;color:#111}'
+      +'.folha{background:#fff;max-width:780px;margin:0 auto;padding:24px}'
+      +'@page{size:A4;margin:1.5cm}'
+      +'</style>';
+    var doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">'
+      +'<title>'+titulo+'</title>'+estilo+'</head><body>'
+      +'<div class="folha">'+corpoHtml+'</div>'
+      +'</body></html>';
+    // remove iframe anterior, se houver
+    var antigo=document.getElementById('fe-print-iframe');
+    if(antigo)antigo.remove();
+    var ifr=document.createElement('iframe');
+    ifr.id='fe-print-iframe';
+    ifr.style.position='fixed';ifr.style.right='0';ifr.style.bottom='0';
+    ifr.style.width='0';ifr.style.height='0';ifr.style.border='0';
+    document.body.appendChild(ifr);
+    var d=ifr.contentWindow.document;
+    d.open();d.write(doc);d.close();
+    // aguarda o conteúdo montar e dispara a impressão
+    setTimeout(function(){
+      try{
+        ifr.contentWindow.focus();
+        ifr.contentWindow.print();
+      }catch(err){
+        // último recurso: imprime a própria página
+        window.print();
+      }
+    },350);
+    return true;
+  }catch(e){
     return false;
   }
-  w.document.open();
-  w.document.write(doc);
-  w.document.close();
-  return true;
 }
 
 function imprimirEvo(){
@@ -4141,12 +4171,22 @@ var ESCALAS_DB={
 
 
 var MODELOS_DEFAULT=['Paciente relata melhora do quadro álgico. Sessão realizada sem intercorrências.','Melhora da amplitude de movimento. Exercícios realizados conforme protocolo.','Boa tolerância à sessão. Paciente refere dor residual ao final.','Evolução satisfatória. Aumentada carga dos exercícios progressivos.'];
+// Normaliza um modelo para o formato {nome, texto}, aceitando também o formato
+// antigo (string pura). Assim os modelos já salvos continuam funcionando.
+function _modeloObj(m,i){
+  if(typeof m==='string')return {nome:'Modelo '+((i||0)+1),texto:m};
+  return {nome:(m&&m.nome)||('Modelo '+((i||0)+1)),texto:(m&&m.texto)||''};
+}
+function _modelosLista(){
+  var arr=D.cfg.modelosEvo||MODELOS_DEFAULT;
+  return arr.map(function(m,i){return _modeloObj(m,i);});
+}
 function mEvo(pid,eid,dataSessao,sessaoId){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
   var e=eid?(p.evolucoes||[]).find(function(x){return x.id===eid;}):null;
   e=e||{id:'',texto:'',dor:undefined,mob:undefined};
   var dataEvo=e.dataEvo||dataSessao||hoje();
-  var h='<div class="mh"><h3>'+(e.id?'Editar':'Nova')+' Evolução — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+  var h='<div class="mh"><h3>'+(e.id?'Editar':'Nova')+' Evolução — '+esc(p.nome)+'</h3><button class="mc" onclick="fecharEvo()">✕</button></div>';
   h+='<input type="hidden" id="me-pid" value="'+esc(pid)+'"/><input type="hidden" id="me-eid" value="'+esc(e.id)+'"/>';
   // Guarda a sessao que originou esta evolucao. Ao editar, preserva o vinculo ja existente.
   h+='<input type="hidden" id="me-sid" value="'+esc(e.sessaoId||sessaoId||'')+'"/>';
@@ -4170,7 +4210,7 @@ function mEvo(pid,eid,dataSessao,sessaoId){
   h+='<div class="fg" style="margin:0"><label>Bat. (bpm)</label><input class="fi" type="number" id="me-bpm" min="0" max="300" value="'+(e.bpm!=null?e.bpm:'')+'" placeholder="72"/></div>';
   h+='</div></div>';
   h+='<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:6px">Modelos rápidos</div><div style="display:flex;gap:5px;flex-wrap:wrap">';
-  var MODELOS=D.cfg.modelosEvo||MODELOS_DEFAULT;MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)">Modelo '+(i+1)+'</button>';});
+  var MODELOS=_modelosLista();MODELOS.forEach(function(m,i){h+='<button class="btn btn-s btn-sm" data-idx="'+i+'" onclick="usarModelo(this.dataset.idx)" title="'+esc(m.texto)+'">'+esc(m.nome)+'</button>';});
   h+='</div></div>';
   h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="5" placeholder="Descreva a sessão...">'+esc(e.texto)+'</textarea></div>';
   if(D.cfg.usarGrafico){h+='<div class="fr"><div class="fg"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" value="'+(e.dor!=null?e.dor:'')+'" placeholder="0-10"/></div><div class="fg"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" value="'+(e.mob!=null?e.mob:'')+'" placeholder="0-10"/></div></div>';}
@@ -4179,7 +4219,35 @@ function mEvo(pid,eid,dataSessao,sessaoId){
   else{h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';}
   abrirM(h);
 }
-function usarModelo(idx){var t=el('me-txt');if(t){var mds=D.cfg.modelosEvo||MODELOS_DEFAULT;t.value=mds[parseInt(idx)]||'';}}
+function usarModelo(idx){
+  var t=el('me-txt');if(!t)return;
+  var mds=_modelosLista();
+  var modelo=mds[parseInt(idx)]?mds[parseInt(idx)].texto:'';
+  if(!modelo)return;
+  var atual=t.value;
+  // Se já há texto escrito, ADICIONA o modelo ao final (não sobrescreve),
+  // separando por quebra de linha. Assim o profissional não perde o que digitou.
+  if(atual.trim()){
+    t.value=atual.replace(/\s+$/,'')+'\n'+modelo;
+  }else{
+    t.value=modelo;
+  }
+  // posiciona o cursor no fim e mantém o foco para continuar escrevendo
+  t.focus();
+  try{ t.setSelectionRange(t.value.length,t.value.length); }catch(e){}
+}
+// Fecha o modal de evolução com segurança: se há texto digitado que ainda
+// não foi salvo, pede confirmação para não perder o registro por engano.
+function fecharEvo(){
+  var t=el('me-txt');
+  var eid=el('me-eid')?el('me-eid').value:'';
+  // Só avisa em evolução NOVA com texto digitado (na edição, o texto já está salvo).
+  if(t&&!eid&&t.value.trim().length>0){
+    modalConfirm('Descartar evolução?','Você digitou um texto que ainda <strong>não foi salvo</strong>. Se sair agora, ele será perdido.','Descartar','renderizar()','true');
+    return;
+  }
+  fecharM(true);
+}
 function salvarEvo(){
   // Blindagem: se os campos nao existem (modal nao aberto), aborta com aviso
   // em vez de quebrar. A evolucao e o dado mais critico do app.
@@ -4416,6 +4484,10 @@ function setModoEvo(modo){
   if(filtrosData)filtrosData.style.display=modo==='real'?'block':'none';
   var buscaPend=el('evo-busca-pend');
   if(buscaPend)buscaPend.style.display=modo==='pend'?'block':'none';
+  // Zera o campo de busca ao (re)entrar no modo, garantindo que campo e lista
+  // fiquem sempre sincronizados (evita busca "presa" ao voltar de um perfil).
+  var campoPend=el('busca-pend');if(campoPend&&modo==='pend')campoPend.value='';
+  var campoReal=el('busca-evo');if(campoReal&&modo==='real')campoReal.value='';
   if(modo==='pend') renderPendentes();
   else filtrarEvo();
 }
@@ -5298,24 +5370,33 @@ function enviarFeedback(){
 }
 
 function mModelosConfig(){
-  var modelos=D.cfg.modelosEvo||MODELOS_DEFAULT;
+  var modelos=_modelosLista();
   var h='<div class="mh"><h3>Modelos de Evolução</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Personalize os textos dos modelos rápidos nas evoluções.</p>';
+  h+='<p style="font-size:12px;color:var(--sl3);margin-bottom:14px">Dê um nome a cada modelo (até 50 caracteres) e escreva o texto que será inserido na evolução.</p>';
   modelos.forEach(function(m,i){
-    h+='<div class="fg"><label>Modelo '+(i+1)+'</label><div style="display:flex;gap:6px">';
-    h+='<textarea class="fi" id="mod-'+i+'" rows="2" style="flex:1">'+esc(m)+'</textarea>';
-    h+='<button class="btn btn-d btn-sm" style="align-self:flex-start" data-idx="'+i+'" onclick="delModelo(this.dataset.idx)">✕</button>';
-    h+='</div></div>';
+    h+='<div class="fsec" style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+    h+='<input class="fi" id="modnome-'+i+'" maxlength="50" value="'+esc(m.nome)+'" placeholder="Nome do modelo" style="flex:1;font-weight:700"/>';
+    h+='<button class="btn btn-d btn-sm" style="margin-left:6px" data-idx="'+i+'" onclick="delModelo(this.dataset.idx)">✕</button>';
+    h+='</div>';
+    h+='<textarea class="fi" id="mod-'+i+'" rows="2" placeholder="Texto do modelo">'+esc(m.texto)+'</textarea>';
+    h+='</div>';
   });
   h+='<button class="btn btn-s btn-bl btn-sm" style="margin-bottom:12px" onclick="addModelo()">+ Novo modelo</button>';
   h+='<button class="btn btn-p btn-bl" onclick="salvarModelos()">Salvar modelos</button>';
   abrirM(h);
 }
-function addModelo(){var m=D.cfg.modelosEvo||MODELOS_DEFAULT.slice();m.push('');D.cfg.modelosEvo=m;mModelosConfig();}
-function delModelo(idx){var m=D.cfg.modelosEvo||MODELOS_DEFAULT.slice();if(m.length<=1){toast('Mantenha ao menos 1 modelo');return;}m.splice(parseInt(idx),1);D.cfg.modelosEvo=m;mModelosConfig();}
+function addModelo(){var m=_modelosLista();m.push({nome:'Modelo '+(m.length+1),texto:''});D.cfg.modelosEvo=m;mModelosConfig();}
+function delModelo(idx){var m=_modelosLista();if(m.length<=1){toast('Mantenha ao menos 1 modelo');return;}m.splice(parseInt(idx),1);D.cfg.modelosEvo=m;mModelosConfig();}
 function salvarModelos(){
   var m=[];var i=0;
-  while(el('mod-'+i)){var v=el('mod-'+i).value.trim();if(v)m.push(v);i++;}
+  while(el('mod-'+i)){
+    var txt=el('mod-'+i).value.trim();
+    var nome=el('modnome-'+i)?el('modnome-'+i).value.trim().slice(0,50):'';
+    if(txt){
+      m.push({nome:nome||('Modelo '+(m.length+1)),texto:txt});
+    }
+    i++;
+  }
   if(!m.length){toast('Adicione ao menos 1 modelo');return;}
   D.cfg.modelosEvo=m;salvar();fecharM();toast('Modelos salvos!');
 }
@@ -6203,12 +6284,10 @@ function confirmarEnvioAnamneseEmail(){
   var link='mailto:'+encodeURIComponent(dest)
     +'?subject='+encodeURIComponent(assunto)
     +'&body='+encodeURIComponent(corpo);
-  // Previa com botao de imprimir E de enviar (sem popups competindo).
-  var abriu=abrirDocumentoParaImpressao('Avaliação — '+nome, _htmlAnamnese(p), link);
-  if(!abriu){
-    window.location.href=link;
-    toast('Anexe o PDF ao e-mail.',4000);
-  }
+  // Passo 1: gera o PDF via iframe. Passo 2: abre o e-mail para anexar.
+  abrirDocumentoParaImpressao('Avaliação — '+nome, _htmlAnamnese(p));
+  toast('Salve o PDF e depois anexe ao e-mail que vai abrir.',5000);
+  setTimeout(function(){ window.location.href=link; },1600);
 }
 
 function rAbaAnamnese(p){
@@ -6748,13 +6827,13 @@ function setFiltroAgenda(tipo){
 
 function inativarPaciente(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  var motivos=['Alta clínica','Obito','Desistencia','Troca de profissional','Pausa temporaria','Outro'];
+  var motivos=['Alta clínica','Óbito','Desistência','Troca de profissional','Pausa temporária','Outro'];
   var h='<div class="mh"><h3>Inativar Paciente</h3><button class="mc" onclick="fecharM()">✕</button></div>';
-  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">O paciente ficara na lista de inativos. Todo o histórico será preservado.</p>';
+  h+='<p style="font-size:13px;color:var(--sl3);margin-bottom:14px">O paciente ficará na lista de inativos. Todo o histórico será preservado e você pode reativá-lo quando quiser.</p>';
   h+='<div class="fg"><label>Motivo</label><select class="fi" id="mot-inat">';
   motivos.forEach(function(m){h+='<option value="'+m+'">'+m+'</option>';});
   h+='</select></div>';
-  h+='<div class="fg"><label>Observações (opcional)</label><textarea class="fi" id="obs-inat" rows="2" placeholder="Detalhes sobre a inativacao..."></textarea></div>';
+  h+='<div class="fg"><label>Observações (opcional)</label><textarea class="fi" id="obs-inat" rows="2" placeholder="Detalhes sobre a inativação..."></textarea></div>';
   h+='<input type="hidden" id="inat-pid" value="'+esc(pid)+'"/>';
   h+='<button class="btn btn-d btn-bl" onclick="confirmarInativacao()">Inativar paciente</button>';
   abrirM(h);
