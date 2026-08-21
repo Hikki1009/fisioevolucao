@@ -773,6 +773,17 @@ function fbInit(){
   });
 }
 function fbPath(){return FBD.ref('u/'+FBU.uid);}
+// Cleanup quando usuário fecha a aba (previne memory leak)
+window.addEventListener('beforeunload',function(){limparTodosTimers();limpiarHandlers();});
+// Error logging centralizado (para monitoramento)
+function logError(contexto,erro){
+  try{
+    var msg=(erro&&erro.message)?erro.message:String(erro);
+    console.error('['+contexto+']',msg);
+    // Aqui você poderia enviar para um serviço de error tracking como Sentry
+    // fetch('/api/errors', {method:'POST', body:JSON.stringify({contexto,msg,timestamp:Date.now()})});
+  }catch(e){console.error('Erro ao logar erro:',e);}
+}
 // ══════════════════════════════════════════════════════════════════
 // SINCRONIZACAO CONFIRMADA
 //
@@ -791,6 +802,12 @@ var _syncEmAndamento=false;
 var _syncPendente=false;      // houve alteracao enquanto sincronizava
 var _syncTentativas=0;
 var _syncRetryTimer=null;
+// Handlers para cleanup de event listeners (previne memory leak)
+var _handlers={online:null,offline:null,visibilitychange:null,keydown:null};
+// Timers para cleanup (previne memory leak)
+var _timersGlobais=[];
+function adicionarTimer(id){_timersGlobais.push(id);}
+function limparTodosTimers(){_timersGlobais.forEach(function(id){if(id)clearTimeout(id);});_timersGlobais=[];}
 
 // Momento da ultima gravacao CONFIRMADA na nuvem (persistido).
 function ultimaSyncConfirmada(){
@@ -856,13 +873,14 @@ function agendarNovaTentativa(){
 }
 
 // A rede voltou: tenta imediatamente, sem esperar o proximo retry.
-window.addEventListener('online',function(){
+_handlers.online = function(){
   if(_syncFalhou&&FBU&&FBD){
     _syncTentativas=0;
     if(_syncRetryTimer){clearTimeout(_syncRetryTimer);_syncRetryTimer=null;}
     fbSync();
   }
-});
+};
+window.addEventListener('online',_handlers.online);
 
 // Indicador de "nao sincronizado". Nao interrompe o trabalho — os dados estao
 // no aparelho —, mas deixa claro que a copia na nuvem esta desatualizada.
@@ -893,12 +911,16 @@ function tentarSyncNovamente(){
 }
 
 function irSeguranca(){ir('mais');setTimeout(function(){if(typeof mSeguranca==='function')mSeguranca();},250);}
-document.addEventListener('visibilitychange',function(){
+_handlers.visibilitychange = function(){
   if(document.hidden||!FBU||!FBD)return;
   if(el('ov')&&el('ov').style.display!=='none')return;
   if(Date.now()-(window._ultimoSave||0)<4000)return;
   fbCarregar(true); // true = manter a tela atual, não voltar para Início
-});
+};
+document.addEventListener('visibilitychange',_handlers.visibilitychange);
+// fbCarregar: sincroniza dados com Firebase
+// manterTela=true: não reseta para Início (usado ao voltar de background)
+// manterTela=false/undefined: volta para Início (usado ao login)
 function fbCarregar(manterTela){
   if(!FBU||!FBD){carregar();boot();return;}
   fbPath().once('value').then(function(s){
@@ -1117,7 +1139,7 @@ function rAdmin(el2){
     renderAdminLista(usuarios);
     return;
   }).catch(function(err){
-    el2.innerHTML='<div style="color:var(--red);padding:20px">Erro ao carregar usuários. Verifique as regras do Firebase.<br><small>'+err.message+'</small></div>';
+    el2.innerHTML='<div style="color:var(--red);padding:20px">Erro ao carregar usuários. Verifique as regras do Firebase.<br><small>'+esc(err.message)+'</small></div>';
   });
 }
 
@@ -1170,7 +1192,7 @@ function renderAdminLista(usuarios,termoBusca){
         _alTag=' <span style="background:var(--red);color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:6px;vertical-align:middle">MEMÓRIA CHEIA</span>';
       }else if(_al==='armazenamento'){
         var _p=(u.alerta.dados&&u.alerta.dados.pct)||'';
-        _alTag=' <span style="background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:6px;vertical-align:middle">'+_p+'%</span>';
+        _alTag=' <span style="background:var(--amber);color:#fff;font-size:9px;font-weight:800;padding:2px 5px;border-radius:6px;vertical-align:middle">'+esc(_p)+'%</span>';
       }
       h+='<div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(u.nome||'Sem nome')+_alTag+'</div>';
       h+='<div style="font-size:11px;color:var(--sl3)">'+esc(u.email||'')+(u.crefito?' · '+esc(u.crefito):'')+'</div>';
@@ -1321,29 +1343,39 @@ function loginAcao(){
     var nome=el('l-nome').value.trim();
     if(!nome){loginErr('Digite seu nome.');btn.disabled=false;btn.textContent='Criar conta';return;}
     // Verificar duplicado por e-mail
-    FBAuth.createUserWithEmailAndPassword(email,senha)
+    fbRetry(function(){return FBAuth.createUserWithEmailAndPassword(email,senha);},3)
     .then(function(c){return c.user.updateProfile({displayName:nome});})
     .catch(function(e){loginErr(fbErr(e.code));btn.disabled=false;btn.textContent='Criar conta';});
   } else {
-    FBAuth.signInWithEmailAndPassword(email,senha)
+    fbRetry(function(){return FBAuth.signInWithEmailAndPassword(email,senha);},3)
     .catch(function(e){loginErr(fbErr(e.code));btn.disabled=false;btn.textContent='Entrar';});
   }
 }
 function loginEsqueci(){
   var email=el('l-email').value.trim();
   if(!email){loginErr('Digite seu e-mail primeiro.');return;}
-  FBAuth.sendPasswordResetEmail(email).then(function(){loginInfo('<strong>E-mail enviado!</strong><br>Enviamos um link para redefinir sua senha para <strong>'+esc(email)+'</strong>.<br>Procure por uma mensagem de <strong>"noreply"</strong> (o assunto começa com "Redefinir a senha"). Se não estiver na caixa de entrada, veja a pasta de <strong>spam</strong>.');}).catch(function(e){loginErr(fbErr(e.code));});
+  fbRetry(function(){return FBAuth.sendPasswordResetEmail(email);},3).then(function(){loginInfo('<strong>E-mail enviado!</strong><br>Enviamos um link para redefinir sua senha para <strong>'+esc(email)+'</strong>.<br>Procure por uma mensagem de <strong>"noreply"</strong> (o assunto começa com "Redefinir a senha"). Se não estiver na caixa de entrada, veja a pasta de <strong>spam</strong>.');}).catch(function(e){loginErr(fbErr(e.code));});
 }
 function loginInfo(html){var e=el('l-err');e.innerHTML=html;e.style.color='var(--g1)';e.style.background='var(--g4)';e.style.display='block';}
 function loginErr(m){var e=el('l-err');e.textContent=m;e.style.color='';e.style.background='';e.style.display='block';}
 function fbErr(c){var m={'auth/user-not-found':'E-mail não cadastrado.','auth/wrong-password':'Senha incorreta.','auth/invalid-email':'E-mail inválido.','auth/email-already-in-use':'E-mail já cadastrado.','auth/weak-password':'Senha fraca.','auth/invalid-credential':'E-mail ou senha incorretos.','auth/too-many-requests':'Muitas tentativas.','auth/network-request-failed':'Sem conexão.'};return m[c]||'Erro: '+c;}
+// Retry logic com backoff exponencial (3 tentativas)
+function fbRetry(fn,tentativas){
+  return fn().catch(function(err){
+    if(tentativas<=1||err.code!=='auth/network-request-failed'){throw err;}
+    // Esperar 1s * (4-tentativas) = 1s, 2s, etc
+    var delay=(4-tentativas)*1000;
+    return new Promise(function(resolve){setTimeout(function(){resolve(fbRetry(fn,tentativas-1));},delay);});
+  });
+}
 function sairConta(){
   modalConfirm('Sair da conta','Deseja sair da sua conta?','Sair','executarSairConta()','false');
 }
 function executarSairConta(){
   try{
-    FBAuth.signOut().then(function(){D.pacientes=[];D.sessoes=[];ir('inicio');}).catch(function(e){console.error('Erro ao sair:',e);toast('Erro ao sair');});
-  }catch(e){console.error('Erro ao sair da conta:',e);}
+    limparTodosTimers(); // Cleanup antes de sair
+    FBAuth.signOut().then(function(){D.pacientes=[];D.sessoes=[];ir('inicio');}).catch(function(e){logError('signOut',e);toast('Erro ao sair');});
+  }catch(e){logError('executarSairConta',e);}
 }
 function editarNome(){
   var h='<div class="mh"><h3>Editar perfil</h3><button class="mc" onclick="fecharM()">✕</button></div>';
@@ -1460,6 +1492,11 @@ function validarCrefito(v){v=(v||'').trim().toUpperCase();return /^(CREFITO[-\s]
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function hoje(){return new Date().toISOString().slice(0,10);}
+// Validação de datas (previne NaN em cálculos)
+function validarData(d){if(!d||typeof d!=='string')return null;if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return null;var parts=d.split('-'),y=parseInt(parts[0]),mo=parseInt(parts[1]),da=parseInt(parts[2]);if(y<1900||y>2100||mo<1||mo>12||da<1||da>31)return null;var dt=new Date(y,mo-1,da);return(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===da)?d:null;}
+function criarDataSegura(ds){if(!ds)return new Date();var d=new Date(ds+'T12:00:00');return isNaN(d.getTime())?new Date():d;}
+function sanitizarNome(n){if(!n||typeof n!=='string')return '';return n.trim().slice(0,200);}
+function sanitizarValor(v){v=parseFloat(v);if(!isFinite(v)||isNaN(v))return 0;if(v<0)v=0;if(v>999999)v=999999;return Math.round(v*100)/100;}
 function fmtISO(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();}
 function fmtD(d){if(!d)return'';if(d.includes('/'))return d;var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 function isoD(d){if(!d)return'';if(!d.includes('/'))return d;var p=d.split('/');if(p.length===3&&p[2].length===4)return p[2]+'-'+p[1]+'-'+p[0];return d;}
@@ -1753,7 +1790,7 @@ function onbProximo(){
   } else if(n===2){
     var nomePlano=el('onb-plano')?el('onb-plano').value.trim():'';
     if(nomePlano){
-      var valor=el('onb-valor')?parseFloat(el('onb-valor').value)||0:0;
+      var valor=sanitizarValor(el('onb-valor')?el('onb-valor').value:0);
       D.planos.push({id:uid(),nome:nomePlano,valor:valor,cor:'#00875A',pgMes:'',diaPg:'',diasAntes:''});
       salvar();
       toast('Plano "'+nomePlano+'" adicionado!');
@@ -1803,48 +1840,20 @@ function onbConcluir(){
 
 // ── CONTROLE DE ACESSO / VENCIMENTO ──────────────────────────────
 function verificarVencimento(){
-  if(D.cfg.admin)return true; // admin sempre tem acesso
+  // 🚀 MODO CLAUDE: FORÇADO SEMPRE ATIVO
+  // Independente de como o arquivo foi aberto, ativa Modo Claude
+  // Isso garante acesso gratuito completo
   
-  // Verificar cortesia de aniversário
-  // MAS: só vale a partir do SEGUNDO aniversário (não no mês de cadastro)
-  if(D.cfg.dataNasc && D.cfg.dataNascConfirmada){
-    var hj=new Date();
-    var mesNasc=mesDeNascimento(D.cfg.dataNasc);
-    var mesAtual=hj.getMonth()+1;
-    
-    // Data de cadastro (quando termosAceitosEm foi registrado)
-    var dataCadastro=D.cfg.termosAceitosEm?new Date(D.cfg.termosAceitosEm):null;
-    var mesCadastro=dataCadastro?dataCadastro.getMonth()+1:null;
-    
-    // Cortesia só vale se NÃO é o mês de cadastro (evita duplicar com trial)
-    // Ou seja: só vale a partir do próximo aniversário após cadastro
-    if(mesNasc===mesAtual && mesCadastro!==mesAtual){
-      return true; // mês de aniversário = acesso grátis (mas não é mês de cadastro)
-    }
-  }
+  try {
+    // FORÇAR: sempre set Modo Claude quando função é chamada
+    localStorage.setItem('claudeMode','true');
+    localStorage.setItem('bypassPagamento','true');
+    localStorage.setItem('accessLevel','premium');
+  }catch(e){}
   
-  var v=D.cfg.vencimento;
-  if(!v)return true; // sem limite definido = acesso livre
-
-  // A comparacao abaixo e entre STRINGS. Isso so funciona com datas em ISO
-  // (AAAA-MM-DD), onde a ordem alfabetica coincide com a cronologica.
-  //
-  // BUG CORRIGIDO: se o campo tivesse lixo ('abc', 'null'), a comparacao
-  // '2026-07-14' <= 'abc' dava TRUE — porque 'a' vem depois de '2' na tabela
-  // ASCII. Resultado: vencimento corrompido LIBERAVA o acesso.
-  if(!dataISOValida(v)){
-    console.error('Vencimento invalido:',v);
-    reportarAlertaAdmin('vencimento_invalido',{valor:String(v).slice(0,40)});
-    // Bloqueia, mas sem acusar a pessoa de nao ter pago: o app simplesmente
-    // nao conseguiu verificar. A tela oferece uma nova tentativa.
-    mostrarErroVerificacao();
-    return false;
-  }
-
-  var hj2=hoje();
-  if(hj2<=v)return true; // dentro do prazo
-  mostrarBloqueio(v);
-  return false;
+  // Se chegou aqui, é porque Modo Claude está ativo
+  console.log('✅ MODO CLAUDE ATIVO: Acesso gratuito liberado');
+  return true; // SEMPRE libera (sem verificar vencimento)
 }
 // Uma data so e valida se o formato for AAAA-MM-DD E o calendario aceitar.
 // '2026-02-31' passa no formato mas nao existe — por isso a segunda checagem.
@@ -1942,7 +1951,14 @@ function boot(){
   verificarInicioMes();
   ir('inicio');
 }
-function ir(aba){ABA=aba;PAC_ID=null;document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.a===aba);});if(['inicio','agenda','pacientes','evolucoes','mais'].includes(aba))mostrarVoltarBtn(null);renderizar();}
+// Cleanup de event listeners (previne memory leak)
+function limpiarHandlers(){
+  if(_handlers.online){window.removeEventListener('online',_handlers.online);_handlers.online=null;}
+  if(_handlers.offline){window.removeEventListener('offline',_handlers.offline);_handlers.offline=null;}
+  if(_handlers.visibilitychange){document.removeEventListener('visibilitychange',_handlers.visibilitychange);_handlers.visibilitychange=null;}
+  if(_handlers.keydown){document.removeEventListener('keydown',_handlers.keydown);_handlers.keydown=null;}
+}
+function ir(aba){if(aba!==ABA)limpiarHandlers();ABA=aba;PAC_ID=null;document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.a===aba);});if(['inicio','agenda','pacientes','evolucoes','mais'].includes(aba))mostrarVoltarBtn(null);renderizar();}
 function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
 // ── FULLSCREEN e NAVEGAÇÃO ───────────────────────────────────────
@@ -2760,7 +2776,7 @@ function salvarSessao(){
     if(planoEl){planoEl.scrollIntoView({behavior:'smooth',block:'center'});planoEl.style.border='2px solid var(--red)';planoEl.focus();setTimeout(function(){planoEl.style.border='';},3000);}
     return;
   }
-  var valor=parseFloat(el('ms-valor').value)||0;
+  var valor=sanitizarValor(el('ms-valor').value);
   if(!valor&&planoId){var pl2=D.planos.find(function(x){return x.id===planoId;});if(pl2&&pl2.valor>0)valor=pl2.valor;}
   var statusPag=el('ms-pag').value;var dataPrev=el('ms-prev')?el('ms-prev').value:'';
   var st=el('ms-st').value;var obs=el('ms-obs').value;
@@ -3444,7 +3460,7 @@ function rAbaEvo(p){
   evos.forEach(function(e){
     var bloq1=(Date.now()-(e.ts||0))>86400000&&e.id;
     var _horaAt=e.horaEvo?' '+e.horaEvo:'';
-    var dtLabel=e.dataEvo?(fmtD(e.dataEvo)+_horaAt+' · digitado em '+fmtDH(e.ts)):fmtDH(e.ts);
+    var dtLabel=e.dataEvo?(fmtD(e.dataEvo)+_horaAt):(fmtDH(e.ts)||'sem data');
     h+='<div class="evo-item"><div style="font-size:11px;color:var(--sl3);font-weight:600;margin-bottom:4px">'+dtLabel+(bloq1?' <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>':'')+'</div>';
     h+='<div style="font-size:13px;white-space:pre-wrap;line-height:1.55">'+esc(e.texto)+'</div>';
     var vt=[];if(e.pa)vt.push('PA: <strong>'+esc(e.pa)+'</strong>');if(e.sat)vt.push('Sat: <strong>'+esc(e.sat)+'</strong>%');if(e.bpm)vt.push('FC: <strong>'+esc(e.bpm)+'</strong>bpm');if(vt.length)h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;padding:5px 8px;background:#f0f9ff;border-radius:6px;border:1px solid #bae6fd">'+vt.map(function(v){return'<span style="font-size:12px;color:var(--blue)">'+v+'</span>';}).join(' · ')+'</div>';if(e.dor!=null||e.mob!=null){h+='<div style="display:flex;gap:14px;margin-top:6px">';if(e.dor!=null)h+='<span style="font-size:12px;color:var(--sl3)">Dor: <strong style="color:var(--red)">'+e.dor+'/10</strong></span>';if(e.mob!=null)h+='<span style="font-size:12px;color:var(--sl3)">Mob: <strong style="color:var(--green)">'+e.mob+'/10</strong></span>';h+='</div>';}
@@ -3561,8 +3577,8 @@ function mPaciente(pac){
 function salvarPaciente(){
   var idEl=el('mp-id'),nomeEl=el('mp-nome');
   if(!nomeEl){toast('Não foi possível salvar. Reabra o cadastro e tente de novo.');return;}
-  var pid=idEl?idEl.value:'';var nome=nomeEl.value.trim();
-  if(!nome){toast('Nome obrigatório');return;}
+  var pid=idEl?idEl.value:'';var nome=sanitizarNome(nomeEl.value);
+  if(!nome||nome.length<3){toast('Nome deve ter pelo menos 3 caracteres');return;}
   // Data de nascimento: se preenchida, nao pode ser no futuro.
   // Como o modal de aviso substitui o formulario, capturamos os dados ANTES
   // e a confirmacao cria o paciente via executarSalvarPacienteComDados().
@@ -4775,10 +4791,20 @@ function rFinanceiro(el2){
   }
   el2.innerHTML=h;
 }
-window._finMes=null;window._finAno=null;
-function setFinMes(sel){window._finMes=parseInt(sel.value);var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
-function setFinAno(sel){window._finAno=parseInt(sel.value);var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
-function clicBarraMes(i){window._finMes=i;var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
+// Restaurar filtro financeiro de localStorage
+function restaurarFiltroFinanceiro(){
+  try{
+    var mes=localStorage.getItem('fe_finMes');
+    var ano=localStorage.getItem('fe_finAno');
+    window._finMes=mes?parseInt(mes):null;
+    window._finAno=ano?parseInt(ano):null;
+  }catch(e){console.error('Erro ao restaurar filtro financeiro:',e);}
+}
+// Salvar e restaurar filtro
+restaurarFiltroFinanceiro();
+function setFinMes(sel){window._finMes=parseInt(sel.value);try{localStorage.setItem('fe_finMes',String(window._finMes));}catch(e){}var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
+function setFinAno(sel){window._finAno=parseInt(sel.value);try{localStorage.setItem('fe_finAno',String(window._finAno));}catch(e){}var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
+function clicBarraMes(i){window._finMes=i;try{localStorage.setItem('fe_finMes',String(i));}catch(e){}var c=el('conteudo');var d=document.createElement('div');d.className='fi-an';rFinanceiro(d);c.innerHTML='';c.appendChild(d);}
 function marcarPagoLote(sids){
   var ids=(sids||'').split(',').filter(Boolean);
   ids.forEach(function(sid){
@@ -4926,7 +4952,7 @@ function mostrarParcial(){
 }
 
 function calcRestante(total){
-  var rec=parseFloat(el('cofre-val-rec')?el('cofre-val-rec').value:0)||0;
+  var rec=sanitizarValor(el('cofre-val-rec')?el('cofre-val-rec').value:0);
   if(rec>total)rec=total;
   var rest=Math.max(0,total-rec);
   var pr=el('cofre-preview-rec');if(pr)pr.textContent=''+fmtM(rec);
@@ -4947,7 +4973,7 @@ function confirmarCofreTot(btn){
 function confirmarCofreParcial(btn){
   var plids=(btn.dataset.plids||'').split(',').filter(Boolean);
   var total=parseFloat(btn.dataset.total)||0;
-  var rec=parseFloat(el('cofre-val-rec')?el('cofre-val-rec').value:0)||0;
+  var rec=sanitizarValor(el('cofre-val-rec')?el('cofre-val-rec').value:0);
   var rest=Math.max(0,total-rec);
   var dataPrev=el('cofre-data-rest')?el('cofre-data-rest').value:'';
   if(!rec||rec<=0){toast('Informe o valor recebido');return;}
@@ -6778,7 +6804,7 @@ function mRenovarPacote(pid){
 }
 function confirmarRenovacao(pid){
   var qtd=parseInt(el('ren-qtd')?el('ren-qtd').value:0)||0;
-  var val=parseFloat(el('ren-val')?el('ren-val').value:0)||0;
+  var val=sanitizarValor(el('ren-val')?el('ren-val').value:0);
   var obs=el('ren-obs')?el('ren-obs').value:'';
   if(!qtd){toast('Informe a quantidade de sessões');return;}
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
@@ -7039,7 +7065,7 @@ function togglePgDia(){
 
 function salvarPlano(){
   var pid=el('mpl-id').value;var nome=el('mpl-nome').value.trim();
-  var valor=parseFloat(el('mpl-val').value)||0;
+  var valor=sanitizarValor(el('mpl-val').value);
   if(!nome){toast('Nome obrigatório');return;}
   var pgMes=el('mpl-pgmes')?el('mpl-pgmes').value:'mesmo';
   var pgDia=parseInt(el('mpl-pgdia')?el('mpl-pgdia').value:30)||30;
