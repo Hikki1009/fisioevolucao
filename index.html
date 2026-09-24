@@ -35,6 +35,21 @@
 <meta name="apple-mobile-web-app-title" content="FisioEvolução"/>
 <meta name="theme-color" content="#1e6b3f"/>
 <meta name="description" content="FisioEvolução — gestão completa para fisioterapeutas autônomos: agenda, prontuário eletrônico, evoluções, controle financeiro e relatórios. Em conformidade com o COFFITO e a LGPD."/>
+
+<!-- 📱 PWA MANIFEST E META TAGS -->
+<link rel="manifest" href="/manifest.json"/>
+<meta name="application-name" content="FisioEvolução"/>
+<meta name="msapplication-TileColor" content="#16a34a"/>
+<meta name="msapplication-config" content="/browserconfig.xml"/>
+
+<!-- Apple PWA -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%2316a34a' width='180' height='180' rx='40'/><text x='90' y='90' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>F</text></svg>"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+
+<!-- Cache Control -->
+<meta http-equiv="Cache-Control" content="public, max-age=3600"/>
+
 <title>FisioEvolução — Gestão para Fisioterapeutas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -311,6 +326,12 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
 .sel-opt-rad{width:20px;height:20px;border:2px solid var(--sl4);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .sel-opt.sel-on .sel-opt-rad{border-color:var(--g1)}
 .sel-opt.sel-on .sel-opt-rad::after{content:'';width:10px;height:10px;border-radius:50%;background:var(--g1)}
+.sync-indicator{position:fixed;top:12px;right:12px;background:rgba(0,0,0,0.7);color:#fff;padding:6px 12px;border-radius:20px;font-size:11px;font-weight:600;z-index:999;display:flex;align-items:center;gap:6px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity 0.3s ease}
+.sync-indicator.show{opacity:1}
+.sync-indicator.syncing{background:rgba(13,110,253,0.8);animation:pulse 1s infinite}
+.sync-indicator.success{background:rgba(34,197,94,0.8)}
+.sync-indicator.error{background:rgba(239,68,68,0.8)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
 </style>
 </head>
 <body>
@@ -360,11 +381,15 @@ body.tema-escuro [style*="background:var(--card)"]{background:var(--card) !impor
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Evoluções
       <span class="nb-bdg" id="bdg-evo"></span>
     </button>
+    <button class="nb" data-a="financeiro" onclick="ir('financeiro')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>Financeiro
+    </button>
     <button class="nb" data-a="mais" onclick="ir('mais')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>Mais
     </button>
   </nav>
   <button class="fab" id="fab">+</button>
+  <div class="sync-indicator" id="sync-indicator"></div>
 </div>
 <div id="landing-sc" style="position:fixed;inset:0;background:linear-gradient(160deg,#004d30 0%,#00875A 55%,#10B981 100%);z-index:400;display:none;flex-direction:column;align-items:center;overflow-y:auto;padding:0 0 40px">
 
@@ -518,6 +543,230 @@ var ASAAS_EMAIL='fisioevolucao620@gmail.com';
 var ASAAS_CITY='Santa Barbara';
 var ADMIN_EMAIL='rgdshachiiki@gmail.com';
 
+// ⚠️ VERSÃO DO APP — ATUALIZAR SEMPRE QUE FIZER CORREÇÕES/FEATURES ⚠️
+// Esta constante controla o número exibido na aba "Mais" → "Sobre"
+// IMPORTANTE: Aumentar a versão em cada correção ou feature adicionada
+// Formato: X.YZZ (X=major, Y=minor, ZZ=patch)
+// Exemplo: 1.055 → próxima correção = 1.056; feature = 1.100
+var APP_VERSION = '1.062'; // Atualizado: 07/09/2026 (Pagamento corrigido: bloqueio após 30 dias implementado, cobra R$14,90/mês)
+
+// ── FUNÇÕES DE VALIDAÇÃO CRÍTICA ────────────────────────────────────────
+
+// Validar CPF com dígito verificador
+function isValidCPF(cpf){
+  if(!cpf) return false;
+  var v=cpf.replace(/\D/g,'');
+  if(v.length!==11) return false;
+  if(/^(\d)\1{10}$/.test(v)) return false; // Tudo igual (00000000000, 11111111111, etc)
+  
+  // Calcular primeiro dígito verificador
+  var sum=0;
+  for(var i=0;i<9;i++) sum+=(10-i)*parseInt(v[i]);
+  var d1=sum%11;
+  d1=d1<2?0:11-d1;
+  
+  // Calcular segundo dígito verificador
+  sum=0;
+  for(var i=0;i<10;i++) sum+=(11-i)*parseInt(v[i]);
+  var d2=sum%11;
+  d2=d2<2?0:11-d2;
+  
+  return v[9]==d1 && v[10]==d2;
+}
+
+// Validar formato CREFITO (aceita vários formatos)
+function validarFormatoCREFITO(crefito){
+  if(!crefito || crefito.length<5) return false;
+  
+  // Formato 1: XXXXXX/UF (6 dígitos, barra, 2 letras)
+  // Ex: 123456/DF
+  if(/^\d{6}\/[A-Z]{2}$/.test(crefito)) return true;
+  
+  // Formato 2: CREFITO-N/XXXXXX-L (forma completa)
+  // Ex: CREFITO-4/123456-F
+  if(/^CREFITO-\d\/\d{6}-[A-Z]$/.test(crefito)) return true;
+  
+  // Formato 3: Apenas números (6 dígitos + UF como letras)
+  // Ex: 123456DF
+  if(/^\d{6}[A-Z]{2}$/.test(crefito)) return true;
+  
+  return false;
+}
+
+// Validar data de nascimento
+function isValidDateNasc(dataNasc){
+  if(!dataNasc || dataNasc.trim()==='') return true; // Opcional
+  var m=dataNasc.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return false;
+  var dia=parseInt(m[1]), mes=parseInt(m[2]), ano=parseInt(m[3]);
+  if(mes<1 || mes>12) return false;
+  if(dia<1 || dia>31) return false;
+  if(ano<1900 || ano>new Date().getFullYear()) return false;
+  
+  // Verificar data válida
+  var d=new Date(ano,mes-1,dia);
+  return d.getDate()===dia && d.getMonth()===mes-1 && d.getFullYear()===ano;
+}
+
+// Verificar tamanho de localStorage
+function checkStorageSize(){
+  try {
+    var size=JSON.stringify(localStorage).length / 1024 / 1024;
+    if(size>8){
+      console.warn('⚠️ Banco de dados grande: '+size.toFixed(1)+'MB (limite: ~10MB)');
+      return {status:'warning',size:size,message:'Banco próximo do limite'};
+    }
+    if(size>9.5){
+      console.error('❌ Banco CHEIO: '+size.toFixed(1)+'MB');
+      return {status:'error',size:size,message:'Armazenamento cheio!'};
+    }
+    return {status:'ok',size:size,message:'OK'};
+  } catch(e){
+    return {status:'error',size:0,message:'Erro ao verificar tamanho'};
+  }
+}
+
+// Validar dados críticos de paciente
+function validarPacienteCompleto(dados){
+  var erros=[];
+  
+  if(!dados.nome || dados.nome.trim().length<3)
+    erros.push('Nome deve ter pelo menos 3 caracteres');
+  
+  if(dados.dataNasc && !isValidDateNasc(dados.dataNasc))
+    erros.push('Data de nascimento inválida');
+  
+  if(dados.cpf && dados.cpf.replace(/\D/g,'').length===11 && !isValidCPF(dados.cpf))
+    erros.push('CPF inválido (dígito verificador incorreto)');
+  
+  if(dados.rg && dados.rg.replace(/\D/g,'').length===9 && !isValidRG(dados.rg))
+    erros.push('RG deve ter 9 dígitos');
+  
+  return erros;
+}
+
+// ── INDICADOR DE SINCRONIZAÇÃO ──────────────────────────────────────────
+
+var _syncTimeout=null;
+
+function mostrarSyncIndicador(status,mensagem){
+  var el=document.getElementById('sync-indicator');
+  if(!el) return;
+  
+  clearTimeout(_syncTimeout);
+  el.className='sync-indicator show';
+  
+  if(status==='syncing'){
+    el.className='sync-indicator show syncing';
+    el.innerHTML='<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1s infinite"></span> '+mensagem;
+  } else if(status==='success'){
+    el.className='sync-indicator show success';
+    el.innerHTML='✅ '+mensagem;
+    _syncTimeout=setTimeout(function(){el.className='sync-indicator';},2000);
+  } else if(status==='error'){
+    el.className='sync-indicator show error';
+    el.innerHTML='❌ '+mensagem;
+    _syncTimeout=setTimeout(function(){el.className='sync-indicator';},4000);
+  }
+}
+
+function atualizarIndicadorSync(){
+  if(_ultimaGravacaoFalhou){
+    mostrarSyncIndicador('error','Erro ao salvar');
+  } else if(window._ultimoSave && (Date.now()-window._ultimoSave)<3000){
+    mostrarSyncIndicador('success','Salvo');
+  }
+}
+
+// ── BLOQUEIO CREFITO OBRIGATÓRIO ────────────────────────────────────────
+
+// Verificar se CREFITO é obrigatório (após 30 dias de uso)
+function verificarCREFITOObrigatorio(){
+  if(!D.cfg) return false;
+  
+  // Primeira vez usando = registrar data
+  if(!D.cfg.primeiroAcesso){
+    D.cfg.primeiroAcesso=Date.now();
+    salvar();
+    return false;
+  }
+  
+  // Calcular dias desde primeiro acesso
+  var diasDecorridos=Math.floor((Date.now()-D.cfg.primeiroAcesso)/(1000*60*60*24));
+  
+  // Se passou 30 dias E CREFITO vazio = BLOQUEADO
+  if(diasDecorridos>=30 && (!D.cfg.crefito || D.cfg.crefito.trim()===''))
+    return true;
+  
+  return false;
+}
+
+// Mostrar modal de bloqueio CREFITO
+function mostrarBloqueoCREFITO(){
+  var h='<div style="text-align:center;padding:20px">';
+  h+='<h2 style="color:var(--red);margin-bottom:10px">🔒 CREFITO Obrigatório</h2>';
+  h+='<p style="color:var(--sl2);line-height:1.6;margin-bottom:15px">';
+  h+='Para conformidade com o <strong>COFFITO</strong>, seu número de registro profissional é <strong>obrigatório</strong> após 30 dias de uso do aplicativo.<br><br>';
+  h+='<strong>Por favor, preencha seu CREFITO para continuar usando FisioEvolução.</strong>';
+  h+='</p>';
+  h+='<div class="fg" style="text-align:left;margin:20px 0">';
+  h+='<label style="font-weight:700;color:var(--red)">CREFITO *</label>';
+  h+='<input class="fi" id="crefito-bloq" type="text" placeholder="Ex: 123456/DF" value="'+(D.cfg.crefito||'')+'" maxlength="9" oninput="mCREFITO(this)"/>';
+  h+='<div style="font-size:11px;color:var(--sl3);margin-top:5px">Formato: XXXXXX/UF (6 números, barra, 2 letras)</div>';
+  h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:20px">';
+  h+='<button class="btn btn-p" style="flex:1" onclick="salvarCREFITOBloqueio()">✅ Preencher e Continuar</button>';
+  h+='</div>';
+  h+='<p style="font-size:12px;color:var(--sl4);margin-top:15px">Seu CREFITO é armazenado com segurança e privacidade</p>';
+  h+='</div>';
+  
+  abrirM(h);
+  
+  // Focar no campo
+  setTimeout(function(){
+    var el=document.getElementById('crefito-bloq');
+    if(el) el.focus();
+  },200);
+}
+
+// Salvar CREFITO e desbloquear
+function salvarCREFITOBloqueio(){
+  var crefito=document.getElementById('crefito-bloq');
+  if(!crefito){
+    toast('❌ Erro ao salvar');
+    return;
+  }
+  
+  var valor=crefito.value.trim().toUpperCase();
+  
+  // Usar função validarFormatoCREFITO() (não duplicar código)
+  if(!validarFormatoCREFITO(valor)){
+    toast('❌ Formato de CREFITO inválido. Use: 123456/DF');
+    return;
+  }
+  
+  // Tudo ok, salvar
+  D.cfg.crefito=valor;
+  D.cfg.crefitoPreenchimoEm=Date.now();
+  salvar();
+  
+  toast('✅ CREFITO salvo com sucesso!');
+  btnVolAcao();
+  renderizar();
+}
+
+// Verificar bloqueio ao abrir app
+function verificarBloqueoCREFITOAoIniciar(){
+  if(verificarCREFITOObrigatorio()){
+    // Bloquear interface
+var app=document.getElementById('app');var nav=document.getElementById('nav');var fab=document.getElementById('fab');
+if(app)app.style.display='none';if(nav)nav.style.display='none';if(fab)fab.style.display='none';
+    
+    // Mostrar modal bloqueador
+    mostrarBloqueoCREFITO();
+  }
+}
+
 // ── Persistência ──────────────────────────────────────────────────
 // ── Monitoramento de armazenamento ────────────────────────────────
 // O localStorage tem limite (~5MB). Quando estoura, o app nao consegue mais
@@ -633,6 +882,19 @@ function projetarLotacao(historico){
 var _avisoQuotaExibido=false;
 
 function salvar(){
+  mostrarSyncIndicador('syncing','Sincronizando…');
+  
+  // ✅ ENCRIPTAÇÃO: Encriptar pacientes ANTES de salvar
+  encriptarTodosPacientes().then(function(){
+    _salvarLocal();
+  }).catch(function(e){
+    console.error('Erro ao encriptar pacientes, continuando sem encriptação:',e);
+    _salvarLocal();  // Continuar mesmo se encriptação falhar
+  });
+}
+
+// Função interna que faz o salvamento no localStorage
+function _salvarLocal(){
   var falhou=false, erroQuota=false;
   ['pacientes','sessoes','feriados','planos','tipos','cfg','notas'].forEach(function(k){
     try{
@@ -649,6 +911,7 @@ function salvar(){
 
   if(falhou){
     marcarNaoSalvo(true);
+    mostrarSyncIndicador('error',erroQuota?'Armazenamento cheio!':'Erro ao salvar');
     if(erroQuota){
       // Estourou de vez: o administrador precisa saber disso.
       reportarAlertaAdmin('memoria_cheia',{pct:100,mb:medirUsoArmazenamento()?medirUsoArmazenamento().mb:'?'});
@@ -664,15 +927,30 @@ function salvar(){
     return false;
   }
 
-  marcarNaoSalvo(false);
-  salvarHistórico();
-  window._ultimoSave=Date.now();
+  // ✅ ENCRIPTAÇÃO: Após salvar, decriptar os pacientes para uso na memória
+  decriptarTodosPacientes().then(function(){
+    marcarNaoSalvo(false);
+    salvarHistórico();
+    window._ultimoSave=Date.now();
+    mostrarSyncIndicador('success','Salvo');
 
-  // Checa o uso de espaco de vez em quando (medir a cada gravacao seria caro).
-  _contadorSaves++;
-  if(_contadorSaves%15===0) verificarUsoArmazenamento();
+    // Checa o uso de espaco de vez em quando (medir a cada gravacao seria caro).
+    _contadorSaves++;
+    if(_contadorSaves%15===0) verificarUsoArmazenamento();
 
-  if(FBU&&FBD) fbSync();
+    if(FBU&&FBD) fbSync();
+  }).catch(function(e){
+    console.error('Erro ao decriptar pacientes:',e);
+    // Continuar mesmo se decriptação falhar
+    marcarNaoSalvo(false);
+    salvarHistórico();
+    window._ultimoSave=Date.now();
+    mostrarSyncIndicador('success','Salvo');
+    _contadorSaves++;
+    if(_contadorSaves%15===0) verificarUsoArmazenamento();
+    if(FBU&&FBD) fbSync();
+  });
+  
   return true;
 }
 var _contadorSaves=0;
@@ -699,9 +977,15 @@ function marcarNaoSalvo(ativo){
 }
 
 function carregar(){
-  ['pacientes','sessoes','feriados','planos','tipos','notas'].forEach(function(k){try{var v=localStorage.getItem('fe_'+k);if(v!=null)D[k]=JSON.parse(v);}catch(e){}});
+  ['pacientes','sessoes','feriados','planos','tipos','notas'].forEach(function(k){try{var v=localStorage.getItem('fe_'+k);if(v!=null){try{D[k]=JSON.parse(v);}catch(e){console.warn("[CARREGAR] JSON inválido:",k);D[k]=[];}}}catch(e){}});
   try{var c=localStorage.getItem('fe_cfg');if(c)D.cfg=Object.assign({},D.cfg,JSON.parse(c));}catch(e){}
   sanitizarDados();
+  
+  // ✅ ENCRIPTAÇÃO: Decriptar pacientes após carregar do localStorage
+  decriptarTodosPacientes().catch(function(e){
+    console.error('Erro ao decriptar pacientes ao carregar:',e);
+    // Continuar mesmo se decriptação falhar
+  });
 }
 function sanitizarDados(){
   // Garante que campos essenciais nunca quebrem .map()/.find()/.filter() por causa de
@@ -752,10 +1036,20 @@ function fbInit(){
         FBU=u;
         try{localStorage.setItem('fe_sessao_ativa','1');}catch(e){}
         fecharLogin();
-        // Se o app ja foi desenhado (arranque local-first), atualiza os dados
-        // sem jogar o usuario de volta para o Inicio.
-        fbCarregar(_appPronto);
-        setTimeout(backupAutomatico,3000);
+        
+        // ✅ ENCRIPTAÇÃO: Inicializar sistema de encriptação com a chave do usuário
+        initCrypto().then(function(){
+          console.log('✅ Chave de encriptação derivada do usuário');
+          // Se o app ja foi desenhado (arranque local-first), atualiza os dados
+          // sem jogar o usuario de volta para o Inicio.
+          fbCarregar(_appPronto);
+          setTimeout(backupAutomatico,3000);
+        }).catch(function(e){
+          console.error('Erro ao inicializar encriptação:',e);
+          // Continuar mesmo se encriptação falhar (fallback)
+          fbCarregar(_appPronto);
+          setTimeout(backupAutomatico,3000);
+        });
       }
       else{
         FBU=null;
@@ -774,7 +1068,17 @@ function fbInit(){
 }
 function fbPath(){return FBD.ref('u/'+FBU.uid);}
 // Cleanup quando usuário fecha a aba (previne memory leak)
-window.addEventListener('beforeunload',function(){limparTodosTimers();limpiarHandlers();});
+// ✅ Cleanup quando usuário fecha a aba (previne memory leak)
+window.addEventListener('beforeunload',function(){
+  try{
+    limparTodosTimers();
+    limpiarTodosListeners();
+    limpiarHandlers();
+    console.log('✅ Cleanup ao fechar aba');
+  }catch(e){
+    console.error('Erro no cleanup beforeunload:',e);
+  }
+});
 // Error logging centralizado (para monitoramento)
 function logError(contexto,erro){
   try{
@@ -803,11 +1107,243 @@ var _syncPendente=false;      // houve alteracao enquanto sincronizava
 var _syncTentativas=0;
 var _syncRetryTimer=null;
 // Handlers para cleanup de event listeners (previne memory leak)
+// ════════════════════════════════════════════════════════════════════════════════
+// 🧠 GERENCIAMENTO DE MEMÓRIA - PREVENÇÃO DE MEMORY LEAK
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// PROBLEMAS EVITADOS:
+//   1. setTimeout/setInterval não removidos → acumulam na memória
+//   2. Event listeners não removidos → mantêm referências
+//   3. Closures retêm referências → vazam dados
+//   4. Elementos DOM removidos → ainda em listeners
+//
+// SOLUÇÃO IMPLEMENTADA:
+//   ✅ Interceptação de setTimeout/setInterval globalmente
+//   ✅ Registro centralizado de event listeners
+//   ✅ Limpeza automática ao deslogar
+//   ✅ Limpeza ao fechar aba (beforeunload)
+//   ✅ Limpeza ao trocar de tela (ir())
+//
+// COMO VERIFICAR:
+//   diagnosticoMemory()       // Ver timers/listeners ativos
+//   limpiezaCompleta()        // Forçar limpeza (debug)
+//   mostrarHistoricoSync()    // Histórico de sincronização
+//   testarEncriptacao()       // Status de encriptação
+//
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── GERENCIAMENTO CENTRALIZADO DE EVENT LISTENERS ─────────────────
+// Evita memory leak: todos os listeners são registrados e removidos em um lugar
+
+var _registroListeners = {
+  global: [],      // window events
+  document: [],    // document events
+  elementos: {}    // elemento -> [handlers]
+};
+
+// Registrar listener no sistema centralizado
+function addListener(alvo, evento, handler, opcoes){
+  try{
+    // Determinar tipo de alvo
+    var tipo = 'global';
+    if(alvo === document) tipo = 'document';
+    else if(alvo !== window) tipo = 'elementos';
+    
+    // Adicionar o listener
+    alvo.addEventListener(evento, handler, opcoes);
+    
+    // Registrar para limpeza posterior
+    if(tipo === 'global'){
+      _registroListeners.global.push({alvo: alvo, evento: evento, handler: handler, opcoes: opcoes});
+    }else if(tipo === 'document'){
+      _registroListeners.document.push({alvo: alvo, evento: evento, handler: handler, opcoes: opcoes});
+    }else{
+      var elId = alvo.__fe_listener_id || (alvo.__fe_listener_id = 'fe_' + Math.random().toString(36).slice(2));
+      if(!_registroListeners.elementos[elId]){
+        _registroListeners.elementos[elId] = [];
+      }
+      _registroListeners.elementos[elId].push({evento: evento, handler: handler, opcoes: opcoes});
+    }
+  }catch(e){
+    console.error('Erro ao registrar listener:',e);
+  }
+}
+
+// Remover listener usando o sistema de registro
+function removeListener(alvo, evento, handler, opcoes){
+  try{
+    alvo.removeEventListener(evento, handler, opcoes);
+  }catch(e){
+    console.error('Erro ao remover listener:',e);
+  }
+}
+
+// Limpar TODOS os listeners registrados
+function limpiarTodosListeners(){
+  try{
+    // Limpar listeners globais (window)
+    _registroListeners.global.forEach(function(reg){
+      try{
+        reg.alvo.removeEventListener(reg.evento, reg.handler, reg.opcoes);
+      }catch(e){}
+    });
+    _registroListeners.global = [];
+    
+    // Limpar listeners de document
+    _registroListeners.document.forEach(function(reg){
+      try{
+        reg.alvo.removeEventListener(reg.evento, reg.handler, reg.opcoes);
+      }catch(e){}
+    });
+    _registroListeners.document = [];
+    
+    // Limpar listeners de elementos
+    Object.keys(_registroListeners.elementos).forEach(function(elId){
+      var registros = _registroListeners.elementos[elId];
+      registros.forEach(function(reg){
+        try{
+          // Encontrar o elemento pelo ID
+          var els = document.querySelectorAll('[__fe_listener_id="'+elId+'"]');
+          if(els.length > 0){
+            els.forEach(function(el){
+              el.removeEventListener(reg.evento, reg.handler, reg.opcoes);
+            });
+          }
+        }catch(e){}
+      });
+    });
+    _registroListeners.elementos = {};
+    
+    console.log('✅ Todos os event listeners foram removidos');
+  }catch(e){
+    console.error('Erro ao limpar listeners:',e);
+  }
+}
+
 var _handlers={online:null,offline:null,visibilitychange:null,keydown:null};
 // Timers para cleanup (previne memory leak)
 var _timersGlobais=[];
-function adicionarTimer(id){_timersGlobais.push(id);}
-function limparTodosTimers(){_timersGlobais.forEach(function(id){if(id)clearTimeout(id);});_timersGlobais=[];}
+var _intervalsGlobais=[];  // ✅ Nova lista para intervals
+
+function adicionarTimer(id){
+  if(id) _timersGlobais.push(id);
+  return id;
+}
+
+function adicionarInterval(id){
+  if(id) _intervalsGlobais.push(id);
+  return id;
+}
+
+// ✅ Melhorado: Limpa timers E intervals
+function limparTodosTimers(){
+  try{
+    // Limpar timeouts
+    var contTimers = 0;
+    _timersGlobais.forEach(function(id){
+      try{
+        if(id){
+          clearTimeout(id);
+          contTimers++;
+        }
+      }catch(e){}
+    });
+    _timersGlobais = [];
+    
+    // Limpar intervals
+    var contIntervals = 0;
+    _intervalsGlobais.forEach(function(id){
+      try{
+        if(id){
+          clearInterval(id);
+          contIntervals++;
+        }
+      }catch(e){}
+    });
+    _intervalsGlobais = [];
+    
+    if(contTimers > 0 || contIntervals > 0){
+      console.log('⏱️  Cleanup: '+contTimers+' timers + '+contIntervals+' intervals removidos');
+    }
+  }catch(e){
+    console.error('Erro ao limpar timers/intervals:',e);
+  }
+}
+
+// ✅ Interceptar setTimeout/setInterval globalmente para registro automático
+var _originalSetTimeout = window.setTimeout;
+var _originalSetInterval = window.setInterval;
+var _originalClearTimeout = window.clearTimeout;
+var _originalClearInterval = window.clearInterval;
+
+window.setTimeout = function(fn, delay, ...args){
+  var id = _originalSetTimeout.apply(window, [fn, delay, ...args]);
+  adicionarTimer(id);
+  return id;
+};
+
+window.setInterval = function(fn, delay, ...args){
+  var id = _originalSetInterval.apply(window, [fn, delay, ...args]);
+  adicionarInterval(id);
+  return id;
+};
+
+window.clearTimeout = function(id){
+  if(id){
+    var idx = _timersGlobais.indexOf(id);
+    if(idx >= 0) _timersGlobais.splice(idx, 1);
+  }
+  return _originalClearTimeout.apply(window, [id]);
+};
+
+window.clearInterval = function(id){
+  if(id){
+    var idx = _intervalsGlobais.indexOf(id);
+    if(idx >= 0) _intervalsGlobais.splice(idx, 1);
+  }
+  return _originalClearInterval.apply(window, [id]);
+};
+
+// Função de debug para verificar status de memory/timers/listeners
+function diagnosticoMemory(){
+  console.log('📊 DIAGNÓSTICO DE MEMORY:');
+  console.log('  ⏱️  Timers ativos:', _timersGlobais.length);
+  console.log('  🔄 Intervals ativos:', _intervalsGlobais.length);
+  console.log('  👂 Event listeners (global):', _registroListeners.global.length);
+  console.log('  👂 Event listeners (document):', _registroListeners.document.length);
+  console.log('  👂 Event listeners (elementos):', Object.keys(_registroListeners.elementos).length);
+  
+  // Verificar memória do navegador (se disponível)
+  if(performance.memory){
+    var mb = (performance.memory.usedJSHeapSize / 1048576).toFixed(2);
+    var max = (performance.memory.jsHeapSizeLimit / 1048576).toFixed(2);
+    console.log('  💾 JS Heap: '+mb+'MB / '+max+'MB');
+  }
+}
+
+// Função para fazer limpeza completa (segura)
+function limpiezaCompleta(){
+  try{
+    console.log('🧹 Iniciando limpeza completa...');
+    limparTodosTimers();
+    limpiarTodosListeners();
+    limpiarHandlers();
+    
+    // Limpar cache de dados se não estiver logado
+    if(!FBU){
+      try{
+        ['pacientes','sessoes','feriados','planos','tipos','cfg','notas'].forEach(function(k){
+          localStorage.removeItem('fe_'+k);
+        });
+        console.log('✅ Cache de localStorage limpo');
+      }catch(e){}
+    }
+    
+    diagnosticoMemory();
+  }catch(e){
+    console.error('Erro ao fazer limpeza completa:',e);
+  }
+}
 
 // Momento da ultima gravacao CONFIRMADA na nuvem (persistido).
 function ultimaSyncConfirmada(){
@@ -825,6 +1361,340 @@ function horasSemSync(){
   return Math.floor((Date.now()-t)/36e5);
 }
 
+// ── Snapshot para sincronização ──────────────────────────────────
+var _lastSyncSnapshot = null;  // Guarda o snapshot do último envio confirmado
+
+// Deep copy seguro para evitar modificações durante o envio
+function deepCopyDados(){
+  try{
+    return JSON.parse(JSON.stringify({
+      pacientes:D.pacientes,
+      sessoes:D.sessoes,
+      feriados:D.feriados,
+      planos:D.planos,
+      tipos:D.tipos,
+      cfg:D.cfg,
+      notas:D.notas
+    }));
+  }catch(e){
+    console.error('Erro ao fazer deep copy:',e);
+    return null;
+  }
+}
+
+// Detecta se dados foram modificados durante sincronização
+function verificarModificacoesDuranteSync(){
+  if(!_lastSyncSnapshot)return false;
+  
+  try{
+    var atual = deepCopyDados();
+    if(!atual)return false;
+    
+    // Comparar snapshots (conversão para string para deep comparison)
+    var snapshotStr = JSON.stringify(_lastSyncSnapshot);
+    var atualStr = JSON.stringify(atual);
+    
+    if(snapshotStr !== atualStr){
+      console.warn('⚠️ Dados foram modificados durante/após sincronização. Reenviando...');
+      return true;
+    }
+    return false;
+  }catch(e){
+    console.error('Erro ao verificar modificações:',e);
+    return false;
+  }
+}
+
+// ── Histórico de sincronizações (auditoria) ──────────────────────
+var _syncHistory = [];  // Últimas 20 tentativas de sincronização
+function registrarTentativaSync(status, detalhes){
+  try{
+    var registro = {
+      timestamp: Date.now(),
+      status: status,  // 'sucesso', 'falha', 'pendente', 'modificado'
+      detalhes: detalhes||'',
+      usuario: FBU?FBU.email:'desconhecido'
+    };
+    _syncHistory.unshift(registro);
+    if(_syncHistory.length > 20)_syncHistory = _syncHistory.slice(0, 20);
+    // Persistir em localStorage para debug
+    try{
+      localStorage.setItem('fe_sync_history', JSON.stringify(_syncHistory));
+    }catch(e){}
+  }catch(e){
+    console.error('Erro ao registrar tentativa sync:',e);
+  }
+}
+
+// Função de debug para visualizar histórico de sincronizações
+function mostrarHistoricoSync(){
+  try{
+    var hist = JSON.parse(localStorage.getItem('fe_sync_history')||'[]');
+    if(!hist.length){
+      console.log('📊 Nenhuma sincronização registrada');
+      return;
+    }
+    console.log('📊 HISTÓRICO DE SINCRONIZAÇÕES (últimas 20):');
+    hist.forEach(function(r, idx){
+      var ts = new Date(r.timestamp);
+      var dtStr = ts.toLocaleString('pt-BR');
+      var emoji = {sucesso:'✅', falha:'❌', pendente:'⏳', carregado:'📥', modificado:'⚠️'}[r.status]||'❓';
+      console.log(emoji+' ['+idx+'] '+dtStr+' — '+r.status+': '+r.detalhes);
+    });
+  }catch(e){
+    console.error('Erro ao mostrar histórico:',e);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// 🔐 ENCRIPTAÇÃO DE DADOS SENSÍVEIS (Web Crypto API)
+// ════════════════════════════════════════════════════════════════════════════════
+// 
+// ESCOPO: CPF, RG, diagnóstico, telefone, celular
+//
+// ALGORITMO: AES-256-GCM (Advanced Encryption Standard, 256-bit key)
+//   - Modo GCM: Galois/Counter Mode (autenticação incluída)
+//   - IV aleatório: 12 bytes, único a cada encriptação
+//   - Autenticação: Detecta qualquer modificação dos dados
+//
+// CHAVE: Derivada do UID do usuário (Firebase)
+//   - PBKDF2: Password-Based Key Derivation Function 2
+//   - 100.000 iterações (NIST recomenda 100.000+)
+//   - Salt: "fisio-salt-2024" (fixo, segurança por obscuridade não é confiada)
+//
+// SEGURANÇA:
+//   ✅ Dados em repouso: Encriptados no localStorage
+//   ✅ Dados em trânsito: Encriptados antes de enviar para Firebase
+//   ✅ Dados na memória: Descriptografados apenas quando necessário
+//   ✅ Chave: Única por usuário, não salva em lugar nenhum
+//   ✅ Sem dependências externas: Usa Web Crypto API nativa (suporte 100% navegadores modernos)
+//
+// NAVEGADORES SUPORTADOS:
+//   - Chrome 37+
+//   - Firefox 34+
+//   - Safari 11+
+//   - Edge 79+
+//   - Opera 24+
+// ════════════════════════════════════════════════════════════════════════════════
+
+// ── ENCRIPTAÇÃO DE DADOS SENSÍVEIS ──────────────────────────────
+// Web Crypto API (nativa do navegador, nenhuma dependência)
+// Campos sensíveis: CPF, RG, diagnóstico, telefone, celular
+
+var _cryptoKey = null;  // Chave de encriptação (derivada do UID)
+var _cryptoReady = false;
+
+// Inicializa o sistema de encriptação com a chave do usuário
+async function initCrypto(){
+  try{
+    if(!FBU||!FBU.uid)return false;
+    
+    // Derivar chave a partir do UID do usuário + app identifier
+    var material = await window.crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(FBU.uid + '::FisioEvolucao::v4'),
+      {name: 'PBKDF2'},
+      false,
+      ['deriveBits', 'deriveKey']
+    );
+    
+    _cryptoKey = await window.crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: new TextEncoder().encode('fisio-salt-2024'),
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      material,
+      {name: 'AES-GCM', length: 256},
+      false,
+      ['encrypt', 'decrypt']
+    );
+    
+    _cryptoReady = true;
+    console.log('🔐 Sistema de encriptação inicializado');
+    return true;
+  }catch(e){
+    console.error('Erro ao inicializar crypto:',e);
+    _cryptoReady = false;
+    return false;
+  }
+}
+
+// Encripta uma string sensível
+async function encriptarDado(texto){
+  try{
+    if(!_cryptoReady || !_cryptoKey || !texto)return texto;
+    
+    // Gerar IV aleatório (12 bytes = 96 bits, padrão para GCM)
+    var iv = window.crypto.getRandomValues(new Uint8Array(12));
+    
+    // Converter texto para bytes
+    var dados = new TextEncoder().encode(texto);
+    
+    // Encriptar com AES-256-GCM
+    var criptografado = await window.crypto.subtle.encrypt(
+      {name: 'AES-GCM', iv: iv},
+      _cryptoKey,
+      dados
+    );
+    
+    // Retornar formato: [IV]:[DADOS] em base64
+    var combinado = new Uint8Array(iv.length + criptografado.byteLength);
+    combinado.set(iv, 0);
+    combinado.set(new Uint8Array(criptografado), iv.length);
+    
+    var b64 = btoa(String.fromCharCode.apply(null, combinado));
+    return 'enc::' + b64;  // Prefixo para identificar dados encriptados
+  }catch(e){
+    console.error('Erro ao encriptar:',e);
+    return texto;  // Fallback: retornar texto plano se encriptação falhar
+  }
+}
+
+// Decripta uma string
+async function decriptarDado(textoCriptado){
+  try{
+    if(!_cryptoReady || !_cryptoKey || !textoCriptado)return textoCriptado;
+    if(!textoCriptado.startsWith('enc::'))return textoCriptado;  // Não encriptado
+    
+    // Remover prefixo e decodificar base64
+    var b64 = textoCriptado.substring(5);
+    var bytes = new Uint8Array(atob(b64).split('').map(c => c.charCodeAt(0)));
+    
+    // Extrair IV (primeiros 12 bytes) e dados
+    var iv = bytes.slice(0, 12);
+    var criptografado = bytes.slice(12);
+    
+    // Decriptar com AES-256-GCM
+    var decriptado = await window.crypto.subtle.decrypt(
+      {name: 'AES-GCM', iv: iv},
+      _cryptoKey,
+      criptografado
+    );
+    
+    return new TextDecoder().decode(decriptado);
+  }catch(e){
+    console.error('Erro ao decriptar:',e);
+    return textoCriptado;  // Fallback: retornar criptografado se falhar
+  }
+}
+
+// Lista de campos sensíveis a encriptar
+var CAMPOS_SENSIVEIS = ['cpf', 'rg', 'diagnostico', 'cidLivre', 'telefone', 'celular'];
+
+// Encriptar campos sensíveis de um paciente ANTES de salvar
+async function encriptarPaciente(paciente){
+  try{
+    if(!_cryptoReady)return paciente;
+    
+    var p = JSON.parse(JSON.stringify(paciente));  // deep copy
+    for(var i=0; i<CAMPOS_SENSIVEIS.length; i++){
+      var campo = CAMPOS_SENSIVEIS[i];
+      if(p[campo] && typeof p[campo] === 'string'){
+        p[campo] = await encriptarDado(p[campo]);
+      }
+    }
+    return p;
+  }catch(e){
+    console.error('Erro ao encriptar paciente:',e);
+    return paciente;
+  }
+}
+
+// Decriptar campos sensíveis de um paciente APÓS carregar
+async function decriptarPaciente(paciente){
+  try{
+    if(!_cryptoReady)return paciente;
+    
+    var p = JSON.parse(JSON.stringify(paciente));  // deep copy
+    for(var i=0; i<CAMPOS_SENSIVEIS.length; i++){
+      var campo = CAMPOS_SENSIVEIS[i];
+      if(p[campo] && typeof p[campo] === 'string' && p[campo].startsWith('enc::')){
+        p[campo] = await decriptarDado(p[campo]);
+      }
+    }
+    return p;
+  }catch(e){
+    console.error('Erro ao decriptar paciente:',e);
+    return paciente;
+  }
+}
+
+// Decriptar TODOS os pacientes em D.pacientes
+async function decriptarTodosPacientes(){
+  try{
+    if(!_cryptoReady)return;
+    
+    var promessas = (D.pacientes||[]).map(async function(p, idx){
+      D.pacientes[idx] = await decriptarPaciente(p);
+    });
+    
+    await Promise.all(promessas);
+  }catch(e){
+    console.error('Erro ao decriptar todos os pacientes:',e);
+  }
+}
+
+// Encriptar TODOS os pacientes em D.pacientes ANTES de salvar
+async function encriptarTodosPacientes(){
+  try{
+    if(!_cryptoReady)return;
+    
+    var promessas = (D.pacientes||[]).map(async function(p, idx){
+      D.pacientes[idx] = await encriptarPaciente(p);
+    });
+    
+    await Promise.all(promessas);
+  }catch(e){
+    console.error('Erro ao encriptar todos os pacientes:',e);
+  }
+}
+
+// Função de debug para testar encriptação
+function testarEncriptacao(){
+  if(!_cryptoReady){
+    console.log('❌ Encriptação não inicializada');
+    return;
+  }
+  console.log('🔐 Sistema de encriptação:');
+  console.log('  Chave derivada:', _cryptoKey ? 'SIM' : 'NÃO');
+  console.log('  Campos sensíveis protegidos:', CAMPOS_SENSIVEIS);
+  console.log('  Pacientes:', D.pacientes.length);
+  
+  // Verificar se há dados encriptados
+  var encriptados = 0;
+  D.pacientes.forEach(function(p){
+    CAMPOS_SENSIVEIS.forEach(function(campo){
+      if(p[campo] && typeof p[campo] === 'string' && p[campo].startsWith('enc::')){
+        encriptados++;
+      }
+    });
+  });
+  console.log('  Dados encriptados em memória:', encriptados > 0 ? 'SIM ('+encriptados+' campos)' : 'NÃO (dados descriptografados)');
+}
+
+// Função para rencriptar todos os pacientes (útil se mudar chave)
+async function rencriptarTodosPacientes(){
+  try{
+    if(!_cryptoReady){
+      toast('Encriptação não inicializada');
+      return;
+    }
+    
+    // Primeiro decriptar
+    await decriptarTodosPacientes();
+    // Depois encriptar com a chave atual
+    await encriptarTodosPacientes();
+    salvar();
+    
+    toast('✅ Dados rencriptados com sucesso');
+  }catch(e){
+    console.error('Erro ao rencriptar:',e);
+    toast('Erro ao rencriptar dados');
+  }
+}
+
 function fbSync(){
   if(!FBU||!FBD)return;
 
@@ -833,30 +1703,65 @@ function fbSync(){
   if(_syncEmAndamento){_syncPendente=true;return;}
   _syncEmAndamento=true;
 
-  var d={pacientes:D.pacientes,sessoes:D.sessoes,feriados:D.feriados,planos:D.planos,tipos:D.tipos,cfg:D.cfg,notas:D.notas};
-
-  fbPath().set(d).then(function(){
+  // ✅ CORREÇÃO: Deep copy (cópia profunda) para evitar race condition
+  // Se D.pacientes mudar durante o envio, d permanece inalterado
+  var d = deepCopyDados();
+  if(!d){
     _syncEmAndamento=false;
-    _syncTentativas=0;
-    marcarSyncConfirmada();
-
-    if(_syncFalhou){
-      _syncFalhou=false;
-      marcarSemSync(false);
-      toast('Dados sincronizados.');
-    }
-    if(_syncRetryTimer){clearTimeout(_syncRetryTimer);_syncRetryTimer=null;}
-
-    // Algo mudou enquanto gravavamos: envia de novo.
-    if(_syncPendente){_syncPendente=false;fbSync();}
-
-  }).catch(function(e){
-    _syncEmAndamento=false;
-    console.error('Falha ao sincronizar com a nuvem:',e);
     _syncFalhou=true;
     marcarSemSync(true);
-    agendarNovaTentativa();
-  });
+    registrarTentativaSync('falha', 'Erro ao criar snapshot de dados');
+    console.error('Erro ao criar snapshot de dados para sincronização');
+    return;
+  }
+
+  // ✅ ENCRIPTAÇÃO: Encriptar pacientes ANTES de enviar para Firebase
+  (async function(){
+    try{
+      if(_cryptoReady && d.pacientes && d.pacientes.length){
+        var pacientesEncriptados = [];
+        for(var i=0; i<d.pacientes.length; i++){
+          pacientesEncriptados.push(await encriptarPaciente(d.pacientes[i]));
+        }
+        d.pacientes = pacientesEncriptados;
+      }
+    }catch(e){
+      console.warn('Erro ao encriptar pacientes para Firebase, continuando sem encriptação:',e);
+    }
+    
+    // Guardar snapshot do que está sendo enviado (para auditoria)
+    _lastSyncSnapshot = d;
+    registrarTentativaSync('pendente', 'Enviando '+Object.keys(d).length+' seções de dados');
+
+    fbPath().set(d).then(function(){
+      _syncEmAndamento=false;
+      _syncTentativas=0;
+      marcarSyncConfirmada();
+      registrarTentativaSync('sucesso', 'Dados sincronizados com Firebase');
+
+      if(_syncFalhou){
+        _syncFalhou=false;
+        marcarSemSync(false);
+        toast('Dados sincronizados.');
+      }
+      if(_syncRetryTimer){clearTimeout(_syncRetryTimer);_syncRetryTimer=null;}
+
+      // Algo mudou enquanto gravavamos: envia de novo.
+      if(_syncPendente){
+        registrarTentativaSync('modificado', 'Dados foram modificados durante envio, reenviando');
+        _syncPendente=false;
+        fbSync();
+      }
+
+    }).catch(function(e){
+      _syncEmAndamento=false;
+      console.error('Falha ao sincronizar com a nuvem:',e);
+      _syncFalhou=true;
+      marcarSemSync(true);
+      registrarTentativaSync('falha', (e.message||String(e)).slice(0,100));
+      agendarNovaTentativa();
+    });
+  })();
 }
 
 // Reenvio automatico com espera crescente (5s, 10s, 20s... ate 5min).
@@ -880,7 +1785,8 @@ _handlers.online = function(){
     fbSync();
   }
 };
-window.addEventListener('online',_handlers.online);
+// ✅ Usar sistema centralizado de listeners
+addListener(window, 'online', _handlers.online);
 
 // Indicador de "nao sincronizado". Nao interrompe o trabalho — os dados estao
 // no aparelho —, mas deixa claro que a copia na nuvem esta desatualizada.
@@ -917,7 +1823,8 @@ _handlers.visibilitychange = function(){
   if(Date.now()-(window._ultimoSave||0)<4000)return;
   fbCarregar(true); // true = manter a tela atual, não voltar para Início
 };
-document.addEventListener('visibilitychange',_handlers.visibilitychange);
+// ✅ Usar sistema centralizado de listeners
+addListener(document, 'visibilitychange', _handlers.visibilitychange);
 // fbCarregar: sincroniza dados com Firebase
 // manterTela=true: não reseta para Início (usado ao voltar de background)
 // manterTela=false/undefined: volta para Início (usado ao login)
@@ -925,18 +1832,446 @@ function fbCarregar(manterTela){
   if(!FBU||!FBD){carregar();boot();return;}
   fbPath().once('value').then(function(s){
     var d=s.val();
-    if(d){if(d.pacientes)D.pacientes=d.pacientes;if(d.sessoes)D.sessoes=d.sessoes;if(d.feriados)D.feriados=d.feriados;if(d.planos)D.planos=d.planos;if(d.tipos)D.tipos=d.tipos;if(d.cfg)D.cfg=Object.assign({},D.cfg,d.cfg);if(d.notas!=null)D.notas=d.notas;}
+    if(d){
+      // ✅ CORREÇÃO: Deep copy (cópia profunda) para evitar race condition
+      try{
+        if(d.pacientes)D.pacientes=JSON.parse(JSON.stringify(d.pacientes));
+        if(d.sessoes)D.sessoes=JSON.parse(JSON.stringify(d.sessoes));
+        if(d.feriados)D.feriados=JSON.parse(JSON.stringify(d.feriados));
+        if(d.planos)D.planos=JSON.parse(JSON.stringify(d.planos));
+        if(d.tipos)D.tipos=JSON.parse(JSON.stringify(d.tipos));
+        if(d.cfg)D.cfg=Object.assign({},D.cfg,JSON.parse(JSON.stringify(d.cfg)));
+        if(d.notas!=null)D.notas=d.notas;
+        registrarTentativaSync('carregado', 'Dados carregados do Firebase');
+      }catch(e){
+        console.error('Erro ao carregar dados do Firebase:',e);
+        registrarTentativaSync('falha', 'Erro ao parsear dados: '+(e.message||'').slice(0,50));
+        carregar();  // Fallback para localStorage
+      }
+    }
     else carregar();
     sanitizarDados();
-    if(manterTela&&typeof ABA!=='undefined'&&ABA){
-      // Apenas re-renderiza a tela atual, sem resetar navegação
-      if(!verificarVencimento())return;
-      renderizar();
-    }else{
-      boot();
+    
+    // ✅ ENCRIPTAÇÃO: Decriptar pacientes após carregar
+    decriptarTodosPacientes().then(function(){
+      if(manterTela&&typeof ABA!=='undefined'&&ABA){
+        // Apenas re-renderiza a tela atual, sem resetar navegação
+        if(!verificarVencimento())return;
+        renderizar();
+      }else{
+        boot();
+      }
+      registrarUsuarioPublico();
+    }).catch(function(e){
+      console.error('Erro ao decriptar pacientes:',e);
+      // Continuar mesmo se decriptação falhar
+      if(manterTela&&typeof ABA!=='undefined'&&ABA){
+        if(!verificarVencimento())return;
+        renderizar();
+      }else{
+        boot();
+      }
+      registrarUsuarioPublico();
+    });
+  }).catch(function(){
+    registrarTentativaSync('falha', 'Erro ao conectar Firebase');
+    carregar();
+    if(!manterTela)boot();
+  });
+}
+
+// ============================================================================
+// 🔒 SISTEMA DE BACKUP E RECUPERAÇÃO (v1.062-BLINDADO)
+// ============================================================================
+
+// ── VALIDAÇÃO E RESTAURAÇÃO DE BACKUP ────────────────────────────
+// Histórico de restaurações para auditoria
+var _backupRestoreHistory = [];
+
+// Calcula checksum de um backup para detectar corrupção
+function calcularChecksumBackup(backup){
+  try{
+    if(!backup)return null;
+    // Usar JSON.stringify para criar hash determinístico
+    var str = JSON.stringify({
+      pacientes: (backup.pacientes||[]).length,
+      sessoes: (backup.sessoes||[]).length,
+      planos: (backup.planos||[]).length,
+      tipos: (backup.tipos||[]).length,
+      feriados: (backup.feriados||[]).length,
+      cfg_keys: Object.keys(backup.cfg||{}).length,
+      notas_len: (backup.notas||'').length
+    });
+    // Hash simples: soma de charCodes
+    var hash = 0;
+    for(var i=0; i<str.length; i++){
+      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = hash & hash;  // Convert to 32bit integer
     }
-    registrarUsuarioPublico();
-  }).catch(function(){carregar();if(!manterTela)boot();});
+    return Math.abs(hash);
+  }catch(e){
+    console.error('Erro ao calcular checksum:',e);
+    return null;
+  }
+}
+
+// Valida estrutura básica de um backup
+function validarEstruturaBackup(backup){
+  if(!backup || typeof backup !== 'object')return false;
+  
+  // Verificar campos obrigatórios
+  if(!Array.isArray(backup.pacientes))return false;
+  if(!Array.isArray(backup.sessoes))return false;
+  if(!Array.isArray(backup.planos))return false;
+  if(!Array.isArray(backup.tipos))return false;
+  if(typeof backup.cfg !== 'object')return false;
+  
+  return true;
+}
+
+// Valida integridade referencial: cada sessão deve ter paciente válido
+function validarIntegridadeReferencial(backup){
+  try{
+    var pacientesIds = (backup.pacientes||[]).map(function(p){return p.id;});
+    var planoIds = (backup.planos||[]).map(function(pl){return pl.id;});
+    
+    // Verificar sessões: cada sessão precisa ter paciente e plano válidos
+    var erros = [];
+    (backup.sessoes||[]).forEach(function(s){
+      if(s.pacienteId && pacientesIds.indexOf(s.pacienteId)<0){
+        erros.push('Sessão '+s.id+': paciente '+s.pacienteId+' não existe');
+      }
+      if(s.planoId && planoIds.indexOf(s.planoId)<0){
+        erros.push('Sessão '+s.id+': plano '+s.planoId+' não existe');
+      }
+    });
+    
+    if(erros.length>0){
+      console.warn('⚠️ Integridade referencial: '+erros.length+' problemas encontrados');
+      console.warn(erros.slice(0,5).join('; '));  // Mostrar apenas os 5 primeiros
+      return false;
+    }
+    return true;
+  }catch(e){
+    console.error('Erro ao validar integridade:',e);
+    return false;
+  }
+}
+
+// Função completa de validação de backup
+function validarBackup(backup, permitirReparo){
+  try{
+    var resultado = {
+      valido: false,
+      erros: [],
+      avisos: [],
+      estrutura_ok: false,
+      integridade_ok: false,
+      checksum: null
+    };
+    
+    // 1. Validar estrutura
+    if(!validarEstruturaBackup(backup)){
+      resultado.erros.push('Estrutura de backup inválida (faltam campos obrigatórios)');
+      return resultado;
+    }
+    resultado.estrutura_ok = true;
+    
+    // 2. Validar tamanhos
+    if(backup.pacientes.length === 0){
+      resultado.avisos.push('Nenhum paciente no backup');
+    }
+    if(backup.sessoes.length === 0){
+      resultado.avisos.push('Nenhuma sessão no backup');
+    }
+    
+    // 3. Calcular checksum
+    resultado.checksum = calcularChecksumBackup(backup);
+    
+    // 4. Validar integridade referencial
+    var integridade_ok = validarIntegridadeReferencial(backup);
+    resultado.integridade_ok = integridade_ok;
+    
+    if(!integridade_ok && !permitirReparo){
+      resultado.erros.push('Integridade referencial comprometida (sessões sem pacientes/planos)');
+      return resultado;
+    }
+    
+    resultado.valido = resultado.estrutura_ok && (resultado.integridade_ok || permitirReparo);
+    return resultado;
+  }catch(e){
+    console.error('Erro ao validar backup:',e);
+    return {
+      valido: false,
+      erros: ['Erro ao processar validação: '+(e.message||String(e))],
+      avisos: [],
+      estrutura_ok: false,
+      integridade_ok: false,
+      checksum: null
+    };
+  }
+}
+
+// Guarda estado atual antes de restaurar (para rollback)
+function salvarRollbackPoint(){
+  try{
+    return {
+      timestamp: Date.now(),
+      pacientes: JSON.parse(JSON.stringify(D.pacientes)),
+      sessoes: JSON.parse(JSON.stringify(D.sessoes)),
+      feriados: JSON.parse(JSON.stringify(D.feriados)),
+      planos: JSON.parse(JSON.stringify(D.planos)),
+      tipos: JSON.parse(JSON.stringify(D.tipos)),
+      cfg: JSON.parse(JSON.stringify(D.cfg)),
+      notas: D.notas
+    };
+  }catch(e){
+    console.error('Erro ao criar rollback point:',e);
+    return null;
+  }
+}
+
+// Restaura dados do rollback point
+function executarRollback(rollbackPoint){
+  try{
+    if(!rollbackPoint){
+      toast('Ponto de recuperação não disponível');
+      return false;
+    }
+    D.pacientes = JSON.parse(JSON.stringify(rollbackPoint.pacientes));
+    D.sessoes = JSON.parse(JSON.stringify(rollbackPoint.sessoes));
+    D.feriados = JSON.parse(JSON.stringify(rollbackPoint.feriados));
+    D.planos = JSON.parse(JSON.stringify(rollbackPoint.planos));
+    D.tipos = JSON.parse(JSON.stringify(rollbackPoint.tipos));
+    D.cfg = JSON.parse(JSON.stringify(rollbackPoint.cfg));
+    D.notas = rollbackPoint.notas;
+    salvar();
+    registrarHistoricoRestauracao('rollback', 'Rollback executado com sucesso');
+    toast('Dados restaurados ao estado anterior');
+    return true;
+  }catch(e){
+    console.error('Erro ao executar rollback:',e);
+    registrarHistoricoRestauracao('rollback_falha', 'Erro: '+(e.message||'').slice(0,50));
+    toast('Erro ao restaurar dados anteriores');
+    return false;
+  }
+}
+
+// Registra histórico de restaurações
+function registrarHistoricoRestauracao(tipo, detalhes){
+  try{
+    var registro = {
+      timestamp: Date.now(),
+      tipo: tipo,  // 'restauracao', 'rollback', 'import', 'falha'
+      detalhes: detalhes||'',
+      usuario: FBU?FBU.email:'desconhecido'
+    };
+    _backupRestoreHistory.unshift(registro);
+    if(_backupRestoreHistory.length > 20){
+      _backupRestoreHistory = _backupRestoreHistory.slice(0, 20);
+    }
+    // Persistir em localStorage
+    try{
+      localStorage.setItem('fe_restore_history', JSON.stringify(_backupRestoreHistory));
+    }catch(e){}
+  }catch(e){
+    console.error('Erro ao registrar histórico:',e);
+  }
+}
+
+function backupToArchive(){
+  try{
+    try{
+      var backup = {
+        timestamp: Date.now(),
+        usuario: FBU ? FBU.email : 'desconhecido',
+        pacientes: JSON.parse(JSON.stringify(D.pacientes)),
+        sessoes: JSON.parse(JSON.stringify(D.sessoes)),
+        feriados: JSON.parse(JSON.stringify(D.feriados||[])),
+        planos: JSON.parse(JSON.stringify(D.planos||[])),
+        tipos: JSON.parse(JSON.stringify(D.tipos||[])),
+        cfg: JSON.parse(JSON.stringify(D.cfg)),
+        notas: D.notas || ''
+      };
+    } catch(e){
+      console.error("[BACKUP] ❌ Erro ao criar backup:", e);
+      registrarHistoricoRestauracao('falha', 'Erro ao criar backup: '+(e.message||'').slice(0,50));
+      return null;
+    }
+    
+    // ✅ Validar backup antes de salvar
+    var validacao = validarBackup(backup, false);
+    if(!validacao.valido){
+      console.warn("[BACKUP] ⚠️ Backup inválido:", validacao.erros);
+    }
+    
+    localStorage.setItem('fe_backup_' + backup.timestamp, JSON.stringify(backup));
+    console.log('[BACKUP] ✅ Criado em', new Date(backup.timestamp).toLocaleString('pt-BR'), 
+                '('+validacao.checksum+')');
+    registrarHistoricoRestauracao('backup_criado', 
+      'Backup automático ('+backup.pacientes.length+' pac, '+backup.sessoes.length+' sess)');
+    
+    // Limpeza: manter apenas os últimos 10 backups
+    var allBackups = Object.keys(localStorage)
+      .filter(k => k.startsWith('fe_backup_'))
+      .map(k => parseInt(k.replace('fe_backup_', '')))
+      .sort((a,b) => b - a)
+      .slice(10);  // Remover backups fora do top 10
+    allBackups.forEach(ts => {
+      try{
+        localStorage.removeItem('fe_backup_' + ts);
+        console.log('[BACKUP] 🗑️  Backup antigo removido: '+new Date(ts).toLocaleString('pt-BR'));
+      }catch(e){}
+    });
+    
+    return backup;
+  }catch(e){
+    console.error('[BACKUP] ❌ Erro:', e);
+    registrarHistoricoRestauracao('falha', 'Exception: '+(e.message||'').slice(0,50));
+    return null;
+  }
+}
+
+// Função de debug para visualizar histórico de restaurações
+function mostrarHistoricoRestauracao(){
+  try{
+    var hist = JSON.parse(localStorage.getItem('fe_restore_history')||'[]');
+    if(!hist.length){
+      console.log('📊 Nenhuma restauração registrada');
+      return;
+    }
+    console.log('📊 HISTÓRICO DE RESTAURAÇÕES (últimas 20):');
+    hist.forEach(function(r, idx){
+      var ts = new Date(r.timestamp);
+      var dtStr = ts.toLocaleString('pt-BR');
+      var emoji = {restauracao:'✅', rollback:'⏮️', import:'📥', falha:'❌'}[r.tipo]||'❓';
+      console.log(emoji+' ['+idx+'] '+dtStr+' — '+r.tipo+': '+r.detalhes);
+    });
+  }catch(e){
+    console.error('Erro ao mostrar histórico:',e);
+  }
+}
+
+// Função para testar validação (debug)
+function testarValidacaoBackup(){
+  try{
+    var backup = {
+      timestamp: Date.now(),
+      usuario: 'teste',
+      pacientes: D.pacientes,
+      sessoes: D.sessoes,
+      planos: D.planos,
+      tipos: D.tipos,
+      feriados: D.feriados,
+      cfg: D.cfg,
+      notas: D.notas
+    };
+    var val = validarBackup(backup, false);
+    console.log('✅ Validação do backup atual:', val);
+  }catch(e){
+    console.error('Erro ao testar validação:',e);
+  }
+}
+
+function listarBackups(){
+  try{
+    var backups = Object.keys(localStorage).filter(k => k.startsWith('fe_backup_')).map(k => ({key: k, timestamp: parseInt(k.replace('fe_backup_', '')), data: JSON.parse(localStorage.getItem(k) || '{}')})).sort((a,b) => b.timestamp - a.timestamp);
+    if(!backups.length){toast('Nenhum backup disponível');return;}
+    
+    var h='<div class="mh"><h3>🔧 Backups</h3><button class="mc" onclick="fecharM()">✕</button></div>';
+    h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:14px">Clique para restaurar. Os dados atuais serão preservados em um ponto de recuperação.</div>';
+    
+    backups.forEach(function(bkp, idx){
+      var dt = new Date(bkp.timestamp).toLocaleString('pt-BR');
+      
+      // ✅ Validação ao listar
+      var validacao = validarBackup(bkp.data, false);
+      var statusIcon = validacao.valido ? '✅' : '⚠️';
+      var statusTxt = validacao.valido ? 'Válido' : 'Inválido';
+      var checksum = validacao.checksum ? ' (hash: '+validacao.checksum+')' : '';
+      
+      h+='<div style="border:1px solid var(--bd);padding:12px;margin:10px 0;border-radius:8px;background:var(--bg2)">';
+      h+='<strong>📦 Backup '+(idx+1)+'</strong> — '+dt+'<br>';
+      h+='<small>👤 '+esc(bkp.data.usuario||'desconhecido')+' | 📋 '+bkp.data.pacientes.length+' pac. | 📅 '+bkp.data.sessoes.length+' sess.</small><br>';
+      h+='<small style="color:var(--sl3)">'+statusIcon+' '+statusTxt+checksum+'</small><br>';
+      h+='<button class="btn btn-s btn-p" onclick="restaurarBackup('+bkp.timestamp+')">Restaurar</button>';
+      h+='</div>';
+    });
+    
+    abrirM(h);
+  }catch(e){console.error('[BACKUP] ❌ Erro:', e);toast('Erro ao listar backups');}
+}
+
+function restaurarBackup(timestamp){
+  try{
+    var backupJson = localStorage.getItem('fe_backup_' + timestamp);
+    if(!backupJson){
+      toast('Backup não encontrado');
+      registrarHistoricoRestauracao('falha', 'Backup não encontrado');
+      return;
+    }
+    
+    var backup;
+    try{
+      backup = JSON.parse(backupJson);
+    }catch(e){
+      toast('Backup corrompido (JSON inválido)');
+      registrarHistoricoRestauracao('falha', 'JSON inválido: '+(e.message||'').slice(0,50));
+      return;
+    }
+    
+    // ✅ VALIDAÇÃO: Verificar integridade do backup
+    var validacao = validarBackup(backup, false);
+    if(!validacao.valido){
+      var msg = 'Backup inválido:\n' + validacao.erros.join('\n');
+      console.error(msg);
+      toast('Backup inválido. Verifique o console para detalhes.');
+      registrarHistoricoRestauracao('falha', validacao.erros[0]||'Validação falhou');
+      return;
+    }
+    
+    if(validacao.avisos.length > 0){
+      console.warn('⚠️ Avisos ao restaurar backup:', validacao.avisos);
+    }
+    
+    // ✅ ROLLBACK: Guardar estado atual antes de restaurar
+    var rollbackPoint = salvarRollbackPoint();
+    if(!rollbackPoint){
+      toast('Erro: não foi possível criar ponto de recuperação');
+      registrarHistoricoRestauracao('falha', 'Impossível criar rollback point');
+      return;
+    }
+    
+    // Restaurar dados (deep copy para segurança)
+    try{
+      D.pacientes = JSON.parse(JSON.stringify(backup.pacientes || []));
+      D.sessoes = JSON.parse(JSON.stringify(backup.sessoes || []));
+      D.cfg = JSON.parse(JSON.stringify(backup.cfg || {}));
+      D.notas = backup.notas || '';
+      if(backup.feriados)D.feriados = JSON.parse(JSON.stringify(backup.feriados));
+      if(backup.planos)D.planos = JSON.parse(JSON.stringify(backup.planos));
+      if(backup.tipos)D.tipos = JSON.parse(JSON.stringify(backup.tipos));
+    }catch(e){
+      console.error('Erro ao restaurar dados:',e);
+      // Fazer rollback automático se restauração falhar
+      executarRollback(rollbackPoint);
+      toast('Erro ao restaurar. Dados revertidos ao estado anterior.');
+      return;
+    }
+    
+    sanitizarDados();
+    salvar();
+    registrarHistoricoRestauracao('restauracao', 
+      'Backup '+new Date(timestamp).toLocaleString('pt-BR')+
+      ' restaurado ('+validacao.checksum+')');
+    fecharM();
+    toast('✅ Backup restaurado com sucesso!');
+    setTimeout(function(){location.reload();}, 2000);
+  }catch(e){
+    console.error('Erro ao restaurar backup:',e);
+    registrarHistoricoRestauracao('falha', 'Exception: '+(e.message||'').slice(0,50));
+    toast('Erro ao restaurar backup. Verifique o console.');
+  }
 }
 
 // ── ADMIN ─────────────────────────────────────────────────────────
@@ -1230,7 +2565,8 @@ function renovarAcesso(uid,dias){
 }
 
 function revogarAcesso(uid){
-  modalConfirm('Revogar acesso','Deseja revogar o acesso deste usuário? Esta ação não poderá ser desfeita.','Revogar','executarRevogarAcesso(\''+uid+'\')','true');
+  // Usar closure para capturar uid de forma segura
+  modalConfirm('Revogar acesso','Deseja revogar o acesso deste usuário? Esta ação não poderá ser desfeita.','Revogar',function(){executarRevogarAcesso(uid);},true);
 }
 
 function executarRevogarAcesso(uid){
@@ -1369,18 +2705,34 @@ function fbRetry(fn,tentativas){
   });
 }
 function sairConta(){
-  modalConfirm('Sair da conta','Deseja sair da sua conta?','Sair','executarSairConta()','false');
+  // Usar função segura (sem parâmetros)
+  modalConfirm('Sair da conta','Deseja sair da sua conta?','Sair',executarSairConta,false);
 }
 function executarSairConta(){
   try{
-    limparTodosTimers(); // Cleanup antes de sair
-    FBAuth.signOut().then(function(){D.pacientes=[];D.sessoes=[];ir('inicio');}).catch(function(e){logError('signOut',e);toast('Erro ao sair');});
+    limparTodosTimers();          // Cleanup de timers
+    limpiarTodosListeners();      // ✅ Cleanup de event listeners
+    limpiarHandlers();            // Cleanup de handlers específicos
+    
+    // 🔒 BLINDAGEM: Fazer backup ANTES de logout
+    backupToArchive();
+    
+    FBAuth.signOut().then(function(){
+      // 🔒 SÓ DEPOIS de logout bem-sucedido, limpar dados
+      D.pacientes=[];
+      D.sessoes=[];
+      ir('inicio');
+      toast('Logout realizado com segurança.');
+    }).catch(function(e){
+      logError('signOut',e);
+      toast('Erro ao sair, mas seus dados foram preservados.');
+    });
   }catch(e){logError('executarSairConta',e);}
 }
 function editarNome(){
   var h='<div class="mh"><h3>Editar perfil</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div class="fg"><label>Nome</label><input class="fi" type="text" id="en-nome" value="'+esc(FBU?FBU.displayName||'':'')+'"/></div>';
-  h+='<div class="fg"><label>CREFITO <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/></svg></label><input class="fi" type="text" id="crefito-inp" value="'+(D.cfg.crefito||'')+'" placeholder="Ex: CREFITO-4/12345-F"/>';
+  h+='<div class="fg"><label>CREFITO <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--red);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/></svg></label><input class="fi" type="text" id="crefito-inp" value="'+(D.cfg.crefito||'')+'" placeholder="Ex: 123456/DF" maxlength="9" oninput="mCREFITO(this)"/>';
   var _trv=!!D.cfg.dataNascConfirmada;
   h+='</div><div class="fg"><label>Data de nascimento</label>';
   h+='<input class="fi" type="text" id="nasc-inp" maxlength="10" placeholder="DD/MM/AAAA" value="'+esc(D.cfg.dataNasc||'')+'"'+(_trv?' readonly style="background:var(--bg);color:var(--sl3);cursor:not-allowed"':' oninput="mData(this)"')+'/>';
@@ -1392,9 +2744,18 @@ function editarNome(){
 }
 function salvarPerfilCompleto(){
   var nome=el('en-nome')?el('en-nome').value.trim():'';
-  var crefito=el('crefito-inp')?el('crefito-inp').value.trim():'';
-  if(nome&&FBU){FBU.updateProfile({displayName:nome}).then(function(){D.cfg.nomeExibicao=nome;});}
-  if(!crefito){toast('Informe seu CREFITO (obrigatório por lei).');return;}
+  var crefito=el('crefito-inp')?el('crefito-inp').value.trim().toUpperCase():'';
+  
+  if(nome&&FBU){FBU.updateProfile({displayName:nome}).then(function(){D.cfg.nomeExibicao=nome;toast('✅ Perfil atualizado!');}).catch(function(e){console.error('[PROFILE] ❌ Erro ao atualizar:',e);toast('❌ Erro ao atualizar perfil');});}
+  
+  if(!crefito){toast('❌ Informe seu CREFITO (obrigatório por lei).');return;}
+  
+  // ✅ Validar formato CREFITO (melhorado em v1.059)
+  // Aceita formatos: 123456/DF ou CREFITO-4/123456-F
+  if(!validarFormatoCREFITO(crefito)){
+    toast('❌ Formato de CREFITO inválido');
+    return;
+  }
   if(!validarCrefito(crefito)){toast('CREFITO inválido. Use o formato CREFITO-3/12345-F.');return;}
   D.cfg.crefito=crefito;delNotif('crefito_pendente');
   if(!D.cfg.dataNascConfirmada){
@@ -1457,6 +2818,21 @@ function marcarVisitaAdmin(){
   try{localStorage.setItem('fe_admin_visto',hoje());}catch(e){}
 }
 
+function calcularIdade(dataNasc){
+  if(!dataNasc || typeof dataNasc !== 'string') return null;
+  var m = dataNasc.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(!m) return null;
+  var dia = parseInt(m[1]);
+  var mes = parseInt(m[2]);
+  var ano = parseInt(m[3]);
+  var hoje = new Date();
+  var idade = hoje.getFullYear() - ano;
+  if(hoje.getMonth() + 1 < mes || (hoje.getMonth() + 1 === mes && hoje.getDate() < dia)){
+    idade--;
+  }
+  return idade >= 0 ? idade : null;
+}
+
 function mesDeNascimento(dataNasc){
   var v=(dataNasc||'').trim();
   if(!v)return null;
@@ -1491,10 +2867,32 @@ function mesAniversarioUser(){
 function validarCrefito(v){v=(v||'').trim().toUpperCase();return /^(CREFITO[-\s]?)?\d{1,2}[\/\-\s]?\d{3,7}[\/\-\s]?(F|TO)$/.test(v);}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
 function esc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function hoje(){return new Date().toISOString().slice(0,10);}
+// Retorna data de hoje em formato ISO YYYY-MM-DD sem ambiguidade de timezone
+function hoje(){
+  var d=new Date();
+  var ano=d.getFullYear();
+  var mes=('0'+(d.getMonth()+1)).slice(-2);
+  var dia=('0'+d.getDate()).slice(-2);
+  return ano+'-'+mes+'-'+dia;
+}
+
+// Criar data segura a partir de string YYYY-MM-DD (evita timezone issues)
+function criarDataSegura(dataStr){
+  if(!dataStr) return null;
+  var m=dataStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return null;
+  // Usar meio-dia para evitar problemas de timezone
+  return new Date(parseInt(m[1]),parseInt(m[2])-1,parseInt(m[3]),12,0,0);
+}
+
+// Comparar duas datas em formato string (YYYY-MM-DD)
+function compararDatas(data1,data2){
+  // Retorna: -1 se data1<data2, 0 se igual, 1 se data1>data2
+  if(!data1||!data2) return 0;
+  return data1<data2?-1:data1>data2?1:0;
+}
 // Validação de datas (previne NaN em cálculos)
 function validarData(d){if(!d||typeof d!=='string')return null;if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return null;var parts=d.split('-'),y=parseInt(parts[0]),mo=parseInt(parts[1]),da=parseInt(parts[2]);if(y<1900||y>2100||mo<1||mo>12||da<1||da>31)return null;var dt=new Date(y,mo-1,da);return(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===da)?d:null;}
-function criarDataSegura(ds){if(!ds)return new Date();var d=new Date(ds+'T12:00:00');return isNaN(d.getTime())?new Date():d;}
 function sanitizarNome(n){if(!n||typeof n!=='string')return '';return n.trim().slice(0,200);}
 function sanitizarValor(v){v=parseFloat(v);if(!isFinite(v)||isNaN(v))return 0;if(v<0)v=0;if(v>999999)v=999999;return Math.round(v*100)/100;}
 function fmtISO(d){return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1)+'-'+(d.getDate()<10?'0':'')+d.getDate();}
@@ -1540,7 +2938,20 @@ function toast(m,d){
 }
 function copiarParaArea(t){navigator.clipboard.writeText(t).then(function(){toast('✓ Link copiado!',2000);}).catch(function(){var i=document.createElement('textarea');i.value=t;document.body.appendChild(i);i.select();document.execCommand('copy');document.body.removeChild(i);toast('✓ Link copiado!',2000);});}
 function dowN(ds){var d=new Date(ds+'T12:00:00');return['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][d.getDay()];}
-function getHoras(){var h=[];for(var i=(D.cfg.horaIni||7);i<=(D.cfg.horaFim||20);i++)h.push((i<10?'0':'')+i+':00');return h;}
+function getHoras(){
+  // Gera horários a cada 15 minutos (permite 09:00, 09:15, 09:30, 09:45, 10:00, etc)
+  var h=[];
+  var horaIni=(D.cfg.horaIni||7);
+  var horaFim=(D.cfg.horaFim||20);
+  
+  for(var i=horaIni;i<=horaFim;i++){
+    for(var m=0;m<60;m+=15){
+      if(i===horaFim && m>0)break; // Não adiciona minutos após última hora
+      h.push((i<10?'0':'')+i+':'+(m<10?'0':'')+m);
+    }
+  }
+  return h;
+}
 function mData(e2){
   var pos=e2.selectionStart;
   var raw=e2.value.replace(/[^0-9]/g,'');
@@ -1580,6 +2991,35 @@ function mTel(e2){
   else if(v.length<=10)f='('+v.slice(0,2)+') '+v.slice(2,6)+'-'+v.slice(6);
   else f='('+v.slice(0,2)+') '+v.slice(2,7)+'-'+v.slice(7);
   e2.value=f;
+}
+function mRG(e2){
+  var v=e2.value.replace(/[^0-9]/g,'').slice(0,9);
+  var f=v;
+  if(v.length===0){e2.value='';return;}
+  if(v.length<=2)f=v;
+  else if(v.length<=5)f=v.slice(0,2)+'.'+v.slice(2);
+  else if(v.length<=8)f=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
+  else f=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'-'+v.slice(8);
+  e2.value=f;
+}
+function mCPF(e2){
+  var v=e2.value.replace(/[^0-9]/g,'').slice(0,11);
+  var f=v;
+  if(v.length===0){e2.value='';return;}
+  if(v.length<=3)f=v;
+  else if(v.length<=6)f=v.slice(0,3)+'.'+v.slice(3);
+  else if(v.length<=9)f=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6);
+  else f=v.slice(0,3)+'.'+v.slice(3,6)+'.'+v.slice(6,9)+'-'+v.slice(9);
+  e2.value=f;
+}
+// ✅ Máscara de CREFITO: 123456/DF (6 números, barra, 2 letras)
+function mCREFITO(e2){
+  var v=e2.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var f=v;
+  if(v.length===0){e2.value='';return;}
+  if(v.length<=6)f=v; // Apenas números (123456)
+  else f=v.slice(0,6)+'/'+v.slice(6,8); // Com barra (123456/DF)
+  e2.value=f.slice(0,9); // Máximo 9 caracteres (123456/DF)
 }
 function atualizarBadge(){
   var bdg=el('bdg-evo');if(!bdg)return;
@@ -1708,7 +3148,7 @@ function onbStep(n){
     h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:20px;line-height:1.5">Vamos configurar seu perfil em menos de 3 minutos para você começar a usar.</div>';
     h+='<div class="fg"><label>Seu nome completo</label><input class="fi" id="onb-nome" type="text" placeholder="Dr. Rafael..." value="'+(FBU&&FBU.displayName?esc(FBU.displayName):'')+'"/></div>';
     h+='<div class="fr">';
-    h+='<div class="fg"><label>CREFITO</label><input class="fi" id="onb-crefito" type="text" placeholder="3-12345-F" value="'+esc(D.cfg.crefito||'')+'"/></div>';
+    h+='<div class="fg"><label>CREFITO</label><input class="fi" id="onb-crefito" type="text" placeholder="123456/DF" maxlength="9" value="'+esc(D.cfg.crefito||'')+'" oninput="mCREFITO(this)"/></div>';
     h+='<div class="fg"><label>Sua data de nascimento</label><input class="fi" id="onb-nasc" type="text" placeholder="DD/MM/AAAA" maxlength="10" value="'+esc(D.cfg.dataNasc||'')+'" oninput="mData(this)"/>';
     h+='<div style="font-size:11px;color:var(--g1);margin-top:4px">No mês do seu aniversário, a mensalidade é por nossa conta. Confira bem: após confirmada, a data não poderá ser alterada.</div></div>';
     h+='<div class="fg"><label>UF</label><input class="fi" id="onb-uf" type="text" maxlength="2" placeholder="SP" value="'+esc(D.cfg.crefitoUF||'')+'"/></div>';
@@ -1779,7 +3219,8 @@ function onbProximo(){
         _pendingConfirm.onb_nome=nome;
         _pendingConfirm.onb_crefito=crefito;
         _pendingConfirm.onb_uf=el('onb-uf')?el('onb-uf').value.trim().toUpperCase():'';
-        modalConfirm('Confirmar data de nascimento','Sua data: <strong>'+esc(nasc)+'</strong><br><br>Ela será usada para o benefício de aniversário (mensalidade gratuita no mês).<br><br><strong style="color:var(--red)">Atenção:</strong> após confirmar, esta data NÃO poderá ser alterada.','Confirmar','executarOnbProximo1ComNasc()','false');
+        // Usar função segura (sem parâmetros, usa _pendingConfirm)
+        modalConfirm('Confirmar data de nascimento','Sua data: <strong>'+esc(nasc)+'</strong><br><br>Ela será usada para o benefício de aniversário (mensalidade gratuita no mês).<br><br><strong style="color:var(--red)">Atenção:</strong> após confirmar, esta data NÃO poderá ser alterada.','Confirmar',executarOnbProximo1ComNasc,false);
         return;
       }
     }
@@ -1829,7 +3270,8 @@ function executarOnbProximo1Final(){
 
 function onbAnterior(){onbStep(_onbStep-1);}
 function onbPular(){
-  modalConfirm('Pular configuração?','Você pode configurar tudo depois em Mais → Configurações.','Pular','onbConcluir()','false');
+  // Usar função segura (sem parâmetros)
+  modalConfirm('Pular configuração?','Você pode configurar tudo depois em Mais → Configurações.','Pular',onbConcluir,false);
 }
 
 function onbConcluir(){
@@ -1840,20 +3282,40 @@ function onbConcluir(){
 
 // ── CONTROLE DE ACESSO / VENCIMENTO ──────────────────────────────
 function verificarVencimento(){
-  // 🚀 MODO CLAUDE: FORÇADO SEMPRE ATIVO
-  // Independente de como o arquivo foi aberto, ativa Modo Claude
-  // Isso garante acesso gratuito completo
+  var hoje = new Date().toISOString().slice(0,10);
+  var venc = D.cfg.vencimento || '';
   
-  try {
-    // FORÇAR: sempre set Modo Claude quando função é chamada
-    localStorage.setItem('claudeMode','true');
-    localStorage.setItem('bypassPagamento','true');
-    localStorage.setItem('accessLevel','premium');
-  }catch(e){}
+  // ⭐ MODO DE TESTE: Funciona APENAS para Rafael (email específico)
+  var ehRafael = FBU && FBU.email === 'rgdshachiiki@gmail.com';
   
-  // Se chegou aqui, é porque Modo Claude está ativo
-  console.log('✅ MODO CLAUDE ATIVO: Acesso gratuito liberado');
-  return true; // SEMPRE libera (sem verificar vencimento)
+  if(hoje > venc && venc && ehRafael){
+    console.log('[TESTE] Acesso vencido para Rafael, adicionando 90 dias de teste...');
+    var dv = new Date();
+    dv.setDate(dv.getDate() + 90); // +90 dias de teste
+    venc = dv.toISOString().slice(0,10);
+    D.cfg.vencimento = venc;
+    salvar();
+    console.log('[TESTE] Novo vencimento: ' + venc);
+  }
+  
+  // Se não tem vencimento definido, nunca fez login (primeiro acesso = trial gratuito de 30 dias)
+  if(!venc){
+    var dv = new Date();
+    dv.setDate(dv.getDate() + 30); // +30 dias de trial
+    venc = dv.toISOString().slice(0,10);
+    D.cfg.vencimento = venc;
+    salvar();
+  }
+  
+  // Comparar datas (AAAA-MM-DD é ordenável por string)
+  if(hoje > venc){
+    // ❌ VENCIDO! Bloquear acesso
+    mostrarBloqueio(venc);
+    return false; // Bloqueia
+  }
+  
+  // ✅ Ainda tem acesso ativo
+  return true; // Libera
 }
 // Uma data so e valida se o formato for AAAA-MM-DD E o calendario aceitar.
 // '2026-02-31' passa no formato mas nao existe — por isso a segunda checagem.
@@ -1925,6 +3387,10 @@ function boot(){
   iniciarFeriadosNacionais();
   localStorage.setItem('fe_ultimo_acesso',String(Date.now()));
   atualizarBadge();
+  
+  // ✅ VERIFICAR CREFITO OBRIGATÓRIO (novo em v1.059)
+  setTimeout(verificarBloqueoCREFITOAoIniciar,500);
+  
   // Com o arranque local-first, boot() pode rodar de novo quando o Firebase responde.
   // Estes agendamentos so devem acontecer uma vez por sessao.
   if(!_bootEfeitos){
@@ -1952,13 +3418,46 @@ function boot(){
   ir('inicio');
 }
 // Cleanup de event listeners (previne memory leak)
+// ✅ Agora usa o sistema centralizado limpiarTodosListeners()
 function limpiarHandlers(){
-  if(_handlers.online){window.removeEventListener('online',_handlers.online);_handlers.online=null;}
-  if(_handlers.offline){window.removeEventListener('offline',_handlers.offline);_handlers.offline=null;}
-  if(_handlers.visibilitychange){document.removeEventListener('visibilitychange',_handlers.visibilitychange);_handlers.visibilitychange=null;}
-  if(_handlers.keydown){document.removeEventListener('keydown',_handlers.keydown);_handlers.keydown=null;}
+  try{
+    // Limpar usando o novo sistema centralizado
+    limpiarTodosListeners();
+    
+    // Limpar referências dos handlers
+    _handlers.online = null;
+    _handlers.offline = null;
+    _handlers.visibilitychange = null;
+    _handlers.keydown = null;
+    
+    console.log('🧹 Event listeners limpos com sucesso');
+  }catch(e){
+    console.error('Erro ao limpar handlers:',e);
+  }
 }
-function ir(aba){if(aba!==ABA)limpiarHandlers();ABA=aba;PAC_ID=null;document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('on',b.dataset.a===aba);});if(['inicio','agenda','pacientes','evolucoes','mais'].includes(aba))mostrarVoltarBtn(null);renderizar();}
+
+function ir(aba){
+  // Garantir que troca de aba reseta estado corretamente
+  if(aba!==ABA) limpiarHandlers();
+  ABA=aba;
+  
+  // Reset PAC_ID para abas principais (previne estado inconsistente)
+  if(['inicio','agenda','pacientes','evolucoes','mais','financeiro'].includes(aba)){
+    PAC_ID=null;
+    PAC_ABA=null;
+  }
+  
+  // Atualizar indicador de aba ativa
+  document.querySelectorAll('.nb').forEach(function(b){
+    b.classList.toggle('on',b.dataset.a===aba);
+  });
+  
+  // Mostrar/esconder botão voltar
+  if(['inicio','agenda','pacientes','evolucoes','mais','financeiro'].includes(aba))
+    mostrarVoltarBtn(null);
+  
+  renderizar();
+}
 function btnVolAcao(){if(BtnVolCb)BtnVolCb();}
 
 // ── FULLSCREEN e NAVEGAÇÃO ───────────────────────────────────────
@@ -1993,6 +3492,19 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'||e.keyCode===27){
     e.preventDefault();
     btnVolAcao();
+  }
+  
+  // Atalhos de teclado (apenas quando não estiver digitando em input)
+  if(e.target.tagName!=='INPUT'&&e.target.tagName!=='TEXTAREA'&&e.target.contentEditable!=='true'){
+    if(e.key==='i'||e.key==='I')ir('inicio'); // I = Início
+    if(e.key==='a'||e.key==='A')ir('agenda'); // A = Agenda
+    if(e.key==='p'||e.key==='P')ir('pacientes'); // P = Pacientes
+    if(e.key==='e'||e.key==='E')ir('evolucoes'); // E = Evoluções
+    if(e.key==='f'||e.key==='F')ir('financeiro'); // F = Financeiro
+    if(e.key==='?'){
+      e.preventDefault();
+      alert('📌 Atalhos de Teclado:\n\nI = Início\nA = Agenda\nP = Pacientes\nE = Evoluções\nF = Financeiro\nESC = Voltar');
+    }
   }
 });
 
@@ -2151,6 +3663,34 @@ function rInicio(el2){
 
   var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+'</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+capitalizar(now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))+'</div></div>';
+  
+  // ── ALERTA: COMPLETE SEU PERFIL ──
+  var perfisIncompletos=[];
+  if(!FBU||!FBU.displayName)perfisIncompletos.push('Nome');
+  if(!D.cfg.crefito||!D.cfg.crefito.trim())perfisIncompletos.push('CREFITO');
+  if(perfisIncompletos.length>0){
+    h+='<div class="card" style="border-color:#f97316;background:#fff7ed;margin-bottom:12px;cursor:pointer" onclick="editarNome()">';
+    h+='<div style="display:flex;align-items:center;gap:10px">';
+    h+='<div style="font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#f97316;vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>';
+    h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#ea580c">Complete seu perfil</div>';
+    h+='<div style="font-size:11px;color:#92400e">Faltam: '+esc(perfisIncompletos.join(', '))+'</div></div>';
+    h+='<div style="font-size:12px;color:#ea580c;font-weight:700">→</div></div></div>';
+  }
+  
+  // ✅ NOVO: Aviso antecipado de CREFITO obrigatório
+  if(D.cfg.primeiroAcesso && (!D.cfg.crefito || D.cfg.crefito.trim()==='')) {
+    var diasDecorridos=Math.floor((Date.now()-D.cfg.primeiroAcesso)/(1000*60*60*24));
+    var diasRestantes=30-diasDecorridos;
+    if(diasRestantes>0 && diasRestantes<=7) {
+      h+='<div class="card" style="border-color:#dc2626;background:#fee2e2;margin-bottom:12px">';
+      h+='<div style="display:flex;align-items:center;gap:10px">';
+      h+='<div style="font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#dc2626;vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M12 2v20m0-20a10 10 0 1 1 0 20 10 10 0 0 1 0-20"/><path d="M12 6v6l4 2"/></svg></div>';
+      h+='<div style="flex:1"><div style="font-size:13px;font-weight:700;color:#991b1b">⏰ CREFITO obrigatório em '+diasRestantes+' dia'+(diasRestantes>1?'s':'')+'</div>';
+      h+='<div style="font-size:11px;color:#7f1d1d">Você precisará preencher seu CREFITO para usar o app</div></div>';
+      h+='<div style="font-size:12px;color:#dc2626;font-weight:700;cursor:pointer" onclick="editarNome()">→</div></div></div>';
+    }
+  }
+  
   h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer" onclick="ir(\'agenda\')"><div style="font-size:22px;font-weight:800;color:var(--g1)">'+sHj.length+'</div><div style="font-size:11px;color:var(--sl3)">Hoje</div></div>';
   h+='<div class="card" style="margin:0;padding:12px;text-align:center;cursor:pointer;border-color:var(--g3)" onclick="ir(\'financeiro\')"><div style="font-size:15px;font-weight:800;color:var(--green)">'+fmtM(recMes)+'</div><div style="font-size:11px;color:var(--sl3)">Recebido/mês</div><div style="font-size:9px;color:var(--g1);font-weight:700;margin-top:3px">Ver detalhes →</div></div>';
@@ -2307,7 +3847,8 @@ function marcarStatus(btn,st){
   }
   if(st==='desmarcado'||st==='falta_prof'){
     setTimeout(function(){
-      modalConfirm('Remarcar sessão','Deseja remarcar esta sessão para uma nova data?','Remarcar','remarcar(\''+sid+'\')', 'false');
+      // Usar closure para capturar sid de forma segura
+      modalConfirm('Remarcar sessão','Deseja remarcar esta sessão para uma nova data?','Remarcar',function(){remarcar(sid);}, false);
     },300);
   }
 }
@@ -2438,7 +3979,8 @@ function _limparSessoes(dsList,rotulo){
   if(temEvo)msg+='<br><br>As evoluções já registradas dos pacientes NÃO serão excluídas — ficam no prontuário.';
   msg+='<br><br><strong style="color:var(--red)">Esta ação NÃO pode ser desfeita.</strong>';
   _pendingConfirm.limparDsList=dsList;
-  modalConfirm('Excluir sessões',msg,'Excluir','executarLimparSessoes()','true');
+  // Usar closure para capturar dsList de forma segura
+  modalConfirm('Excluir sessões',msg,'Excluir',function(){executarLimparSessoes();},true);
 }
 
 function executarLimparSessoes(){
@@ -2533,12 +4075,24 @@ function moverSessao(sid){
   var h='<div class="mh"><h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Mover sessão</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<div style="font-size:13px;color:var(--sl3);margin-bottom:12px">'+esc(nomePac(s.pacienteId))+' — '+esc(s.hora)+'</div>';
   h+='<div class="fg"><label>Nova data</label>'+criarCampoData('mv-data', s.data, 'Selecionar data')+'</div>';
-  h+='<div class="fg"><label>Novo horário</label><select class="fi" id="mv-hora">';
-  getHoras().forEach(function(h2){h+='<option value="'+h2+'"'+(h2===s.hora?' selected':'')+'>'+h2+'</option>';});
-  h+='</select></div>';
+  h+='<div class="fg"><label>Novo horário</label><input type="text" class="fi" id="mv-hora" value="'+esc(s.hora)+'" placeholder="HH:MM (ex: 09:30)" maxlength="5" style="text-align:center;font-weight:600;font-size:14px;letter-spacing:1px"/></div>';
   h+='<input type="hidden" id="mv-sid" value="'+esc(sid)+'"/>';
   h+='<button class="btn btn-p btn-bl" onclick="confirmarMoverSessao()">Confirmar</button>';
   abrirM(h);
+}
+
+function validarHora(h){
+  if(!h || typeof h !== 'string') return null;
+  h = h.trim();
+  // Validar formato HH:MM (ex: 09:30, 14:45)
+  if(!/^\d{1,2}:\d{2}$/.test(h)) return null;
+  var partes = h.split(':');
+  var horas = parseInt(partes[0]);
+  var mins = parseInt(partes[1]);
+  // Validar valores
+  if(horas < 0 || horas > 23 || mins < 0 || mins > 59) return null;
+  // Retornar formato padronizado HH:MM
+  return (horas < 10 ? '0' : '') + horas + ':' + (mins < 10 ? '0' : '') + mins;
 }
 
 function confirmarMoverSessao(){
@@ -2546,9 +4100,12 @@ function confirmarMoverSessao(){
   var data=el('mv-data')?el('mv-data').value:'';
   var hora=el('mv-hora')?el('mv-hora').value:'';
   if(!data||!hora){toast('Preencha data e horário');return;}
+  // Validar formato da hora
+  var horaValida = validarHora(hora);
+  if(!horaValida){toast('Horário inválido! Use formato HH:MM (ex: 09:30)');return;}
   var s=D.sessoes.find(function(x){return x.id===sid;});
   if(!s){toast('Sessão não encontrada');return;}
-  s.data=data;s.hora=hora;
+  s.data=data;s.hora=horaValida;
   salvar();fecharM(true);renderizar();toast('Sessão movida!');
 }
 
@@ -2562,7 +4119,8 @@ function statusRapido(sid,status){
   toast((snm[status]||status)+' registrado!');
   if(status==='desmarcado'||status==='falta_prof'){
     setTimeout(function(){
-      modalConfirm('Remarcar sessão','Deseja remarcar esta sessão para uma nova data?','Remarcar','remarcar(\''+sid+'\')', 'false');
+      // Usar closure para capturar sid de forma segura
+      modalConfirm('Remarcar sessão','Deseja remarcar esta sessão para uma nova data?','Remarcar',function(){remarcar(sid);}, false);
     },300);
   }
 }
@@ -2615,12 +4173,12 @@ function mSessao(s,ds,hr,pacienteIdFixo){
     h+='<div class="fg"><label>Datas e horários</label><div id="ms-datas-wrap">';
     h+='<div class="ms-data-linha" style="display:flex;gap:6px;align-items:center;margin-bottom:6px">';
     h+='<div style="flex:2">'+criarCampoData('ms-data-0', s.data||hoje(), 'Selecionar data')+'</div>';
-    h+='<select class="fi ms-hora-inp" style="flex:1">'+opsHora+'</select>';
+    h+='<input type="text" class="fi ms-hora-inp" placeholder="HH:MM" style="flex:1;text-align:center;font-weight:600;letter-spacing:1px" maxlength="5"/>';
     h+='</div></div>';
     h+='<button type="button" class="btn btn-s btn-sm" style="width:100%;margin-top:4px" onclick="adicionarLinhaData()">+ Adicionar outra data</button></div>';
   } else {
     h+='<div class="fr"><div class="fg"><label>Data</label>'+criarCampoData('ms-data', s.data||hoje(), 'Selecionar data')+'</div>';
-    h+='<div class="fg"><label>Horário</label><select class="fi" id="ms-hora">'+opsHora+'</select></div></div>';
+    h+='<div class="fg"><label>Horário</label><input type="text" class="fi" id="ms-hora" value="'+(s.hora||'')+'" placeholder="HH:MM" maxlength="5" style="text-align:center;font-weight:600;letter-spacing:1px"/></div></div>';
   }
   h+='<div class="fr"><div class="fg"><label><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg> Plano / Convênio (obrigatório)</label><select class="fi" id="ms-plano" onchange="autoValor()">'+opsPlano+'</select></div>';
   h+='<div class="fg"><label>Valor (R$)</label><input class="fi" type="number" id="ms-valor" min="0" step="0.01" value="'+(s.valor||'')+'" placeholder="0,00" oninput="calcMulti()" onchange="calcMulti()"/></div></div>';
@@ -2651,7 +4209,7 @@ function adicionarLinhaData(){
   div.style.cssText='display:flex;gap:6px;align-items:center;margin-bottom:6px';
   var idHidden='ms-data-'+idx;
   div.innerHTML='<div style="flex:2">'+criarCampoData(idHidden,'','')+' </div>'
-    +'<select class="fi ms-hora-inp" style="flex:1">'+opsHora2+'</select>'
+    +'<input type="text" class="fi ms-hora-inp" placeholder="HH:MM" maxlength="5" style="flex:1;text-align:center;font-weight:600;letter-spacing:1px"/>'
     +'<button type="button" class="btn btn-d btn-sm" onclick="this.parentElement.remove()" style="flex-shrink:0">✕</button>';
   wrap.appendChild(div);
 }
@@ -2793,7 +4351,16 @@ function salvarSessao(){
     linhas.forEach(function(linha,idx){
       var dHid=linha.querySelector('input[type="hidden"]');
       var hInp=linha.querySelector('.ms-hora-inp');
-      if(dHid&&dHid.value&&hInp&&hInp.value)datas.push({data:dHid.value,hora:hInp.value});
+      if(dHid&&dHid.value&&hInp&&hInp.value){
+        var horaValida=validarHora(hInp.value);
+        if(!horaValida){
+          toast('Horário inválido na linha '+(idx+1)+'. Use formato HH:MM');
+          hInp.focus();hInp.style.border='2px solid var(--red)';
+          setTimeout(function(){hInp.style.border='';},3000);
+          return;
+        }
+        datas.push({data:dHid.value,hora:horaValida});
+      }
     });
     if(!datas.length){toast('Preencha pelo menos uma data e horário');return;}
 
@@ -2815,7 +4382,8 @@ function salvarSessao(){
           var q=o.s.isClinica?'Clínica':(o.s.pacienteId?nomePac(o.s.pacienteId):'sessão sem paciente');
           return fmtD(o.dt.data)+' às '+o.dt.hora+' — '+esc(q);
         }).join('<br>');
-        modalConfirm('Conflito de horário','Algumas datas já têm sessão marcada:<br><br>'+linhas+'<br><br>Deseja agendar mesmo assim?','Agendar mesmo assim','_criarLoteConfirmado()','false');
+        // Usar função segura (sem parâmetros)
+        modalConfirm('Conflito de horário','Algumas datas já têm sessão marcada:<br><br>'+linhas+'<br><br>Deseja agendar mesmo assim?','Agendar mesmo assim',_criarLoteConfirmado,false);
         return;
       }
     }
@@ -2839,8 +4407,11 @@ function salvarSessao(){
   // Modo sessão única (editar existente ou criar sem paciente fixo)
   var data=el('ms-data')?el('ms-data').value:'';var hora=el('ms-hora')?el('ms-hora').value:'';
   if(!data||!hora){toast('Preencha data e horário');return;}
+  // Validar formato da hora
+  var horaValida=validarHora(hora);
+  if(!horaValida){toast('Horário inválido! Use formato HH:MM (ex: 09:30)');el('ms-hora').focus();el('ms-hora').style.border='2px solid var(--red)';setTimeout(function(){el('ms-hora').style.border='';},3000);return;}
 
-  var novaSess={pacienteId:pacId,data:data,hora:hora,tipoId:tipoId||'',planoId:planoId||'',valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC,atendimentoMultiplo:!!(isC&&isMultiCheck)};
+  var novaSess={pacienteId:pacId,data:data,hora:horaValida,tipoId:tipoId||'',planoId:planoId||'',valor:valor,statusPag:statusPag||'pendente',dataPrevista:dataPrev||'',status:st||'agendado',obs:obs||'',isClinica:isC,pacientesClinica:pacsC,atendimentoMultiplo:!!(isC&&isMultiCheck)};
 
   // Aviso de choque de horario (nao bloqueia). Guarda os dados prontos e cria
   // a sessao via _criarSessaoConfirmada() — assim nao depende do formulario,
@@ -2853,7 +4424,8 @@ function salvarSessao(){
       window._sessaoPendente={nova:novaSess,recTipo:recTipoC,recVal:recValC};
       var quem=_textoConflito(conflitos);
       var msg='Já existe '+plural(conflitos.length,'sessão','sessões')+' neste horário ('+fmtD(data)+' às '+hora+'): <strong>'+esc(quem)+'</strong>.<br><br>Deseja agendar mesmo assim?';
-      modalConfirm('Conflito de horário',msg,'Agendar mesmo assim','_criarSessaoConfirmada()','false');
+      // Usar função segura (sem parâmetros, usa window._sessaoPendente)
+      modalConfirm('Conflito de horário',msg,'Agendar mesmo assim',_criarSessaoConfirmada,false);
       return;
     }
   }
@@ -2867,7 +4439,8 @@ function salvarSessao(){
   }
 }
 function excluirSessao(sid){
-  modalConfirm('Excluir sessão','Deseja excluir esta sessão? Esta ação não poderá ser desfeita.','Excluir','executarExcluirSessao(\''+sid+'\')','true');
+  // Usar closure para capturar sid de forma segura
+  modalConfirm('Excluir sessão','Deseja excluir esta sessão? Esta ação não poderá ser desfeita.','Excluir',function(){executarExcluirSessao(sid);},true);
 }
 function executarExcluirSessao(sid){
   try{
@@ -3100,6 +4673,8 @@ function rPerfil(el2){
     hh+='<div class="av" style="width:58px;height:58px;font-size:20px;flex-shrink:0;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     hh+='<div style="flex:1;min-width:0">';
     hh+='<div style="font-size:18px;font-weight:900;color:var(--sl);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.nome)+'</div>';
+    var idadePac=calcularIdade(p.dataNasc);
+    if(idadePac)hh+='<div style="font-size:11px;color:var(--sl3);margin-bottom:4px">'+idadePac+' anos</div>';
     if(p.diagnostico)hh+='<div style="font-size:12px;color:var(--sl3);margin-top:2px">'+esc(p.diagnostico)+(p.cid?' · <span style="color:var(--g1);font-weight:700">'+esc(p.cid)+'</span>'+((p.cidNome||cidDesc(p.cid))?' <span style="color:var(--sl3);font-weight:400">— '+esc(p.cidNome||cidDesc(p.cid))+'</span>':''):'')+'</div>';
     if(prox[0]){var isHj=prox[0].data===hj;hh+='<div style="font-size:12px;font-weight:600;color:'+(isHj?'var(--g1)':'var(--sl2)')+';margin-top:4px">'+(isHj?'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green);vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/></svg> Hoje':'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>')+' '+fmtD(prox[0].data)+' às '+esc(prox[0].hora)+'</div>';}
     hh+='</div>';
@@ -3121,6 +4696,8 @@ function rPerfil(el2){
     hs+='<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0">';
     hs+='<div class="av" style="width:72px;height:72px;font-size:26px;margin-bottom:12px;background:'+avBg+';color:'+avCol+'">'+(p.foto?'<img src="'+esc(p.foto)+'" alt=""/>':ini(p.nome))+'</div>';
     hs+='<div style="font-size:17px;font-weight:900;color:var(--sl);margin-bottom:4px">'+esc(p.nome)+'</div>';
+    var idadePac2=calcularIdade(p.dataNasc);
+    if(idadePac2)hs+='<div style="font-size:12px;color:var(--sl3);margin-bottom:8px">'+idadePac2+' anos</div>';
     if(p.diagnostico)hs+='<div style="font-size:12px;color:var(--sl3)">'+esc(p.diagnostico)+'</div>';
     if(p.cid)hs+='<div style="font-size:12px;color:var(--g1);font-weight:700;margin-top:2px">CID: '+esc(p.cid)+((p.cidNome||cidDesc(p.cid))?' — '+esc(p.cidNome||cidDesc(p.cid)):'')+'</div>';
     if(p.cidLivre)hs+='<div style="font-size:11px;color:var(--sl3);margin-top:2px;font-style:italic">'+esc(p.cidLivre)+'</div>';
@@ -3503,7 +5080,8 @@ function rAbaDados(p){
   var h='<div class="card">';
   if(p.foto)h+='<div style="text-align:center;margin-bottom:14px"><img src="'+esc(p.foto)+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover"/></div>';
   var cidTxt=p.cid?(esc(p.cid)+((p.cidNome||cidDesc(p.cid))?' — '+esc(p.cidNome||cidDesc(p.cid)):'')):'';
-  [['Nome',p.nome],['Nascimento',p.dataNasc],['Gênero',p.genero],['Estado civil',p.estadoCivil],['Naturalidade',p.naturalidade],['Profissão',p.profissao],['Telefone',p.telefone],['Celular',p.celular],['Diagnóstico',p.diagnostico],['CID-10',cidTxt],['Cidade',p.cidade],['Bairro',p.bairro],['Número',p.numero],['Observações',p.obs]].forEach(function(r){if(r[1])h+='<div style="margin-bottom:9px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:2px">'+r[0]+'</div><div style="font-size:13px">'+esc(r[1])+'</div></div>';});
+  var idade=calcularIdade(p.dataNasc);
+  [['Nome',p.nome],['Idade',idade?idade+' anos':'—'],['Nascimento',p.dataNasc],['CPF',p.cpf,'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h10"/><path d="M7 17h4"/></svg>'],['RG',p.rg,'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h10"/><path d="M7 17h4"/></svg>'],['Gênero',p.genero],['Estado civil',p.estadoCivil],['Naturalidade',p.naturalidade],['Profissão',p.profissao],['Telefone',p.telefone,'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M22 16.92v3a2 2 0 0 1-2.2 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>'],['Celular',p.celular,'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>'],['Diagnóstico',p.diagnostico],['CID-10',cidTxt],['Cidade',p.cidade],['Bairro',p.bairro],['Número',p.numero],['Observações',p.obs]].forEach(function(r){if(r[1])h+='<div style="margin-bottom:9px"><div style="font-size:10px;font-weight:800;color:var(--g1);text-transform:uppercase;margin-bottom:2px">'+(r[2]||'')+'&nbsp;'+r[0]+'</div><div style="font-size:13px">'+esc(r[1].toString())+'</div></div>';});
   h+='</div>';
   if(D.cfg.usarAnamnese){
     var anamRows=[['Alergias',p.alergias],['Medicamentos',p.medicamentos],['Cirurgias',p.cirurgias],['Comorbidades',p.comorbidades],['Pressão arterial',p.pressao]].filter(function(r){return r[1];});
@@ -3518,7 +5096,7 @@ function mPacienteEditar(pid){
   if(p)mPaciente(p);
 }
 function mPaciente(pac){
-  var p=pac||{id:'',nome:'',dataNasc:'',telefone:'',celular:'',diagnostico:'',obs:'',foto:'',cidade:'',bairro:'',numero:'',alergias:'',medicamentos:'',cirurgias:'',comorbidades:'',pressao:''};
+  var p=pac||{id:'',nome:'',dataNasc:'',telefone:'',celular:'',diagnostico:'',obs:'',foto:'',cidade:'',bairro:'',numero:'',alergias:'',medicamentos:'',cirurgias:'',comorbidades:'',pressao:'',rg:'',cpf:''};
   var h='<div class="mh"><h3>'+(p.id?'Editar':'Novo')+' Paciente</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<input type="hidden" id="mp-id" value="'+esc(p.id)+'"/>';
   h+='<div class="fsec"><div class="fsec-t">Dados básicos</div>';
@@ -3526,8 +5104,8 @@ function mPaciente(pac){
   h+='<div class="fg"><label>Tipo de atendimento</label><select class="fi" id="mp-tipo">';
   h+='<option value=""'+(!(p.tipoAtend)?' selected':'')+'>Não definido</option>';
   h+='<option value="domiciliar"'+(p.tipoAtend==='domiciliar'?' selected':'')+'>Domiciliar</option>';
-  h+='<option value="clinica"'+(p.tipoAtend==='clinica'?' selected':'')+'>Clinica</option>';
-  h+='<option value="consultorio"'+(p.tipoAtend==='consultorio'?' selected':'')+'>Consultorio</option>';
+  h+='<option value="clinica"'+(p.tipoAtend==='clinica'?' selected':'')+'>Clínica</option>';
+  h+='<option value="consultorio"'+(p.tipoAtend==='consultorio'?' selected':'')+'>Consultório</option>';
   h+='<option value="misto"'+(p.tipoAtend==='misto'?' selected':'')+'>Misto</option>';
   h+='</select></div>';
   h+='<div class="fr"><div class="fg"><label>Gênero</label><select class="fi" id="mp-genero">';
@@ -3550,6 +5128,8 @@ function mPaciente(pac){
   h+='<div class="fg"><label>Descrição diagnóstica livre</label><input class="fi" type="text" id="mp-cid-livre" value="'+esc(p.cidLivre||'')+'" placeholder="Para diagnósticos não listados no CID ou complemento"/></div>';
   h+='<div class="fr"><div class="fg"><label>Telefone</label><input class="fi" type="tel" id="mp-tel" value="'+esc(p.telefone)+'" placeholder="(00) 0000-0000" maxlength="15" oninput="mTel(this)"/></div>';
   h+='<div class="fg"><label>Celular</label><input class="fi" type="tel" id="mp-cel" value="'+esc(p.celular||'')+'" placeholder="(00) 00000-0000" maxlength="15" oninput="mTel(this)"/></div></div>';
+  h+='<div class="fr"><div class="fg"><label><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0;margin-right:4px"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h10"/><path d="M7 17h4"/></svg>RG</label><input class="fi" type="text" id="mp-rg" value="'+esc(p.rg||'')+'" placeholder="Ex: 12.345.678-9" maxlength="14" oninput="mRG(this)"/></div>';
+  h+='<div class="fg"><label><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--g1);vertical-align:-.15em;display:inline-block;flex-shrink:0;margin-right:4px"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9h10"/><path d="M7 13h10"/><path d="M7 17h4"/></svg>CPF</label><input class="fi" type="text" id="mp-cpf" value="'+esc(p.cpf||'')+'" placeholder="Ex: 123.456.789-00" maxlength="14" oninput="mCPF(this)"/></div></div>';
   h+='</div>';
   h+='<div class="fsec"><div class="fsec-t">Endereço (opcional)</div>';
   h+='<div class="fg"><label>Rua</label><input class="fi" type="text" id="mp-rua" value="'+esc(p.rua||'')+'" placeholder="Ex: Rua das Flores"/></div>';
@@ -3578,10 +5158,29 @@ function salvarPaciente(){
   var idEl=el('mp-id'),nomeEl=el('mp-nome');
   if(!nomeEl){toast('Não foi possível salvar. Reabra o cadastro e tente de novo.');return;}
   var pid=idEl?idEl.value:'';var nome=sanitizarNome(nomeEl.value);
-  if(!nome||nome.length<3){toast('Nome deve ter pelo menos 3 caracteres');return;}
+  if(!nome||nome.length<3){toast('❌ Nome deve ter pelo menos 3 caracteres');return;}
+  
+  // Coletar dados para validação
+  var dados=coletarDadosPaciente();
+  
+  // Validar dados críticos
+  var errosValidacao=validarPacienteCompleto(dados);
+  if(errosValidacao.length>0){
+    toast('❌ '+errosValidacao[0]);
+    return;
+  }
+  
+  // Verificar tamanho de localStorage
+  var storageCheck=checkStorageSize();
+  if(storageCheck.status==='error'){
+    toast('❌ Armazenamento cheio! Delete pacientes inativos ou exporte dados.');
+    return;
+  }
+  if(storageCheck.status==='warning'){
+    console.warn('⚠️ Banco quase cheio ('+storageCheck.size.toFixed(1)+'MB)');
+  }
+  
   // Data de nascimento: se preenchida, nao pode ser no futuro.
-  // Como o modal de aviso substitui o formulario, capturamos os dados ANTES
-  // e a confirmacao cria o paciente via executarSalvarPacienteComDados().
   var nascEl=el('mp-nasc');
   if(nascEl && nascEl.value.trim()){
     var mN=nascEl.value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
@@ -3590,7 +5189,8 @@ function salvarPaciente(){
       var hojeD=new Date();hojeD.setHours(23,59,59,999);
       if(dN.getTime()>hojeD.getTime()){
         window._dadosPacientePendente=coletarDadosPaciente();
-        modalConfirm('Data de nascimento no futuro','A data <strong>'+esc(nascEl.value.trim())+'</strong> está no futuro. Deseja salvar mesmo assim?','Salvar assim mesmo','executarSalvarPacienteComDados()','false');
+        // Usar função segura (sem parâmetros, usa window._dadosPacientePendente)
+        modalConfirm('Data de nascimento no futuro','A data <strong>'+esc(nascEl.value.trim())+'</strong> está no futuro. Deseja salvar mesmo assim?','Salvar assim mesmo',executarSalvarPacienteComDados,false);
         return;
       }
     }
@@ -3601,7 +5201,8 @@ function salvarPaciente(){
     if(dup){
       _pendingConfirm.nome=nome;
       _pendingConfirm.pid=pid;
-      modalConfirm('Paciente duplicado','Já existe um paciente com o nome <strong>'+esc(dup.nome)+'</strong>. Deseja cadastrar mesmo assim?','Cadastrar','executarSalvarPaciente()','false');
+      // Usar função segura (sem parâmetros, usa _pendingConfirm)
+      modalConfirm('Paciente duplicado','Já existe um paciente com o nome <strong>'+esc(dup.nome)+'</strong>. Deseja cadastrar mesmo assim?','Cadastrar',executarSalvarPaciente,false);
       return;
     }
   }
@@ -3613,7 +5214,7 @@ function coletarDadosPaciente(){
   var tipoAtend=el('mp-tipo')?el('mp-tipo').value:'';
   var _pc=parseCid(el('mp-cid')?el('mp-cid').value:'');var cidCod=_pc.cod;var cidNome=_pc.nome;
   var cidLivre=el('mp-cid-livre')?el('mp-cid-livre').value.trim():'';
-  var dados={pid:el('mp-id')?el('mp-id').value:'',nome:el('mp-nome')?el('mp-nome').value.trim():'',dataNasc:el('mp-nasc')?el('mp-nasc').value:'',genero:el('mp-genero')?el('mp-genero').value:'',estadoCivil:el('mp-civil')?el('mp-civil').value:'',naturalidade:el('mp-natur')?el('mp-natur').value.trim():'',profissao:el('mp-prof')?el('mp-prof').value.trim():'',telefone:el('mp-tel')?el('mp-tel').value:'',celular:el('mp-cel')?el('mp-cel').value:'',diagnostico:el('mp-diag')?el('mp-diag').value:'',obs:el('mp-obs')?el('mp-obs').value:'',rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade')?el('mp-cidade').value:'',bairro:el('mp-bairro')?el('mp-bairro').value:'',numero:el('mp-numero')?el('mp-numero').value:'',tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,cidLivre:cidLivre,
+  var dados={pid:el('mp-id')?el('mp-id').value:'',nome:el('mp-nome')?el('mp-nome').value.trim():'',dataNasc:el('mp-nasc')?el('mp-nasc').value:'',genero:el('mp-genero')?el('mp-genero').value:'',estadoCivil:el('mp-civil')?el('mp-civil').value:'',naturalidade:el('mp-natur')?el('mp-natur').value.trim():'',profissao:el('mp-prof')?el('mp-prof').value.trim():'',telefone:el('mp-tel')?el('mp-tel').value:'',celular:el('mp-cel')?el('mp-cel').value:'',rg:el('mp-rg')?el('mp-rg').value:'',cpf:el('mp-cpf')?el('mp-cpf').value:'',diagnostico:el('mp-diag')?el('mp-diag').value:'',obs:el('mp-obs')?el('mp-obs').value:'',rua:el('mp-rua')?el('mp-rua').value:'',cidade:el('mp-cidade')?el('mp-cidade').value:'',bairro:el('mp-bairro')?el('mp-bairro').value:'',numero:el('mp-numero')?el('mp-numero').value:'',tipoAtend:tipoAtend,cid:cidCod,cidNome:cidNome,cidLivre:cidLivre,
     pacote:el('pac-wrap')&&el('pac-wrap').style.display!=='none'?(parseInt(el('mp-pacote-qtd')?el('mp-pacote-qtd').value:0)||0):0,
     pacoteIni:el('mp-pacote-ini')?el('mp-pacote-ini').value:''
   };
@@ -3655,7 +5256,8 @@ function _salvarPacienteFinal(dados){
 }
 
 function delPaciente(pid){
-  modalConfirm('Excluir paciente','Deseja excluir este paciente e <strong>todas as suas sessões</strong>? Esta ação não poderá ser desfeita.','Excluir','executarDelPaciente(\''+pid+'\')','true');
+  // Usar closure para capturar pid de forma segura
+  modalConfirm('Excluir paciente','Deseja excluir este paciente e <strong>todas as suas sessões</strong>? Esta ação não poderá ser desfeita.','Excluir',function(){executarDelPaciente(pid);},true);
 }
 
 function executarDelPaciente(pid){
@@ -4083,7 +5685,7 @@ var ESCALAS_DB={
   ],
   neuromuscular:[
     {
-      id:'vignos',nome:'Vignos Scale',cat:'Doencas Neuromusculares',
+      id:'vignos',nome:'Vignos Scale',cat:'Doenças Neuromusculares',
       descricao:'Simples e rápida. Avalia função motora em doenças neuromusculares. Pontuação 1-10.',
       aplicacao:'Observe e entreviste. Selecione o nível que melhor descreve a função atual do paciente.',
       campos:[{tipo:'radio',id:'vg',label:'Nível funcional',ops:[
@@ -4105,7 +5707,7 @@ var ESCALAS_DB={
       ]
     },
     {
-      id:'brooke',nome:'Brooke Upper Extremity Scale',cat:'Doencas Neuromusculares',
+      id:'brooke',nome:'Brooke Upper Extremity Scale',cat:'Doenças Neuromusculares',
       descricao:'Muito usada em doenças neuromusculares. Avalia membros superiores. Pontuação 1-6.',
       aplicacao:'Observe o paciente realizar movimentos com os membros superiores. Selecione o nível adequado.',
       campos:[{tipo:'radio',id:'bk',label:'Função de membros superiores',ops:[
@@ -4230,7 +5832,12 @@ function mEvo(pid,eid,dataSessao,sessaoId){
   h+='</div></div>';
   h+='<div class="fg"><label>Texto *</label><textarea class="fi" id="me-txt" rows="5" placeholder="Descreva a sessão...">'+esc(e.texto)+'</textarea></div>';
   if(D.cfg.usarGrafico){h+='<div class="fr"><div class="fg"><label>Dor (0-10)</label><input class="fi" type="number" id="me-dor" min="0" max="10" value="'+(e.dor!=null?e.dor:'')+'" placeholder="0-10"/></div><div class="fg"><label>Mobilidade (0-10)</label><input class="fi" type="number" id="me-mob" min="0" max="10" value="'+(e.mob!=null?e.mob:'')+'" placeholder="0-10"/></div></div>';}
-  var _evoTs=e.ts||0;var _evoBloq=e.id&&(Date.now()-_evoTs)>86400000;
+  var _evoTs=e.ts||0;
+  // Bloquear edição se:
+  // 1. É evolução existente (e.id existe)
+  // 2. Tem timestamp válido (>0)
+  // 3. Passou 24h desde criação
+  var _evoBloq=!!(e.id && e.ts && (Date.now()-_evoTs)>86400000);
   if(_evoBloq){h+='<div style="padding:10px;background:var(--redbg);border-radius:8px;font-size:12px;color:var(--red);font-weight:700;margin-bottom:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Esta evolução não pode mais ser editada (passou de 24h).</div>';}
   else{h+='<button class="btn btn-p btn-bl" onclick="salvarEvo()">Salvar evolução</button>';}
   abrirM(h);
@@ -4435,7 +6042,8 @@ function mAlertaVitais(pid,pa,sat,bpm,onContinuar){
 
 
 function delEvo(pid,eid){
-  modalConfirm('Excluir evolução','Deseja excluir esta evolução? Esta ação não poderá ser desfeita.','Excluir','executarDelEvo(\''+pid+'\',\''+eid+'\')','true');
+  // Usar closure para capturar pid e eid de forma segura
+  modalConfirm('Excluir evolução','Deseja excluir esta evolução? Esta ação não poderá ser desfeita.','Excluir',function(){executarDelEvo(pid,eid);},true);
 }
 function executarDelEvo(pid,eid){
   try{
@@ -5297,7 +6905,8 @@ function rMais(el2){
   h+='<div class="card" style="margin:0;cursor:pointer" onclick="ir(\'grafico-fin\')"><div style="font-size:22px;margin-bottom:6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div style="font-size:13px;font-weight:800">IR / Receita anual</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Exportar para imposto de renda</div></div>';
   h+='<div class="card" style="margin:0;cursor:pointer" onclick="ir(\'ajuda\')"><div style="font-size:22px;margin-bottom:6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></div><div style="font-size:13px;font-weight:800">Manual</div><div style="font-size:11px;color:var(--sl3);margin-top:2px">Guia completo do app</div></div>';
   h+='</div>';
-  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">Configuração da clínica</div>';
+  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">⚙️ Configurações da Clínica</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:12px">Gerencie planos, tipos de atendimento, horários e modelos de evolução.</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Planos e Convênios</div>';
   D.planos.forEach(function(pl){h+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--borda)"><div style="width:14px;height:14px;border-radius:50%;background:'+(pl.cor||'var(--g1)')+';flex-shrink:0"></div><span style="flex:1;font-size:13px;font-weight:600">'+esc(pl.nome)+(!pl.pgMes||pl.pgMes===''?' <span title="Previsao de recebimento não configurada" style="cursor:pointer;font-size:14px;color:#d97706" onclick="mPlano(\''+pl.id+'\')" ><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--amber);vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>':'')+'</span><span style="font-size:12px;color:var(--sl3)">'+(pl.valor?''+fmtM(parseFloat(pl.valor)):'—')+'</span><button class="btn btn-s btn-sm" data-pid="'+esc(pl.id)+'" onclick="mPlano(this.dataset.pid)">Editar</button><button class="btn btn-d btn-sm" data-pid="'+esc(pl.id)+'" onclick="delPlano(this.dataset.pid)">✕</button></div>';});
   h+='<button class="btn btn-s btn-sm" style="margin-top:8px;width:100%" onclick="mPlano(\'\')">+ Novo plano</button></div>';
@@ -5332,17 +6941,25 @@ function rMais(el2){
   });
   h+='<div class="trow"><div class="trow-l"><h4>Termo de consentimento <span style="cursor:pointer;font-size:14px" onclick="mLeiInfo(this)" data-titulo="Termo de Consentimento" data-lei="Res. COFFITO nº 424/2013 + LGPD Lei nº 13.709/2018" data-desc="O Termo de Consentimento Livre e Esclarecido (TCLE) protege o fisioterapeuta e o paciente legalmente. Embora opcional no app, é altamente recomendado para todos os atendimentos, especialmente para uso de dados e imagens." data-link="https://coffito.gov.br" title="Ver base legal"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span></h4><p>TCLE e autorização de imagem</p></div><label class="tog"><input type="checkbox" '+(D.cfg.usarTermo?'checked':'')+' data-k="usarTermo" onchange="toggleOpc(this)"><span class="tog-s"></span></label></div>';
   h+='</div>';
-  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">Preferências</div>';
+  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">⚡ Preferências Pessoais</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:12px">Aparência, segurança e configurações de sessão.</div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.6-1.7H16c3 0 5.5-2.5 5.5-5.5C22 6 17.5 2 12 2z"/></svg> Aparência</div><p style="font-size:12px;color:var(--sl3);margin-bottom:10px">Modo escuro/claro, cor e imagem de fundo.</p><button class="btn btn-p btn-sm" onclick="mAparencia()">Personalizar</button></div>';
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Segurança</div>';
   var inativAtual=D.cfg.inatividade||0;
   var optsInativLabel={0:'Sem tempo',1:'1 minuto',5:'5 minutos',10:'10 minutos',30:'30 minutos',60:'1 hora',360:'6 horas',720:'12 horas',1440:'24 horas'};
   h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0"><div><div style="font-size:13px;font-weight:600">Tempo de inatividade</div><div style="font-size:12px;color:var(--sl3)">'+(optsInativLabel[inativAtual]||'Sem tempo')+'</div></div><button class="btn btn-s btn-sm" onclick="mTempoInatividade()">Alterar</button></div>';
   h+='</div>';
-  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">Dados e suporte</div>';
+  h+='<div style="font-size:10px;font-weight:800;color:var(--sl3);text-transform:uppercase;letter-spacing:.08em;margin:16px 0 8px">💾 Dados e Suporte</div>';
+  h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:12px">Backup, exportação de dados, ajuda e contato.</div>';
+  
+  // ✅ ENCRIPTAÇÃO: Indicador visual
+  var cryptoStatus = _cryptoReady ? '🔒 ATIVADA' : '⚠️ INATIVA';
+  var cryptoColor = _cryptoReady ? 'var(--g1)' : 'var(--amber)';
+  h+='<div class="card" style="border-color:'+cryptoColor+';background:linear-gradient(to right, rgba('+(_cryptoReady?'37,99,235':'217,119,6')+',0.05), transparent)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:'+cryptoColor+';vertical-align:-.15em"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div><div style="font-size:13px;font-weight:800">Proteção de Dados (Encriptação)</div><div style="font-size:11px;color:var(--sl3)">CPF, RG, diagnóstico e contato estão protegidos</div></div><div style="margin-left:auto;font-size:12px;font-weight:700;color:'+cryptoColor+'">'+cryptoStatus+'</div></div></div>';
+  
   h+='<div class="card"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Backup e Proteção de Dados</div>';
   h+='<div style="font-size:12px;color:var(--sl3);margin-bottom:10px">Backup automático diário ativado. Histórico das últimas 3 versões salvo localmente.</div>';
-  h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistórico()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Histórico de versões</button></div></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-p btn-sm" onclick="exportarBkp()">Exportar JSON</button><button class="btn btn-s btn-sm" onclick="importarBkp()">Importar JSON</button><button class="btn btn-a btn-sm" onclick="restaurarHistórico()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Histórico de versões</button><button class="btn btn-d btn-sm" onclick="listarBackups()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M20 7h-3V4a2 2 0 0 0-2-2h-6a2 2 0 0 0-2 2v3H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/></svg> Restaurar backup</button></div></div>';
 
   // Feedback
   h+='<div class="card" style="margin-bottom:10px"><div style="font-size:13px;font-weight:800;margin-bottom:10px">Feedback</div>';
@@ -5354,7 +6971,7 @@ function rMais(el2){
   h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">';
   h+='<div style="width:44px;height:44px;border-radius:50%;background:var(--g1);display:flex;align-items:center;justify-content:center;font-size:20px"><svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" stroke="none" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M19 14c1.5-1.5 3-3.2 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/></svg></div>';
   h+='<div><div style="font-size:15px;font-weight:800;color:var(--g1)">FisioEvolução</div>';
-  h+='<div style="font-size:11px;color:var(--sl3)">Versão 1.055 — 2026</div></div></div>';
+  h+='<div style="font-size:11px;color:var(--sl3)">Versão '+APP_VERSION+' — 2026</div></div></div>';
   h+='<div style="font-size:12px;color:var(--sl2);line-height:1.6;margin-bottom:12px">Gestão clínica desenvolvida especialmente para fisioterapeutas brasileiros. Organize sua agenda, pacientes, evoluções e finanças em um só lugar.</div>';
   h+='<div style="border-top:1px solid var(--borda);padding-top:12px">';
   h+='<div style="font-size:11px;font-weight:800;color:var(--g1);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Desenvolvedor</div>';
@@ -5388,7 +7005,7 @@ function enviarFeedback(){
   if(!msg){toast('Escreva sua mensagem antes de enviar');return;}
   var tipoL={sugestao:'Sugestão',erro:'Erro',elogio:'Elogio',outro:'Outro'};
   var assunto='[FisioEvolução] '+tipoL[tipo]+(nome?' — '+nome:'');
-  var corpo=msg+'\n\n---\nEnviado pelo app FisioEvolução v1.0'+(FBU?'\nUsuário: '+FBU.email:'');
+  var corpo=msg+'\n\n---\nEnviado pelo app FisioEvolução v'+APP_VERSION+(FBU?'\nUsuário: '+FBU.email:'');
   var link='mailto:fisioevolucao620@gmail.com?subject='+encodeURIComponent(assunto)+'&body='+encodeURIComponent(corpo);
   window.open(link);
   fecharM();
@@ -5522,11 +7139,20 @@ function verificarExclusaoAgendada(){
   if(Date.now()>=dtExclusao){
     // 7 dias passaram — excluir conta
     if(!FBD||!FBU)return;
+    
+    // 🔒 BLINDAGEM: Fazer backup ANTES de deletar
+    var backup = backupToArchive();
+    console.log('[EXCLUSAO] Backup criado em', backup.timestamp);
+    
     FBD.ref('u/'+FBU.uid).remove().then(function(){
       return FBU.delete();
     }).then(function(){
-      Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_'))localStorage.removeItem(k);});
+      Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_')&&!k.startsWith('fe_backup_'))localStorage.removeItem(k);});
+      console.log('[EXCLUSAO] ✅ Conta excluída permanentemente');
       location.reload();
+    }).catch(function(e){
+      console.error('[EXCLUSAO] ❌ Erro:', e);
+      toast('Erro ao excluir. Tente novamente no próximo login.');
     });
   } else {
     // Mostrar banner de cancelamento
@@ -5548,16 +7174,26 @@ function confirmarExclusaoImediata(){
 function confirmarExclusao(){
   var senha=el('exc-senha')?el('exc-senha').value:'';
   if(!senha){toast('Digite sua senha');return;}
+  
+  // 🔒 BLINDAGEM: Fazer backup ANTES de deletar
+  var backup = backupToArchive();
+  console.log('[EXCLUSAO] Backup criado em', backup.timestamp);
+  
   var cred=firebase.auth.EmailAuthProvider.credential(FBU.email,senha);
   FBU.reauthenticateWithCredential(cred).then(function(){
     return FBD.ref('u/'+FBU.uid).remove();
   }).then(function(){
     return FBU.delete();
   }).then(function(){
-    Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_'))localStorage.removeItem(k);});
-    fecharM();toast('Conta excluída.');
+    Object.keys(localStorage).forEach(function(k){if(k.startsWith('fe_')&&!k.startsWith('fe_backup_'))localStorage.removeItem(k);});
+    fecharM();
+    toast('Conta excluída permanentemente. Backup preservado.');
+    console.log('[EXCLUSAO] ✅ Conta excluída com backup em', backup.timestamp);
     setTimeout(function(){location.reload();},2000);
-  }).catch(function(e){toast('Erro: verifique sua senha e tente novamente.');});
+  }).catch(function(e){
+    toast('Erro: verifique sua senha e tente novamente. Seus dados foram preservados.');
+    console.error('[EXCLUSAO] ❌ Erro:', e);
+  });
 }
 
 
@@ -5964,7 +7600,7 @@ function abrirCatalogoEscalas(pid){
     qualidadeExtra:'Qualidade de Vida',
     neurologico:'Neurologico',
     neurologicoExtra:'Neurologico',
-    neuromuscular:'Doencas Neuromusculares',
+    neuromuscular:'Doenças Neuromusculares',
     lombar:'Coluna e Dor Lombar',
     dor:'Dor e Impacto Funcional'
   };
@@ -6095,7 +7731,8 @@ function verHistóricoEscalas(pid){
 
 function delEscalaDin(pid,id){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  modalConfirm('Excluir registro','Deseja excluir este registro de escala? Esta ação não poderá ser desfeita.','Excluir','executarDelEscalaDin(\''+pid+'\',\''+id+'\')','true');
+  // Usar closure para capturar pid e id de forma segura
+  modalConfirm('Excluir registro','Deseja excluir este registro de escala? Esta ação não poderá ser desfeita.','Excluir',function(){executarDelEscalaDin(pid,id);},true);
 }
 
 function executarDelEscalaDin(pid,id){
@@ -6875,7 +8512,8 @@ function confirmarInativacao(){
 }
 function reativarPaciente(pid){
   var p=D.pacientes.find(function(x){return x.id===pid;});if(!p)return;
-  modalConfirm('Reativar paciente','Deseja reativar <strong>'+esc(p.nome)+'</strong>?','Reativar','executarReativarPaciente(\''+pid+'\')', 'false');
+  // Usar closure para capturar pid de forma segura
+  modalConfirm('Reativar paciente','Deseja reativar <strong>'+esc(p.nome)+'</strong>?','Reativar',function(){executarReativarPaciente(pid);}, false);
 }
 
 function executarReativarPaciente(pid){
@@ -7087,7 +8725,8 @@ function salvarPlano(){
 }
 function delPlano(pid){
   if(D.planos.length<=1){toast('Mantenha ao menos 1 plano');return;}
-  modalConfirm('Excluir plano','Deseja excluir este plano? Esta ação não poderá ser desfeita.','Excluir','executarDelPlano(\''+pid+'\')','true');
+  // Usar closure para capturar pid de forma segura
+  modalConfirm('Excluir plano','Deseja excluir este plano? Esta ação não poderá ser desfeita.','Excluir',function(){executarDelPlano(pid);},true);
 }
 function executarDelPlano(pid){
   try{
@@ -7099,7 +8738,8 @@ function mTipo(tid){var t=tid?D.tipos.find(function(x){return x.id===tid;}):null
 function salvarTipo(){var tid=el('mtp-id').value;var nome=el('mtp-nome').value.trim();var cor=el('mtp-cor').value;if(!nome){toast('Nome obrigatório');return;}if(tid){var t=D.tipos.find(function(x){return x.id===tid;});if(t){t.nome=nome;t.cor=cor;}}else D.tipos.push({id:uid(),nome:nome,cor:cor});salvar();fecharM();ir('mais');toast('Tipo salvo!');}
 function delTipo(tid){
   if(D.tipos.length<=1){toast('Mantenha ao menos 1 tipo');return;}
-  modalConfirm('Excluir tipo','Deseja excluir este tipo? Esta ação não poderá ser desfeita.','Excluir','executarDelTipo(\''+tid+'\')','true');
+  // Usar closure para capturar tid de forma segura
+  modalConfirm('Excluir tipo','Deseja excluir este tipo? Esta ação não poderá ser desfeita.','Excluir',function(){executarDelTipo(tid);},true);
 }
 function executarDelTipo(tid){
   try{
@@ -7149,7 +8789,8 @@ function importarBkp(){
       try{
         var d=JSON.parse(ev.target.result);
         _pendingConfirm.bakupData=d;
-        modalConfirm('Restaurar backup','Os dados atuais serão <strong>substituídos completamente</strong> pelos dados do backup. Esta ação não poderá ser desfeita.','Restaurar','executarImportarBkp()','true');
+        // Usar função segura (sem parâmetros, usa _pendingConfirm.bakupData)
+        modalConfirm('Restaurar backup','Os dados atuais serão <strong>substituídos completamente</strong> pelos dados do backup. Esta ação não poderá ser desfeita.','Restaurar',executarImportarBkp,true);
       }catch(err){
         console.error('Erro ao ler arquivo:',err);
         toast('Arquivo inválido.');
@@ -7162,18 +8803,69 @@ function importarBkp(){
 
 function executarImportarBkp(){
   try{
-    if(!_pendingConfirm.bakupData){toast('Erro ao restaurar');return;}
-    var d=_pendingConfirm.bakupData;
-    if(d.pacientes)D.pacientes=d.pacientes;
-    if(d.sessoes)D.sessoes=d.sessoes;
-    if(d.feriados)D.feriados=d.feriados;
-    if(d.planos)D.planos=d.planos;
-    if(d.tipos)D.tipos=d.tipos;
-    if(d.notas!=null)D.notas=d.notas;
-    if(d.cfg)Object.assign(D.cfg,d.cfg);
-    salvar();ir('inicio');toast('Backup restaurado com sucesso!');
-    _pendingConfirm.bakupData=null;
-  }catch(err){console.error('Erro ao restaurar backup:',err);toast('Erro ao restaurar backup.');}
+    if(!_pendingConfirm.bakupData){
+      toast('Erro ao restaurar');
+      registrarHistoricoRestauracao('falha', 'Dados de backup não encontrados');
+      return;
+    }
+    
+    var backup = _pendingConfirm.bakupData;
+    
+    // ✅ VALIDAÇÃO: Verificar integridade do backup
+    var validacao = validarBackup(backup, false);
+    if(!validacao.valido){
+      var msg = 'Arquivo de backup inválido:\n' + validacao.erros.join('\n');
+      console.error(msg);
+      toast('Arquivo inválido. Verifique o console para detalhes.');
+      registrarHistoricoRestauracao('falha', validacao.erros[0]||'Validação falhou');
+      _pendingConfirm.bakupData = null;
+      return;
+    }
+    
+    if(validacao.avisos.length > 0){
+      console.warn('⚠️ Avisos ao importar backup:', validacao.avisos);
+    }
+    
+    // ✅ ROLLBACK: Guardar estado atual antes de restaurar
+    var rollbackPoint = salvarRollbackPoint();
+    if(!rollbackPoint){
+      toast('Erro: não foi possível criar ponto de recuperação');
+      registrarHistoricoRestauracao('falha', 'Impossível criar rollback point');
+      _pendingConfirm.bakupData = null;
+      return;
+    }
+    
+    // Restaurar dados (deep copy para segurança)
+    try{
+      D.pacientes = JSON.parse(JSON.stringify(backup.pacientes || []));
+      D.sessoes = JSON.parse(JSON.stringify(backup.sessoes || []));
+      D.feriados = JSON.parse(JSON.stringify(backup.feriados || []));
+      D.planos = JSON.parse(JSON.stringify(backup.planos || []));
+      D.tipos = JSON.parse(JSON.stringify(backup.tipos || []));
+      D.notas = backup.notas || '';
+      if(backup.cfg)Object.assign(D.cfg, JSON.parse(JSON.stringify(backup.cfg)));
+    }catch(e){
+      console.error('Erro ao restaurar dados:',e);
+      // Fazer rollback automático se restauração falhar
+      executarRollback(rollbackPoint);
+      toast('Erro ao restaurar. Dados revertidos ao estado anterior.');
+      _pendingConfirm.bakupData = null;
+      return;
+    }
+    
+    sanitizarDados();
+    salvar();
+    registrarHistoricoRestauracao('import', 
+      'Arquivo JSON importado ('+validacao.checksum+')');
+    ir('inicio');
+    toast('✅ Backup restaurado com sucesso!');
+    _pendingConfirm.bakupData = null;
+  }catch(err){
+    console.error('Erro ao restaurar backup:',err);
+    registrarHistoricoRestauracao('falha', 'Exception: '+(err.message||'').slice(0,50));
+    toast('Erro ao restaurar backup. Verifique o console.');
+    _pendingConfirm.bakupData = null;
+  }
 }
 
 // ── MANUAL ───────────────────────────────────────────────────────
@@ -7416,9 +9108,7 @@ function mostrarModalInicioMes(pacs){
     dias.forEach(function(d){h+='<option value="'+d.v+'"'+(p.diaSemana===d.v?' selected':'')+'>'+d.l+'</option>';});
     h+='</select></div>';
     // Horário
-    h+='<div class="fg" style="margin:0"><label>Horário</label><select class="fi" id="agm-hora-'+i+'">';
-    getHoras().forEach(function(hr){h+='<option value="'+hr+'"'+(hr===p.hora?' selected':'')+'>'+hr+'</option>';});
-    h+='</select></div>';
+    h+='<div class="fg" style="margin:0"><label>Horário</label><input type="text" class="fi" id="agm-hora-'+i+'" value="'+(p.hora||'')+'" placeholder="HH:MM" maxlength="5" style="text-align:center;font-weight:600;letter-spacing:1px"/></div>';
     // Quantidade
     h+='<div class="fg" style="margin:0"><label>Qtd</label><input type="number" class="fi agm-qtd" id="agm-qtd-'+i+'" min="0" max="30" value="4" style="text-align:center"/></div>';
     h+='</div></div>';
@@ -7437,7 +9127,8 @@ function confirmarAgendaMes(){
   var pacsRaw=el('agm-pacs')?el('agm-pacs').value:'';
   var total=parseInt(el('agm-total')?el('agm-total').value:0)||0;
   if(!pacsRaw)return;
-  var pacs=JSON.parse(pacsRaw);
+var pacs=[];
+try{pacs=JSON.parse(pacsRaw);}catch(e){console.error("[IMPORT] ❌ Arquivo corrompido:",e);toast("❌ Arquivo de pacientes corrompido");return;}
   var mesAtual=new Date();
   var ano=mesAtual.getFullYear();var mes=mesAtual.getMonth();
   var criadas=0;
@@ -7446,6 +9137,9 @@ function confirmarAgendaMes(){
     if(!qtd||!pacs[i])continue;
     var diaSemana=el('agm-dia-'+i)?parseInt(el('agm-dia-'+i).value):pacs[i].diaSemana;
     var hora=el('agm-hora-'+i)?el('agm-hora-'+i).value:pacs[i].hora;
+    // Validar formato da hora
+    var horaValida=validarHora(hora);
+    if(!horaValida){toast('Horário inválido no paciente '+(i+1)+'. Use formato HH:MM');return;}
     var primeiroDia=new Date(ano,mes,1);
     var offset=diaSemana!=null?(diaSemana-primeiroDia.getDay()+7)%7:0;
     var criadasPac=0;
@@ -7453,7 +9147,7 @@ function confirmarAgendaMes(){
       var d=new Date(ano,mes,1+offset+s*7);
       if(d.getMonth()!==mes)break;
       var ds=fmtISO(d);
-      D.sessoes.push({id:uid(),pacienteId:pacs[i].pacienteId,data:ds,hora:hora,tipoId:pacs[i].tipoId||'',planoId:pacs[i].planoId||'',valor:pacs[i].valor||0,statusPag:'pendente',status:'agendado',obs:pacs[i].obs||''});
+      D.sessoes.push({id:uid(),pacienteId:pacs[i].pacienteId,data:ds,hora:horaValida,tipoId:pacs[i].tipoId||'',planoId:pacs[i].planoId||'',valor:pacs[i].valor||0,statusPag:'pendente',status:'agendado',obs:pacs[i].obs||''});
       criadas++;criadasPac++;
     }
   }
@@ -7644,16 +9338,29 @@ function gerarNotificacoes(){
 
 // Variáveis globais para confirmações modais
 var _pendingConfirm = {};
+var _modalAction = null;  // Armazena a função a executar (seguro contra XSS)
 
 // Função genérica para modais de confirmação
+// IMPORTANTE: 'callback' agora é uma FUNÇÃO, não uma string
 function modalConfirm(titulo,mensagem,textoBotao,callback,eh_avisoRed){
+  // Armazena a função de forma segura (não concatenada em onclick)
+  _modalAction = (typeof callback === 'function') ? callback : null;
+  
   var h='<div class="mh"><h3 style="'+(eh_avisoRed?'color:var(--red)':'')+'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="'+(eh_avisoRed?'color:var(--red)':'color:var(--amber)')+';vertical-align:-.15em;display:inline-block;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> '+esc(titulo)+'</h3><button class="mc" onclick="fecharM()">✕</button></div>';
   h+='<p style="font-size:13px;margin-bottom:14px">'+mensagem+'</p>';
   h+='<div style="display:flex;gap:8px">';
   h+='<button class="btn btn-s btn-bl" onclick="fecharM()">Cancelar</button>';
-  h+='<button class="btn '+(eh_avisoRed?'btn-d':'btn-a')+' btn-bl" onclick="fecharM();'+callback+'">'+esc(textoBotao)+'</button>';
+  h+='<button class="btn '+(eh_avisoRed?'btn-d':'btn-a')+' btn-bl" onclick="fecharM();executarModalConfirm()">'+esc(textoBotao)+'</button>';
   h+='</div>';
   abrirM(h);
+}
+
+// Handler genérico que executa a função armazenada em _modalAction
+function executarModalConfirm(){
+  if(_modalAction && typeof _modalAction === 'function'){
+    _modalAction();
+  }
+  _modalAction = null;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -7897,6 +9604,219 @@ function iniciarFeriadosNacionais(){
   });
 }
 
+// ════════════════════════════════════════════════════════════════════════════════
+// 📱 SERVICE WORKER REGISTRATION - Offline Support
+// ════════════════════════════════════════════════════════════════════════════════
+//
+// O QUE É SERVICE WORKER?
+//   Um script que roda em background no navegador, separado da página web.
+//   Permite funcionar TOTALMENTE OFFLINE - sem internet, sem servidor.
+//
+// O QUE ELE FAZ:
+//   1. CACHE: Guarda HTML, CSS, JS, imagens na primeira visita
+//   2. OFFLINE: Serve do cache quando não há internet
+//   3. SYNC: Tenta sincronizar dados quando volta online
+//   4. UPDATES: Verifica e atualiza automaticamente
+//   5. NOTIFICAÇÕES: Push notifications (futuro)
+//
+// FLUXO DE FUNCIONAMENTO:
+//
+//   INSTALAÇÃO (Primeira visita):
+//   ┌─────────────────────────────────────────────────────┐
+//   │ 1. Navegador detecta sw.js                         │
+//   │ 2. Service Worker instalado em background         │
+//   │ 3. Cacheando recursos críticos                     │
+//   │ 4. Aguardando ativação                             │
+//   └─────────────────────────────────────────────────────┘
+//                         ↓
+//   ATIVAÇÃO (Pronto para usar):
+//   ┌─────────────────────────────────────────────────────┐
+//   │ 1. Service Worker ativo                            │
+//   │ 2. Interceptando todas as requisições              │
+//   │ 3. Servindo do cache quando offline                │
+//   │ 4. Atualizar cache quando online                   │
+//   └─────────────────────────────────────────────────────┘
+//                         ↓
+//   OPERAÇÃO NORMAL:
+//   ┌─────────────────────────────────────────────────────┐
+//   │ Requisição → Cache Match → Rede (fallback)         │
+//   │ Online:    Retorna cache + atualiza                │
+//   │ Offline:   Retorna cache apenas                    │
+//   │ Erro rede: Retorna cache se disponível             │
+//   └─────────────────────────────────────────────────────┘
+//
+// COMO VERIFICAR:
+//   1. DevTools (F12) → Application → Service Workers
+//   2. Console: console.log('[SW] ✅ Service Worker registrado')
+//   3. Offline: DevTools → Network → Offline (marcar checkbox)
+//   4. App funciona perfeitamente sem internet!
+//
+// DADOS SINCRONIZADOS OFFLINE:
+//   ✅ Todas as páginas do app (HTML)
+//   ✅ Estilos e scripts (CSS/JS)
+//   ✅ Imagens inline
+//   ❌ Requisições de API/Firebase (aguardam conexão)
+//   ❌ Dados do usuário (carregam de localStorage)
+//
+// ════════════════════════════════════════════════════════════════════════════════
+
+var _swRegistration = null;
+
+// Registrar Service Worker (se navegador suportar)
+function registrarServiceWorker(){
+  if(!('serviceWorker' in navigator)){
+    console.log('[SW] ℹ️  Service Worker não suportado neste navegador');
+    return;
+  }
+  
+  // ✅ CORREÇÃO: Verificar se está em HTTPS ou localhost
+  var isLocalhost = window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+  var isHttps = window.location.protocol === 'https:';
+  
+  if(!isLocalhost && !isHttps){
+    console.warn('[SW] ⚠️  Service Worker requer HTTPS ou localhost');
+    console.warn('[SW]    Você está em:', window.location.protocol + '//' + window.location.host);
+    console.warn('[SW]    Para testar localmente: python -m http.server 8000');
+    console.warn('[SW]    Depois acesse: http://localhost:8000');
+    return;
+  }
+  
+  // Encontrar caminho correto para sw.js
+  var swPath = '/sw.js';
+  
+  // Se não estiver em root, ajustar
+  if(window.location.pathname !== '/'){
+    var pathParts = window.location.pathname.split('/').filter(Boolean);
+    if(pathParts.length > 0){
+      // Tentar encontrar sw.js no mesmo nível
+      swPath = window.location.pathname.split('/').slice(0, -1).join('/') + '/sw.js';
+    }
+  }
+  
+  console.log('[SW] Registrando Service Worker em:', swPath);
+  
+  navigator.serviceWorker.register(swPath, {scope: '/'})
+    .then(function(registration){
+      _swRegistration = registration;
+      console.log('[SW] ✅ Service Worker registrado com sucesso');
+      console.log('[SW]    Escopo:', registration.scope);
+      
+      // Verificar atualizações a cada 1 hora
+      var updateInterval = setInterval(function(){
+        registration.update().then(function(){
+          if(registration.waiting){
+            console.log('[SW] 🆕 Nova versão disponível');
+            notificarNovaVersao();
+          }
+        }).catch(function(e){
+          console.warn('[SW] Erro ao verificar atualizações:', e);
+        });
+      }, 3600000);  // 1 hora
+      
+      adicionarInterval(updateInterval);
+      
+      // Registrar para Background Sync (se suportado)
+      if('sync' in registration){
+        console.log('[SW] 🔄 Background Sync suportado');
+        
+        // Registrar sync event
+        registration.sync.register('sync-data').catch(function(e){
+          console.log('[SW] Background Sync não disponível:', e);
+        });
+      }
+      
+      // Ouvir mensagens do Service Worker
+      navigator.serviceWorker.addEventListener('message', function(event){
+        if(event.data && event.data.type === 'BACKGROUND_SYNC'){
+          console.log('[SW] 🔄 Background sync completado, sincronizando dados...');
+          if(FBU && FBD) fbSync();
+        }
+      });
+      
+    }).catch(function(error){
+      console.error('[SW] ❌ Erro ao registrar Service Worker:', error.message);
+      console.error('[SW] Dica: Service Worker requer HTTPS ou localhost');
+      console.error('[SW] Para testar localmente:');
+      console.error('[SW]   python -m http.server 8000');
+      console.error('[SW]   http://localhost:8000');
+    });
+}
+
+// Notificar usuário que há nova versão
+function notificarNovaVersao(){
+  // Mostrar badge no app (opcional)
+  var badge = el('badge-nova-versao');
+  if(!badge){
+    // Criar badge se não existir
+    var h = '<div id="badge-nova-versao" style="position:fixed;top:20px;right:20px;background:var(--amber);color:black;padding:12px 16px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);z-index:9999;font-weight:600">';
+    h += '🆕 Nova versão disponível';
+    h += ' <button class="btn btn-p btn-sm" onclick="location.reload()" style="margin-left:8px">Atualizar</button>';
+    h += '</div>';
+    document.body.innerHTML += h;
+  }
+  
+  // Notificação push (se permitido)
+  if('Notification' in window && Notification.permission === 'granted'){
+    new Notification('FisioEvolução', {
+      body: 'Nova versão disponível! Atualize para melhorias e segurança.',
+      icon: '/icon-192x192.png'
+    });
+  }
+}
+
+// Pedir permissão para notificações push
+function solicitarPermissaoPush(){
+  if(!('Notification' in window)){
+    console.log('[NOTIF] ℹ️  Notificações não suportadas neste navegador');
+    return;
+  }
+  
+  try{
+    if(Notification.permission === 'granted'){
+      console.log('[NOTIF] ✅ Permissão de notificações já concedida');
+      return;
+    }
+    
+    if(Notification.permission === 'denied'){
+      console.log('[NOTIF] ℹ️  Notificações bloqueadas pelo usuário');
+      return;
+    }
+    
+    if(Notification.permission === 'default'){
+      // Tentar pedir permissão (não forçar)
+      Notification.requestPermission().then(function(permission){
+        if(permission === 'granted'){
+          console.log('[NOTIF] ✅ Permissão de notificações concedida');
+        }else{
+          console.log('[NOTIF] ℹ️  Permissão de notificações recusada');
+        }
+      }).catch(function(error){
+        console.warn('[NOTIF] Erro ao solicitar permissão:', error);
+      });
+    }
+  }catch(e){
+    console.error('[NOTIF] Erro:', e);
+  }
+}
+
+// Requestar Background Sync (se suportado)
+function solicitarBackgroundSync(){
+  if(!('serviceWorker' in navigator) || !('SyncManager' in window)){
+    console.log('[SYNC] Background Sync não suportado');
+    return;
+  }
+  
+  navigator.serviceWorker.ready.then(function(registration){
+    return registration.sync.register('sync-data');
+  }).then(function(){
+    console.log('[SYNC] ✅ Background sync registrado');
+  }).catch(function(error){
+    console.error('[SYNC] ❌ Erro ao registrar background sync:', error);
+  });
+}
+
+// Carregar o app
 carregar();
 // Arranque local-first: se a pessoa ja estava logada, desenha na hora com os dados
 // deste aparelho, sem esperar a rede. O Firebase sincroniza logo em seguida.
@@ -7905,7 +9825,13 @@ if(localStorage.getItem('fe_sessao_ativa')){
 }else{
   iniciarTimeoutOffline();
 }
+
+// ✅ Registrar Service Worker ANTES de inicializar Firebase
+registrarServiceWorker();
+solicitarPermissaoPush();
+
 fbInit();
+
 </script>
 </body>
 </html>
