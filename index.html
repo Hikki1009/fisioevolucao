@@ -35,8 +35,8 @@
 <meta name="apple-mobile-web-app-title" content="FisioEvolução"/>
 <meta name="theme-color" content="#1e6b3f"/>
 <meta
-  \1"description"
-  \1"FisioEvolução — gestão completa para fisioterapeutas autônomos: agenda, prontuário eletrônico, evoluções, controle financeiro e relatórios. Em conformidade com o COFFITO e a LGPD."/>
+  name="description"
+  content="FisioEvolucao — gestao completa para fisioterapeutas autonomos: agenda, prontuario eletronico, evolucoes, controle financeiro e relatorios. Em conformidade com o COFFITO e a LGPD."/>
 
 <!-- 📱 PWA MANIFEST E META TAGS -->
 <link rel="manifest" href="/manifest.json"/>
@@ -46,16 +46,8 @@
 
 <!-- Apple PWA -->
 <link
-  \1"apple-touch-icon"
-  \1"data:image/svg+xml,<svg
-  \1'http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect
-  \1'%2316a34a'
-  \1'180'
-  \1'180'
-  \1'40'/><text
-  \1'90'
-  \1'90' font-size='100' font-weight='bold'
-  \1'white' text-anchor='middle' dominant-baseline='central'>F</text></svg>"/>
+  rel="apple-touch-icon"
+  href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%2316a34a' width='180' height='180' rx='40'/><text x='90' y='90' font-size='100' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'>F</text></svg>"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 
@@ -760,16 +752,16 @@ transition:opacity 0.3s ease}
 </div>
 <div id="toast"></div>
 <div
-  \1"onboarding-sc"
-  \1"position:fixed;inset:0;background:linear-gradient(160deg,#004d30 0%,#00875A 60%,#10B981 100%);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto">
+  id="onboarding-sc"
+  style="position:fixed;inset:0;background:linear-gradient(160deg,#004d30 0%,#00875A 60%,#10B981 100%);z-index:500;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto">
  <div style="width:100%;max-width:420px;position:relative" id="onb-inner"></div>
 </div>
 <!-- Backdrop para fechar notificações ao clicar fora -->
 <div id="sino-backdrop" style="position:fixed;inset:0;background:rgba(0,0,0,0);display:none;z-index:45;cursor:pointer;transition:background .2s" onclick="fecharSino()"></div>
 
 <div
-  \1"sino-painel"
-  \1"position:fixed;right:0;top:0;bottom:0;width:100%;max-width:360px;background:#fff;display:none;flex-direction:column;z-index:46;box-shadow:-4px 0 20px rgba(0,0,0,.12);animation:slideInRight .3s ease-out">
+  id="sino-painel"
+  style="position:fixed;right:0;top:0;bottom:0;width:100%;max-width:360px;background:#fff;display:none;flex-direction:column;z-index:46;box-shadow:-4px 0 20px rgba(0,0,0,.12);animation:slideInRight .3s ease-out">
  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--borda);flex-shrink:0">
  <div style="font-size:14px;font-weight:800;flex:1"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;display:inline-block;flex-shrink:0"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg> Notificações</div>
  <button class="btn btn-s btn-sm" onclick="limparTodasNotif()" style="margin-right:8px">Limpar</button>
@@ -2994,17 +2986,28 @@ function editarNome(){
  h+='</div><div class="fg"><label>Data de nascimento</label>';
  h+='<input class="fi" type="text" id="nasc-inp" maxlength="10" placeholder="DD/MM/AAAA" value="'+esc(D.cfg.dataNasc||'')+'"'+(_trv?' readonly style="background:var(--bg);color:var(--sl3);cursor:not-allowed"':' oninput="mData(this)"')+'/>';
  if(_trv)h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">Data confirmada e bloqueada. Para corrigir, fale com o suporte.</div>';
- else h+='<div style="font-size:11px;color:var(--g1);margin-top:4px">No mês do seu aniversário, a mensalidade é por nossa conta. Após confirmar, a data não poderá ser alterada.</div>';
+ else h+='<div style="font-size:11px;color:var(--g1);margin-top:4px">No dia do seu aniversário, a mensalidade é por nossa conta. Após confirmar, a data não poderá ser alterada.</div>';
  h+='<div style="font-size:11px;color:var(--sl3);margin-top:3px">Obrigatório — Lei Federal nº 6.316/1975</div></div>';
+ h+='<div class="fg" style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--g4);border-radius:8px;border-left:3px solid var(--g1)">';
+ var _ckDisab=_trv?'':'disabled';
+ var _ckChk=D.cfg.usarMensalidadeAniversario?'checked':'';
+ var _cur=D.cfg.dataNascConfirmada?'pointer':'not-allowed';
+ h+='<input type="checkbox" id="usar-aniv-cb" '+_ckDisab+' '+_ckChk+' style="cursor:'+_cur+';width:18px;height:18px"/>';
+ h+='<label style="flex:1;margin:0;cursor:'+_cur+';font-size:14px;font-weight:600;color:var(--g1)">🎂 Ativar mensalidade de aniversário</label>';
+ h+='</div>';
+ if(!D.cfg.dataNascConfirmada)h+='<div style="font-size:11px;color:var(--sl3);margin-top:4px">⚠️ Confirme sua data de nascimento primeiro</div>';
  h+='<button class="btn btn-p btn-bl" onclick="salvarPerfilCompleto()">Salvar</button>';
  abrirM(h);
 }
 function salvarPerfilCompleto(){
  var nome=el('en-nome')?el('en-nome').value.trim():'';
  var crefito=el('crefito-inp')?el('crefito-inp').value.trim().toUpperCase():'';
- 
+ var usarAniv=el('usar-aniv-cb')?el('usar-aniv-cb').checked:false;
+
+ D.cfg.usarMensalidadeAniversario=usarAniv;
+
  if(nome&&FBU){FBU.updateProfile({displayName:nome}).then(function(){D.cfg.nomeExibicao=nome;toast('✅ Perfil atualizado!');}).catch(function(e){console.error('[PROFILE] ❌ Erro ao atualizar:',e);toast('❌ Erro ao atualizar perfil');});}
- 
+
  if(!crefito){toast('❌ Informe seu CREFITO (obrigatório por lei).');return;}
  
  // ✅ Validar formato CREFITO (melhorado em v1.059)
@@ -3119,6 +3122,44 @@ function diasAteAniv(dataNasc){
 function mesAniversarioUser(){
  var v=(D.cfg.dataNasc||'').trim();var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v);if(!m)return false;
  return (+m[2])===(new Date().getMonth()+1);
+}
+
+// ── VERIFICAR SE É ANIVERSÁRIO HOJE ────────────────────────────────────
+function ehAniversarioHoje(){
+ if(!D.cfg.dataNasc)return false;
+ var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((D.cfg.dataNasc||'').trim());
+ if(!m)return false;
+ var dia=+m[1],mes=+m[2];
+ var hj=new Date();
+ return hj.getDate()===dia && (hj.getMonth()+1)===mes;
+}
+
+// ── APLICAR MENSALIDADE DE ANIVERSÁRIO ─────────────────────────────────
+var _aniversarioJaProcessado=false;
+function aplicarMensalidadeAniversario(){
+ // Só aplica se: feature ativada, é aniversário hoje, e ainda não foi processado
+ if(!D.cfg.usarMensalidadeAniversario || !ehAniversarioHoje() || _aniversarioJaProcessado)return;
+
+ var hj=hoje();
+ var vencAtual=D.cfg.vencimento||'';
+
+ // Se já tem acesso vigente, estende; senão, cria novo
+ var dataBase=vencAtual && vencAtual>hj?new Date(vencAtual):new Date();
+ var dataNovaExp=new Date(dataBase);
+ dataNovaExp.setDate(dataNovaExp.getDate()+30);
+
+ var novoVenc=dataNovaExp.toISOString().slice(0,10);
+ D.cfg.vencimento=novoVenc;
+ _aniversarioJaProcessado=true;
+
+ // Salvar no Firebase
+ if(FBD&&FBU){
+ FBD.ref('u/'+FBU.uid+'/cfg/vencimento').set(novoVenc);
+ FBD.ref('usuarios_publicos/'+FBU.uid+'/vencimento').set(novoVenc);
+ }
+
+ // Notificar
+ toast('🎂 Feliz aniversario! Este mes a mensalidade e por nossa conta. Aproveite!',5000,'success');
 }
 function validarCrefito(v){v=(v||'').trim().toUpperCase();return /^(CREFITO[-\s]?)?\d{1,2}[\/\-\s]?\d{3,7}[\/\-\s]?(F|TO)$/.test(v);}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,5);}
@@ -3662,6 +3703,8 @@ function boot(){
  // Estes agendamentos so devem acontecer uma vez por sessao.
  if(!_bootEfeitos){
  _bootEfeitos=true;
+ // ✅ Verificar e aplicar mensalidade de aniversário
+ setTimeout(aplicarMensalidadeAniversario,1000);
  setTimeout(gerarNotificacoes,2000);
  setTimeout(verificarExclusaoAgendada,3000);
  setTimeout(verificarUsoArmazenamento,4000);
@@ -3932,7 +3975,17 @@ function rInicio(el2){
 
  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:800">'+saud+'</div>';
  h+='<div style="font-size:12px;color:var(--sl3);margin-top:3px">'+capitalizar(now.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))+'</div></div>';
- 
+
+ // ✅ MENSAGEM DE ANIVERSÁRIO (apenas no dia exato)
+ if(D.cfg.usarMensalidadeAniversario && ehAniversarioHoje()){
+ h+='<div class="card" style="border-color:var(--g1);background:var(--g4);margin-bottom:12px">';
+ h+='<div style="display:flex;align-items:center;gap:10px">';
+ h+='<div style="font-size:28px">🎂</div>';
+ h+='<div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--g1)">Feliz aniversário! 🎉</div>';
+ h+='<div style="font-size:12px;color:var(--g2)">Este mês sua mensalidade é por nossa conta. Aproveite!</div></div>';
+ h+='</div></div>';
+ }
+
  // ── ALERTA: COMPLETE SEU PERFIL ──
  var perfisIncompletos=[];
  if(!FBU||!FBU.displayName)perfisIncompletos.push('Nome');
